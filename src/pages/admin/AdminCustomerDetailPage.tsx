@@ -33,15 +33,15 @@ export default function AdminCustomerDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <div className="h-16 w-16 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center">
-          <span className="text-2xl font-gaming font-bold text-primary">{c.full_name?.charAt(0) || '?'}</span>
+          <span className="text-2xl font-gaming font-bold text-primary">{(c.full_name || c.username)?.charAt(0)?.toUpperCase() || '?'}</span>
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-gaming font-bold text-white">{c.full_name || 'No Name'}</h1>
+            <h1 className="text-xl font-gaming font-bold text-white">{c.full_name || c.username || 'No Name'}</h1>
             {c.is_vip && <span className="text-neon-gold text-sm">★ VIP</span>}
           </div>
-          <p className="text-muted-foreground text-sm">{c.email}</p>
-          <p className="text-xs text-muted-foreground">{c.phone}</p>
+          <p className="text-muted-foreground text-sm">@{c.username}</p>
+          {c.telegram && <p className="text-xs text-muted-foreground">Telegram: {c.telegram}</p>}
         </div>
       </div>
 

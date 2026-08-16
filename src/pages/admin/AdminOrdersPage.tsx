@@ -94,9 +94,8 @@ export default function AdminOrdersPage() {
                     <span className={getOrderStatusClass(order.status)}>{getOrderStatusLabel(order.status)}</span>
                     {order.is_guest && <span className="badge text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">Guest</span>}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {order.order_number} • {order.username} •
-                    {order.is_guest ? ` ${order.guest_name}` : ` ${order.profile?.full_name || 'User'}`} •
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {order.order_number} • {order.is_guest ? ` ${order.username}` : ` ${order.profile?.full_name || 'User'}`} •
                     {formatRelativeTime(order.created_at)}
                   </p>
                 </div>

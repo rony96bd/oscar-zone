@@ -1,110 +1,137 @@
 import { useState, useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Zap, ChevronRight, Check, Copy, ExternalLink, Loader2, CheckCircle } from 'lucide-react'
-import { useAuthStore } from '@/stores/authStore'
-import { fetchCustomerGames } from '@/services/games'
-import { fetchPaymentMethods, uploadPaymentScreenshot } from '@/services/payments'
-import { BonusPreview } from '@/components/shared/BonusPreview'
-import { ScreenshotUpload } from '@/components/shared/ScreenshotUpload'
-import { cn, formatCurrency, copyToClipboard } from '@/lib/utils'
+import { ChevronLeft, Gamepad2, Zap, Image as ImageIcon, CheckCircle, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { toast } from 'sonner'
 import { fetchGames } from '@/services/games'
-import { calculateBonusPreview } from '@/services/orders'
-
-const STEPS = ['Game', 'Amount', 'Payment', 'Review']
+import { useAuthStore } from '@/stores/authStore'
+import { toast } from 'sonner'
+import { cn, formatCurrency } from '@/lib/utils'
+import { ScreenshotUpload } from '@/components/customer/ScreenshotUpload'
+import { APP_NAME } from '@/lib/constants'
+import type { Game, PaymentMethod } from '@/types'
 
 export default function LoadGamePage() {
-  const { profile } = useAuthStore()
-  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const locationState = location.state as any
-
-  const [step, setStep] = useState(1)
-  const [selectedGameId, setSelectedGameId] = useState(locationState?.gameId || '')
-  const [selectedCgId, setSelectedCgId] = useState(locationState?.customerGameId || '')
-  const [username, setUsername] = useState('')
-  const [amount, setAmount] = useState<number>(0)
-  const [selectedPaymentId, setSelectedPaymentId] = useState('')
-  const [screenshotFile, setScreenshotFile] = useState<File | null>(null)
+  const { profile, isAuthenticated } = useAuthStore()
+  
+  const initialGameId = searchParams.get('game') || ''
+  const [selectedGameId, setSelectedGameId] = useState(initialGameId)
+  
+  const [username, setUsername] = useState(profile?.username || profile?.full_name || '')
+  const [amount, setAmount] = useState<string>('')
+  
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
+  
+  const [screenshotKey, setScreenshotKey] = useState<string | null>(null)
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
+  
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submittedOrder, setSubmittedOrder] = useState<any>(null)
-  const [copiedTag, setCopiedTag] = useState(false)
+  const [orderComplete, setOrderComplete] = useState(false)
 
-  const { data: myGames = [] } = useQuery({
-    queryKey: ['customer-games', profile?.id],
-    queryFn: () => fetchCustomerGames(profile!.id),
-    enabled: !!profile?.id,
-  })
-
-  const { data: allGames = [] } = useQuery({
-    queryKey: ['games', 'active'],
+  const { data: games, isLoading: loadingGames } = useQuery({
+    queryKey: ['games-active'],
     queryFn: fetchGames,
   })
 
-  const { data: paymentMethods = [] } = useQuery({
-    queryKey: ['payment-methods', 'active'],
-    queryFn: fetchPaymentMethods,
-  })
-
-  const { data: bonusPreview, isLoading: bonusLoading } = useQuery({
-    queryKey: ['bonus-preview', selectedGameId, amount],
-    queryFn: () => calculateBonusPreview(selectedGameId, amount, profile?.id),
-    enabled: !!selectedGameId && amount >= 10,
-    staleTime: 30000,
-  })
-
-  const selectedGame = allGames.find((g: any) => g.id === selectedGameId)
-  const selectedPayment = paymentMethods.find((p: any) => p.id === selectedPaymentId)
-
+  // Fetch active payment methods
   useEffect(() => {
-    if (selectedCgId && !username) {
-      const cg = myGames.find((c: any) => c.id === selectedCgId)
-      if (cg) setUsername((cg as any).username)
+    async function loadMethods() {
+      const { data } = await supabase
+        .from('payment_methods')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+      if (data) setPaymentMethods(data)
     }
-  }, [selectedCgId, myGames])
+    loadMethods()
+  }, [])
 
-  const handleCopyTag = async (tag: string) => {
-    await copyToClipboard(tag)
-    setCopiedTag(true)
-    setTimeout(() => setCopiedTag(false), 2000)
-  }
+  // Auto-fill username if profile exists
+  useEffect(() => {
+    if (profile?.username || profile?.full_name) {
+      if (!username) setUsername(profile.username || profile.full_name || '')
+    }
+  }, [profile])
 
-  const handleSubmit = async () => {
-    if (!screenshotFile) { toast.error('Please upload your payment screenshot'); return }
+  const selectedGame = games?.find(g => g.id === selectedGameId)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!selectedGame) return toast.error('Please select a game')
+    if (!username) return toast.error('Please enter your Game Username or Name')
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return toast.error('Please enter a valid amount')
+    if (Number(amount) < selectedGame.minimum_amount) {
+      return toast.error(`Minimum load amount for this game is ${formatCurrency(selectedGame.minimum_amount)}`)
+    }
+    if (Number(amount) > selectedGame.maximum_amount) {
+      return toast.error(`Maximum load amount for this game is ${formatCurrency(selectedGame.maximum_amount)}`)
+    }
+    if (!selectedMethod) return toast.error('Please select a payment method')
+    if (!screenshotKey) return toast.error('Please upload your payment screenshot')
+
     setIsSubmitting(true)
+
     try {
-      const tempId = crypto.randomUUID()
-      const screenshotPath = await uploadPaymentScreenshot(screenshotFile, tempId, profile?.id || null)
-      const { data, error } = await supabase.functions.invoke('create-order', {
-        body: { game_id: selectedGameId, username, base_amount: amount, payment_method_id: selectedPaymentId, payment_screenshot_path: screenshotPath, customer_game_id: selectedCgId || undefined },
+      // Temporarily we do the logic using the edge function
+      const { error } = await supabase.functions.invoke('create-order', {
+        body: {
+          game_id: selectedGame.id,
+          username: username,
+          base_amount: Number(amount),
+          payment_method_id: selectedMethod.id,
+          payment_screenshot_path: screenshotKey,
+          is_guest: !isAuthenticated,
+        },
       })
+
       if (error) throw error
-      setSubmittedOrder(data.order)
+      
+      setOrderComplete(true)
+      toast.success('Order submitted successfully!')
     } catch (err: any) {
-      toast.error(err.message || 'Failed to submit order')
+      console.error(err)
+      toast.error(err.message || 'Failed to submit order. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  if (submittedOrder) {
+  if (orderComplete) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-md mx-auto glass-card p-8 text-center animate-scale-in">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neon-green/20 border border-neon-green/30 mx-auto mb-4">
-            <CheckCircle className="h-8 w-8 text-neon-green" />
+      <div className="min-h-screen hero-bg pt-20 pb-10 px-4 flex flex-col items-center justify-center">
+        <div className="glass-card p-8 max-w-lg w-full text-center animate-scale-in">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-neon-green/20 border border-neon-green/30 mx-auto mb-6">
+            <CheckCircle className="h-10 w-10 text-neon-green" />
           </div>
-          <h2 className="text-2xl font-gaming font-bold text-white mb-2">Order Submitted!</h2>
-          <p className="text-muted-foreground mb-4">We're processing your payment.</p>
-          <div className="bg-muted/30 rounded-xl p-4 mb-6">
-            <p className="text-xs text-muted-foreground">Order Number</p>
-            <p className="font-mono font-bold text-primary text-lg">{submittedOrder.order_number}</p>
+          <h2 className="text-2xl font-bold text-white mb-3">Order Received!</h2>
+          <p className="text-muted-foreground text-sm mb-6">
+            Your load order for <strong className="text-white">{selectedGame?.name}</strong> has been submitted. Our team is verifying your payment and will process it shortly.
+          </p>
+          
+          <div className="bg-game-darker rounded-xl p-4 border border-border text-left mb-6">
+            <div className="flex justify-between mb-2">
+              <span className="text-muted-foreground text-sm">Account:</span>
+              <span className="text-white font-medium">{username}</span>
+            </div>
+            <div className="flex justify-between mb-2">
+              <span className="text-muted-foreground text-sm">Amount:</span>
+              <span className="text-neon-green font-medium">{formatCurrency(Number(amount))}</span>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <button onClick={() => navigate('/orders')} className="btn-ghost-neon flex-1 py-2.5 text-sm">View Orders</button>
-            <button onClick={() => { setSubmittedOrder(null); setStep(1); setAmount(0); setScreenshotFile(null) }} className="btn-neon flex-1 py-2.5 text-sm">New Order</button>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {isAuthenticated ? (
+              <Link to="/orders" className="btn-neon px-6 py-3">View My Orders</Link>
+            ) : (
+              <Link to="/" className="btn-neon px-6 py-3">Back to Home</Link>
+            )}
+            <button onClick={() => window.location.reload()} className="px-6 py-3 rounded-xl border border-border text-foreground hover:bg-white/5 transition-colors font-gaming font-semibold tracking-wide">
+              Load Again
+            </button>
           </div>
         </div>
       </div>
@@ -112,148 +139,252 @@ export default function LoadGamePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 pb-24 lg:pb-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-gaming font-bold text-gradient-white">Load Game</h1>
+    <div className="min-h-screen hero-bg pt-20 pb-20">
+      <div className="container max-w-4xl">
+        <div className="flex items-center gap-4 mb-8">
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground transition-all"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Load Game</h1>
+            <p className="text-sm text-muted-foreground">Select game, enter amount, and upload screenshot</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 mb-6">
-          {STEPS.map((label, i) => {
-            const num = i + 1; const isActive = step === num; const isDone = step > num
-            return (
-              <div key={label} className="flex items-center gap-2">
-                <div className="flex flex-col items-center gap-1">
-                  <div className={cn('step-indicator', isActive ? 'active' : isDone ? 'completed' : 'inactive')}>
-                    {isDone ? <Check className="h-4 w-4" /> : num}
-                  </div>
-                  <span className={cn('text-xs whitespace-nowrap', isActive ? 'text-primary' : isDone ? 'text-neon-green' : 'text-muted-foreground')}>{label}</span>
-                </div>
-                {i < STEPS.length - 1 && <div className={cn('w-8 h-px mb-5', isDone ? 'bg-neon-green' : 'bg-border')} />}
-              </div>
-            )
-          })}
-        </div>
-        <div className="glass-card p-6">
-          {step === 1 && (
-            <div>
-              <h2 className="font-gaming font-bold text-white text-lg mb-4">Select Game &amp; Username</h2>
-              {myGames.length > 0 && (
-                <div className="space-y-2 mb-4">
-                  {myGames.map((cg: any) => (
-                    <button key={cg.id} onClick={() => { setSelectedCgId(cg.id); setSelectedGameId(cg.game_id); setUsername(cg.username) }}
-                      className={cn('w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all',
-                        selectedCgId === cg.id ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/40')}
-                    >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20 font-bold text-primary text-xs font-gaming">
-                        {cg.game?.name?.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div className="flex-1"><p className="text-sm font-semibold text-white">{cg.game?.name}</p><p className="text-xs font-mono text-primary">{cg.username}</p></div>
-                      {selectedCgId === cg.id && <Check className="h-4 w-4 text-primary" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div className="space-y-3 mt-3">
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Form Area */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="glass-card p-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                
+                {/* 1. Select Game */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Game</label>
-                  <select value={selectedGameId} onChange={e => { setSelectedGameId(e.target.value); setSelectedCgId('') }} className="game-input">
-                    <option value="">Select a game...</option>
-                    {allGames.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Game Username</label>
-                  <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Your in-game username" className="game-input" />
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end">
-                <button onClick={() => setStep(2)} disabled={!selectedGameId || !username.trim()} className="btn-neon px-6 py-3 disabled:opacity-40">
-                  Continue <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          )}
-          {step === 2 && (
-            <div>
-              <h2 className="font-gaming font-bold text-white text-lg mb-4">Load Amount</h2>
-              <div className="relative mb-4">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                <input type="number" value={amount || ''} onChange={e => setAmount(parseFloat(e.target.value) || 0)} placeholder="100" className="game-input pl-8" />
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {[20, 50, 100, 200, 500].map(a => (
-                  <button key={a} onClick={() => setAmount(a)} className={cn('px-3 py-1.5 rounded-lg text-sm font-medium border transition-all', amount === a ? 'border-primary bg-primary/20 text-primary' : 'border-border text-muted-foreground')}>${a}</button>
-                ))}
-              </div>
-              {amount >= 10 && <BonusPreview amount={amount} bonus={bonusPreview} isLoading={bonusLoading} />}
-              <div className="mt-6 flex justify-between">
-                <button onClick={() => setStep(1)} className="btn-ghost-neon px-4 py-2.5 text-sm">Back</button>
-                <button onClick={() => setStep(3)} disabled={!amount || amount < ((selectedGame as any)?.minimum_amount || 10)} className="btn-neon px-6 py-3 disabled:opacity-40">Continue <ChevronRight className="h-4 w-4" /></button>
-              </div>
-            </div>
-          )}
-          {step === 3 && (
-            <div>
-              <h2 className="font-gaming font-bold text-white text-lg mb-4">Payment Method</h2>
-              <div className="space-y-3 mb-6">
-                {paymentMethods.map((method: any) => (
-                  <button key={method.id} onClick={() => setSelectedPaymentId(method.id)}
-                    className={cn('payment-card w-full text-left', selectedPaymentId === method.id && 'selected')}
-                  >
-                    <div className="relative flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 font-bold text-primary text-sm">{method.name.substring(0, 2)}</div>
-                      <div className="flex-1"><p className="font-semibold text-white text-sm">{method.name}</p>{method.tag && <p className="text-xs text-primary font-mono">{method.tag}</p>}</div>
-                      {selectedPaymentId === method.id && <Check className="h-5 w-5 text-primary" />}
+                  <label className="block text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">1</span>
+                    Select Game
+                  </label>
+                  
+                  {loadingGames ? (
+                    <div className="h-24 skeleton rounded-xl" />
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {games?.map((game) => (
+                        <button
+                          key={game.id}
+                          type="button"
+                          onClick={() => setSelectedGameId(game.id)}
+                          className={cn(
+                            "relative overflow-hidden rounded-xl border p-3 flex flex-col items-center gap-2 transition-all group",
+                            selectedGameId === game.id 
+                              ? "border-primary bg-primary/10 shadow-neon-blue" 
+                              : "border-border bg-game-darker hover:border-primary/50"
+                          )}
+                        >
+                          {game.logo_url ? (
+                            <img src={game.logo_url} alt={game.name} className="h-10 w-10 object-contain" />
+                          ) : (
+                            <Gamepad2 className={cn("h-8 w-8", selectedGameId === game.id ? "text-primary" : "text-muted-foreground")} />
+                          )}
+                          <span className={cn(
+                            "text-xs font-semibold text-center leading-tight",
+                            selectedGameId === game.id ? "text-white" : "text-muted-foreground"
+                          )}>
+                            {game.name}
+                          </span>
+                        </button>
+                      ))}
                     </div>
-                    {selectedPaymentId === method.id && (
-                      <div className="mt-3 pt-3 border-t border-border space-y-2">
-                        {method.tag && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Tag</span>
-                            <button onClick={e => { e.stopPropagation(); handleCopyTag(method.tag) }} className="flex items-center gap-1.5 font-mono text-sm text-primary">
-                              {method.tag} {copiedTag ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                            </button>
+                  )}
+                </div>
+
+                {/* 2. Username & Amount */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">2</span>
+                      Game Username / Your Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="e.g. player123"
+                      className="game-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">3</span>
+                      Load Amount ($)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <input
+                        type="number"
+                        required
+                        min={selectedGame?.minimum_amount || 1}
+                        max={selectedGame?.maximum_amount || 1000}
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="0.00"
+                        className="game-input pl-8"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Payment Method */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">4</span>
+                    Select Payment Method
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {paymentMethods.map(method => (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => setSelectedMethod(method)}
+                        className={cn(
+                          "relative rounded-xl border p-3 flex flex-col items-center gap-2 transition-all",
+                          selectedMethod?.id === method.id 
+                            ? "border-neon-green bg-neon-green/10 shadow-neon-green" 
+                            : "border-border bg-game-darker hover:border-neon-green/50"
+                        )}
+                      >
+                        {method.logo_url ? (
+                          <img src={method.logo_url} alt={method.name} className="h-8 object-contain" />
+                        ) : (
+                          <span className="font-gaming font-bold text-lg">{method.name}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Payment Details Reveal */}
+                  {selectedMethod && (
+                    <div className="mt-4 p-4 rounded-xl border border-neon-green/30 bg-neon-green/5 animate-fade-in">
+                      <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+                        {selectedMethod.qr_code_url && (
+                          <div className="bg-white p-2 rounded-lg flex-shrink-0">
+                            <img src={selectedMethod.qr_code_url} alt="QR Code" className="w-32 h-32 object-contain" />
                           </div>
                         )}
-                        {method.instructions && <div className="bg-muted/30 rounded-lg p-3"><p className="text-xs text-muted-foreground whitespace-pre-line">{method.instructions}</p></div>}
-                        <p className="text-xs font-semibold text-neon-gold">Send exactly {formatCurrency(amount)}</p>
+                        <div className="flex-1 text-center sm:text-left">
+                          <h4 className="font-semibold text-white mb-2">Send payment via {selectedMethod.name}</h4>
+                          
+                          {selectedMethod.tag && (
+                            <div className="inline-flex items-center gap-2 bg-game-darker border border-border px-4 py-2 rounded-lg mb-3">
+                              <span className="text-neon-green font-mono text-lg font-bold">{selectedMethod.tag}</span>
+                            </div>
+                          )}
+                          
+                          {selectedMethod.payment_link && (
+                            <a href={selectedMethod.payment_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline block mb-3 text-sm">
+                              Click here to pay
+                            </a>
+                          )}
+                          
+                          {selectedMethod.instructions && (
+                            <p className="text-sm text-muted-foreground whitespace-pre-line">{selectedMethod.instructions}</p>
+                          )}
+                        </div>
                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 5. Screenshot */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">5</span>
+                    Payment Screenshot
+                  </label>
+                  <ScreenshotUpload 
+                    onUpload={(key, url) => {
+                      setScreenshotKey(key)
+                      setScreenshotUrl(url)
+                    }}
+                    onClear={() => {
+                      setScreenshotKey(null)
+                      setScreenshotUrl(null)
+                    }}
+                    uploaded={!!screenshotKey}
+                    orderId="temp" // Just a placeholder for R2 key generation
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !selectedGame || !username || !amount || !selectedMethod || !screenshotKey}
+                    className="btn-neon w-full py-4 text-lg"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                    ) : (
+                      <>
+                        <Zap className="h-5 w-5" />
+                        Submit Order
+                      </>
                     )}
                   </button>
-                ))}
-              </div>
-              <div className="flex justify-between">
-                <button onClick={() => setStep(2)} className="btn-ghost-neon px-4 py-2.5 text-sm">Back</button>
-                <button onClick={() => setStep(4)} disabled={!selectedPaymentId} className="btn-neon px-6 py-3 disabled:opacity-40">Continue <ChevronRight className="h-4 w-4" /></button>
+                </div>
+
+              </form>
+            </div>
+          </div>
+
+          {/* Sidebar / Summary */}
+          <div className="space-y-6">
+            <div className="glass-card p-6">
+              <h3 className="text-lg font-bold text-white mb-4">Order Summary</h3>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-muted-foreground text-sm">Game</span>
+                  <span className="font-medium text-white">{selectedGame?.name || 'Not selected'}</span>
+                </div>
+                
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-muted-foreground text-sm">Account</span>
+                  <span className="font-medium text-white max-w-[120px] truncate">{username || '---'}</span>
+                </div>
+                
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-muted-foreground text-sm">Amount</span>
+                  <span className="font-medium text-white">
+                    {amount ? formatCurrency(Number(amount)) : '---'}
+                  </span>
+                </div>
+
+                <div className="bg-game-darker rounded-xl p-4 border border-primary/20 mt-4 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-primary/10 rounded-bl-full blur-xl" />
+                  <p className="text-xs text-muted-foreground mb-1">Total to Pay</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {amount ? formatCurrency(Number(amount)) : '$0.00'}
+                  </p>
+                </div>
               </div>
             </div>
-          )}
-          {step === 4 && (
-            <div>
-              <h2 className="font-gaming font-bold text-white text-lg mb-6">Order Summary</h2>
-              <div className="space-y-2 mb-4">
-                {[{ label: 'Game', value: (selectedGame as any)?.name }, { label: 'Username', value: username }, { label: 'Payment', value: (selectedPayment as any)?.name }]
-                  .map(({ label, value }) => (
-                    <div key={label} className="flex justify-between py-2 border-b border-border text-sm">
-                      <span className="text-muted-foreground">{label}</span>
-                      <span className="font-medium text-foreground">{value}</span>
-                    </div>
-                  ))}
+
+            {!isAuthenticated && (
+              <div className="glass-card p-6 border-primary/30 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl rounded-full" />
+                <h3 className="text-base font-bold text-white mb-2">Create an account!</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Track your orders, earn referral bonuses, and chat with live support.
+                </p>
+                <Link to="/register" className="btn-neon w-full py-2 text-sm text-center block">
+                  Sign Up Now
+                </Link>
               </div>
-              <BonusPreview amount={amount} bonus={bonusPreview} isLoading={bonusLoading} />
-              <div className="mt-6 mb-6">
-                <label className="block text-sm font-medium text-foreground mb-3">Payment Screenshot *</label>
-                <ScreenshotUpload onFileSelect={setScreenshotFile} onFileRemove={() => setScreenshotFile(null)} selectedFile={screenshotFile} />
-              </div>
-              <div className="flex justify-between">
-                <button onClick={() => setStep(3)} className="btn-ghost-neon px-4 py-2.5 text-sm">Back</button>
-                <button onClick={handleSubmit} disabled={!screenshotFile || isSubmitting} className="btn-neon px-8 py-3 disabled:opacity-40">
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                  {isSubmitting ? 'Submitting...' : 'Submit Order'}
-                </button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

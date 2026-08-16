@@ -81,9 +81,7 @@ export default function AdminOrderDetailPage() {
             { label: 'Payment', value: o.payment_method?.name },
             { label: 'Type', value: o.is_guest ? 'Guest Order' : 'Registered User' },
             ...(o.is_guest ? [
-              { label: 'Guest Name', value: o.guest_name },
-              { label: 'Guest Phone', value: o.guest_phone },
-              { label: 'Guest Email', value: o.guest_email },
+              { label: 'Guest Username', value: o.username },
             ] : [
               { label: 'Customer', value: o.profile?.full_name },
               { label: 'Customer Email', value: o.profile?.email },

@@ -18,7 +18,6 @@ const HowItWorksPage = lazy(() => import('@/pages/public/HowItWorksPage'))
 const ReferralInfoPage = lazy(() => import('@/pages/public/ReferralInfoPage'))
 const FAQPage = lazy(() => import('@/pages/public/FAQPage'))
 const ContactPage = lazy(() => import('@/pages/public/ContactPage'))
-const QuickLoadPage = lazy(() => import('@/pages/public/QuickLoadPage'))
 
 // Auth Pages
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
@@ -84,7 +83,7 @@ function AppContent() {
           <Route path="/referral" element={<ReferralInfoPage />} />
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/contact" element={<ContactPage />} />
-          <Route path="/quick-load" element={<QuickLoadPage />} />
+          <Route path="/load" element={<LoadGamePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -96,9 +95,6 @@ function AppContent() {
           } />
           <Route path="/my-games" element={
             <ProtectedRoute><MyGamesPage /></ProtectedRoute>
-          } />
-          <Route path="/load" element={
-            <ProtectedRoute><LoadGamePage /></ProtectedRoute>
           } />
           <Route path="/orders" element={
             <ProtectedRoute><OrdersPage /></ProtectedRoute>

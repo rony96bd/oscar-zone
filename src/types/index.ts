@@ -20,10 +20,12 @@ export type PromotionType =
 
 export interface Profile {
   id: string
-  email: string
-  full_name: string | null
-  phone: string | null
-  avatar_url: string | null
+  email?: string
+  full_name?: string
+  phone?: string
+  username?: string
+  telegram?: string
+  avatar_url?: string | null
   role: UserRole
   account_status: AccountStatus
   referral_code: string

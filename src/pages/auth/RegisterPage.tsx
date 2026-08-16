@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Zap, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react'
+import { Zap, Eye, EyeOff, Loader2, CheckCircle, User, MessageCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { APP_NAME } from '@/lib/constants'
 import { toast } from 'sonner'
@@ -11,8 +11,11 @@ import { cn } from '@/lib/utils'
 
 const schema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email'),
-  phone: z.string().min(10, 'Please enter a valid phone number'),
+  username: z.string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(20, 'Username must be less than 20 characters')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Only letters, numbers, and underscores allowed'),
+  telegram: z.string().optional(),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirm_password: z.string(),
 }).refine(d => d.password === d.confirm_password, {
@@ -25,55 +28,71 @@ type FormData = z.infer<typeof schema>
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false)
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
+  
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const refCode = searchParams.get('ref') || ''
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
 
+  const usernameValue = watch('username')
+
+  // Check username availability on blur
+  const handleUsernameBlur = async () => {
+    if (!usernameValue || usernameValue.length < 3) return
+    
+    setIsCheckingUsername(true)
+    try {
+      const { data, error } = await supabase.rpc('check_username_available', {
+        username_to_check: usernameValue
+      })
+      
+      if (error) throw error
+      setUsernameAvailable(data)
+    } catch (err) {
+      console.error('Username check failed:', err)
+    } finally {
+      setIsCheckingUsername(false)
+    }
+  }
+
   const onSubmit = async (data: FormData) => {
+    if (usernameAvailable === false) {
+      toast.error('This username is already taken')
+      return
+    }
+
     setIsLoading(true)
     try {
+      // Create a dummy email for Supabase Auth to work behind the scenes
+      const dummyEmail = `${data.username.toLowerCase()}@oscarzone.system`
+
       const { error } = await supabase.auth.signUp({
-        email: data.email,
+        email: dummyEmail,
         password: data.password,
         options: {
           data: {
             full_name: data.full_name,
-            phone: data.phone,
+            username: data.username,
+            telegram: data.telegram,
             referral_code_used: refCode || null,
           },
         },
       })
       if (error) throw error
-      setSuccess(true)
+      
+      toast.success('Account created successfully!')
+      // Redirect to dashboard, supabase will automatically log them in
+      navigate('/dashboard')
     } catch (err: any) {
       toast.error(err.message || 'Failed to create account')
     } finally {
       setIsLoading(false)
     }
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen hero-bg flex items-center justify-center px-4">
-        <div className="glass-card p-8 max-w-md w-full text-center animate-scale-in">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neon-green/20 border border-neon-green/30 mx-auto mb-4">
-            <CheckCircle className="h-8 w-8 text-neon-green" />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">Check your email!</h2>
-          <p className="text-muted-foreground text-sm">
-            We sent a confirmation link to your email. Click it to activate your account.
-          </p>
-          <Link to="/login" className="btn-neon mt-6 inline-flex">
-            Go to Sign In
-          </Link>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -99,35 +118,57 @@ export default function RegisterPage() {
         <div className="glass-card p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Full Name</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Name</label>
               <input
                 {...register('full_name')}
-                placeholder="John Smith"
+                placeholder="John Doe"
                 className={cn('game-input', errors.full_name && 'border-destructive')}
               />
               {errors.full_name && <p className="text-xs text-destructive mt-1">{errors.full_name.message}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Email</label>
-              <input
-                {...register('email')}
-                type="email"
-                placeholder="you@example.com"
-                className={cn('game-input', errors.email && 'border-destructive')}
-              />
-              {errors.email && <p className="text-xs text-destructive mt-1">{errors.email.message}</p>}
+              <label className="block text-sm font-medium text-foreground mb-2">Username</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <input
+                  {...register('username')}
+                  onBlur={handleUsernameBlur}
+                  placeholder="player123"
+                  className={cn(
+                    'game-input pl-10', 
+                    errors.username && 'border-destructive',
+                    usernameAvailable === false && 'border-destructive'
+                  )}
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  {isCheckingUsername ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  ) : usernameAvailable === true ? (
+                    <CheckCircle className="h-4 w-4 text-neon-green" />
+                  ) : usernameAvailable === false ? (
+                    <span className="text-xs text-destructive font-medium">Taken</span>
+                  ) : null}
+                </div>
+              </div>
+              {errors.username && <p className="text-xs text-destructive mt-1">{errors.username.message}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Phone Number</label>
-              <input
-                {...register('phone')}
-                type="tel"
-                placeholder="(555) 000-0000"
-                className={cn('game-input', errors.phone && 'border-destructive')}
-              />
-              {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone.message}</p>}
+              <label className="block text-sm font-medium text-foreground mb-2">Telegram (Optional)</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <input
+                  {...register('telegram')}
+                  placeholder="@yourtelegram"
+                  className={cn('game-input pl-10', errors.telegram && 'border-destructive')}
+                />
+              </div>
+              {errors.telegram && <p className="text-xs text-destructive mt-1">{errors.telegram.message}</p>}
             </div>
 
             <div>
@@ -163,7 +204,7 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || usernameAvailable === false}
               className="btn-neon w-full py-3 mt-2"
             >
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}

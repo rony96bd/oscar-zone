@@ -73,7 +73,7 @@ export default function AdminDashboardPage() {
             >
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white">{order.game?.name} — {order.username}</p>
-                <p className="text-xs text-muted-foreground">{order.order_number} • {order.is_guest ? `Guest: ${order.guest_name}` : 'User'} • {formatRelativeTime(order.created_at)}</p>
+                <p className="text-xs text-muted-foreground">{order.order_number} • {order.is_guest ? `Guest: ${order.username}` : 'User'} • {formatRelativeTime(order.created_at)}</p>
               </div>
               <div className="text-right">
                 <p className="font-bold text-white text-sm">{formatCurrency(order.final_game_credit)}</p>

@@ -53,9 +53,6 @@ Deno.serve(async (req) => {
       payment_method_id,
       payment_screenshot_key, // R2 key from r2-upload-screenshot
       customer_game_id,
-      guest_name,
-      guest_email,
-      guest_phone,
     } = body
 
     // ── Validations ──────────────────────────────────────────────
@@ -174,9 +171,6 @@ Deno.serve(async (req) => {
         status: 'pending_payment_review',
         promotion_id: promotionId,
         is_guest: isGuest,
-        guest_name: isGuest ? (guest_name || null) : null,
-        guest_email: isGuest ? (guest_email || null) : null,
-        guest_phone: isGuest ? (guest_phone || null) : null,
       })
       .select()
       .single()
@@ -228,7 +222,7 @@ Deno.serve(async (req) => {
           promo_bonus_pct: promoBonusPct,
           promo_name: promotionName,
           payment_name: paymentMethod.name,
-          customer_name: profile?.full_name || guest_name || 'Guest',
+          customer_name: profile?.full_name || username.trim(),
           is_guest: isGuest,
           payment_screenshot_key: payment_screenshot_key || null,
         },

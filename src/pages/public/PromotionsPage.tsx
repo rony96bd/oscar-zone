@@ -64,7 +64,7 @@ export default function PromotionsPage() {
                   </div>
                 )}
                 <Link
-                  to={isAuthenticated ? '/load' : '/quick-load'}
+                  to="/load"
                   className="btn-neon w-full mt-4 py-2.5 text-sm"
                 >
                   <Zap className="h-4 w-4" /> Claim Now

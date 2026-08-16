@@ -56,7 +56,7 @@ export default function HowItWorksPage() {
         </div>
 
         <div className="mt-10 text-center">
-          <Link to="/quick-load" className="btn-neon px-8 py-4 text-base">
+          <Link to="/load" className="btn-neon px-8 py-4 text-base">
             <Zap className="h-5 w-5" /> Start Loading Now
           </Link>
         </div>

@@ -15,11 +15,7 @@ export default function GamesPage() {
   })
 
   const handleLoadGame = (game: any) => {
-    if (isAuthenticated) {
-      navigate('/load', { state: { gameId: game.id } })
-    } else {
-      navigate('/quick-load', { state: { gameId: game.id } })
-    }
+    navigate(`/load?game=${game.id}`)
   }
 
   return (

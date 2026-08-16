@@ -28,11 +28,7 @@ export default function HomePage() {
   const activePromo = promotions.find(p => p.type !== 'regular')
 
   const handleLoadGame = (game: any) => {
-    if (isAuthenticated) {
-      navigate('/load', { state: { gameId: game.id } })
-    } else {
-      navigate('/quick-load', { state: { gameId: game.id } })
-    }
+    navigate(`/load?game=${game.id}`)
   }
 
   return (
@@ -82,7 +78,7 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to={isAuthenticated ? '/load' : '/quick-load'}
+              to="/load"
               className="btn-neon text-base px-8 py-4 animate-glow-pulse"
             >
               <Zap className="h-5 w-5" />
@@ -149,7 +145,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <Link
-                  to={isAuthenticated ? '/load' : '/quick-load'}
+                  to="/load"
                   className="btn-neon-gold px-8 py-4 text-base font-bold flex-shrink-0"
                 >
                   <Zap className="h-5 w-5" />
@@ -203,7 +199,7 @@ export default function HomePage() {
             No account needed! Select your game, enter your username, pay, and you're done.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/quick-load" className="btn-neon px-8 py-4">
+            <Link to="/load" className="btn-neon px-8 py-4">
               <Zap className="h-5 w-5" />
               Quick Load (No Account)
             </Link>
