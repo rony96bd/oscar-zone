@@ -118,7 +118,7 @@ export function LiveChatWidget() {
   }
 
   const widgetContent = (
-    <div className="fixed bottom-6 right-6 z-[999999]">
+    <div className="fixed bottom-6 right-6" style={{ zIndex: 2147483647 }}>
       {/* Floating Button */}
       {!isOpen && (
         <button
@@ -131,7 +131,7 @@ export function LiveChatWidget() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="flex h-[500px] max-h-[80vh] w-[350px] max-w-[calc(100vw-3rem)] flex-col rounded-2xl border border-border bg-game-dark shadow-2xl overflow-hidden animate-scale-in">
+        <div className="flex h-[500px] max-h-[80vh] w-[350px] max-w-[calc(100vw-3rem)] flex-col rounded-2xl border border-border bg-black shadow-2xl overflow-hidden animate-scale-in">
           {/* Header */}
           <div className="flex items-center justify-between bg-black/40 p-4 border-b border-border">
             <div>
