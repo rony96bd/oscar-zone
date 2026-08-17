@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { MessageCircle, X, Send, User, Link as LinkIcon, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { createGuestConversation, fetchGuestConversation, sendMessage, fetchMessages } from '@/services/chat'
@@ -116,8 +117,8 @@ export function LiveChatWidget() {
     }
   }
 
-  return (
-    <div className="fixed bottom-6 right-6 z-[9999]">
+  const widgetContent = (
+    <div className="fixed bottom-6 right-6 z-[999999]">
       {/* Floating Button */}
       {!isOpen && (
         <button
@@ -256,4 +257,6 @@ export function LiveChatWidget() {
       )}
     </div>
   )
+
+  return createPortal(widgetContent, document.body)
 }
