@@ -71,7 +71,9 @@ export default function AdminChatPage() {
                   <User className="h-3.5 w-3.5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-white truncate">{conv.customer?.full_name || 'Customer'}</p>
+                  <p className="text-xs font-semibold text-white truncate">
+                    {conv.customer?.full_name || conv.guest_name || 'Guest'}
+                  </p>
                   <p className="text-[10px] text-muted-foreground truncate">{conv.last_message || conv.subject}</p>
                 </div>
                 {conv.unread_count_agent > 0 && (
@@ -90,7 +92,14 @@ export default function AdminChatPage() {
         <div className="flex-1 glass-card flex flex-col overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b border-border">
             <div>
-              <p className="font-semibold text-white text-sm">{activeConv.customer?.full_name || 'Customer'}</p>
+              <p className="font-semibold text-white text-sm">
+                {activeConv.customer?.full_name || activeConv.guest_name || 'Guest'}
+                {activeConv.guest_contact && (
+                  <span className="ml-2 text-xs font-normal text-neon-green">
+                    ({activeConv.guest_contact})
+                  </span>
+                )}
+              </p>
               <p className="text-xs text-muted-foreground">{activeConv.subject}</p>
             </div>
             <button onClick={() => closeMutation.mutate(activeConvId!)} className="btn-ghost-neon px-3 py-1.5 text-xs">
@@ -99,7 +108,7 @@ export default function AdminChatPage() {
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.map((msg: any) => {
-              const isAdmin = msg.sender_id !== activeConv.customer_id
+              const isAdmin = msg.sender_id !== activeConv.customer_id && !msg.is_guest
               return (
                 <div key={msg.id} className={cn('flex', isAdmin ? 'justify-end' : 'justify-start')}>
                   <div className={isAdmin ? 'chat-bubble-agent' : 'chat-bubble-customer'}>

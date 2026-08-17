@@ -12,6 +12,7 @@ import { useRealtimeNotifications } from '@/hooks/useRealtime'
 import { useThemeStore } from '@/stores/themeStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useEffect } from 'react'
+import { LiveChatWidget } from '@/components/ui/LiveChatWidget'
 
 // Public Pages
 const HomePage = lazy(() => import('@/pages/public/HomePage'))
@@ -164,6 +165,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AppContent />
+        <LiveChatWidget />
         <Toaster
           theme="dark"
           position="top-right"

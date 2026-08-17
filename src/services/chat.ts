@@ -47,17 +47,50 @@ export async function createConversation(
   return data
 }
 
+export async function createGuestConversation(
+  guestSessionId: string,
+  guestName: string,
+  guestContact: string | null
+): Promise<ChatConversation> {
+  const { data, error } = await supabase
+    .from('chat_conversations')
+    .insert({
+      guest_session_id: guestSessionId,
+      guest_name: guestName,
+      guest_contact: guestContact,
+      status: 'open',
+      subject: 'Guest Inquiry',
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function fetchGuestConversation(
+  guestSessionId: string
+): Promise<ChatConversation | null> {
+  // Using the secure RPC function to fetch conversation by session ID
+  const { data, error } = await supabase
+    .rpc('get_guest_conversation', { p_session_id: guestSessionId })
+    .single()
+  if (error) return null
+  return data
+}
+
 export async function sendMessage(
   conversationId: string,
-  senderId: string,
+  senderId: string | null,
   content: string,
-  isInternalNote = false
+  isInternalNote = false,
+  isGuest = false
 ): Promise<ChatMessage> {
   const { data, error } = await supabase
     .from('chat_messages')
     .insert({
       conversation_id: conversationId,
       sender_id: senderId,
+      is_guest: isGuest,
       content,
       is_internal_note: isInternalNote,
     })

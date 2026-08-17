@@ -220,7 +220,10 @@ export interface Notification {
 
 export interface ChatConversation {
   id: string
-  customer_id: string
+  customer_id: string | null
+  guest_session_id: string | null
+  guest_name: string | null
+  guest_contact: string | null
   assigned_agent_id: string | null
   status: 'open' | 'closed' | 'pending'
   subject: string | null
@@ -237,7 +240,8 @@ export interface ChatConversation {
 export interface ChatMessage {
   id: string
   conversation_id: string
-  sender_id: string
+  sender_id: string | null
+  is_guest: boolean
   content: string
   attachment_url: string | null
   is_internal_note: boolean
