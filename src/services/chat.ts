@@ -75,7 +75,7 @@ export async function fetchGuestConversation(
     .rpc('get_guest_conversation', { p_session_id: guestSessionId })
     .single()
   if (error) return null
-  return data
+  return data as ChatConversation | null
 }
 
 export async function sendMessage(
