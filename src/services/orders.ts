@@ -133,9 +133,93 @@ export async function calculateBonusPreview(
   final_credit: number
   promotion_name: string | null
 }> {
-  const { data, error } = await supabase.functions.invoke('calculate-bonus', {
-    body: { game_id: gameId, amount, customer_id: customerId },
-  })
-  if (error) throw error
-  return data
+  if (!gameId || !amount || amount < 1) {
+    throw new Error('Invalid parameters')
+  }
+
+  // Get default bonus
+  const { data: setting } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'default_bonus_percentage')
+    .single()
+  
+  const defaultBonusPct = parseFloat(setting?.value || '10')
+  let regularBonusPct = defaultBonusPct
+
+  if (customerId) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('custom_bonus_percentage')
+      .eq('id', customerId)
+      .single()
+    if (profile?.custom_bonus_percentage != null) {
+      regularBonusPct = profile.custom_bonus_percentage
+    }
+  }
+
+  const regularBonusAmount = Math.round(amount * regularBonusPct / 100 * 100) / 100
+
+  // Find promotion
+  const now = new Date()
+  const { data: promotions } = await supabase
+    .from('promotions')
+    .select('*')
+    .eq('is_active', true)
+    .neq('type', 'regular')
+    .order('priority', { ascending: false })
+
+  let bestPromo = null
+  let promoBonusPct = 0
+  let promoBonusAmount = 0
+
+  for (const promo of (promotions || [])) {
+    if (amount < promo.minimum_amount) continue
+    if (promo.maximum_amount && amount > promo.maximum_amount) continue
+    if (promo.start_date && new Date(promo.start_date) > now) continue
+    if (promo.end_date && new Date(promo.end_date) < now) continue
+    if (promo.applicable_game_ids?.length && !promo.applicable_game_ids.includes(gameId)) continue
+
+    if (promo.type === 'first_load' && customerId) {
+      // Check if user has any completed orders (Account First Load)
+      const { count } = await supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', customerId)
+        .eq('status', 'completed')
+      if ((count || 0) > 0) continue
+    }
+    
+    if (promo.type === 'daily' && customerId) {
+      // Check if user has any completed orders TODAY (Daily First Load)
+      const startOfDay = new Date()
+      startOfDay.setHours(0, 0, 0, 0)
+      
+      const { count } = await supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', customerId)
+        .eq('status', 'completed')
+        .gte('created_at', startOfDay.toISOString())
+      if ((count || 0) > 0) continue
+    }
+
+    bestPromo = promo
+    promoBonusPct = promo.bonus_percentage
+    promoBonusAmount = Math.round(amount * promoBonusPct / 100 * 100) / 100
+    break
+  }
+
+  const totalBonus = Math.round((regularBonusAmount + promoBonusAmount) * 100) / 100
+  const finalCredit = Math.round((amount + totalBonus) * 100) / 100
+
+  return {
+    regular_bonus_pct: regularBonusPct,
+    regular_bonus_amount: regularBonusAmount,
+    promo_bonus_pct: promoBonusPct,
+    promo_bonus_amount: promoBonusAmount,
+    total_bonus: totalBonus,
+    final_credit: finalCredit,
+    promotion_name: bestPromo?.name || null,
+  }
 }
