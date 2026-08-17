@@ -1,5 +1,1 @@
-/*
-  SPA redirect for Cloudflare Pages
-  All routes serve index.html
-*/
 /* /index.html 200
