@@ -99,7 +99,7 @@ export default function AdminBonusesPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         initialData={editingPromo}
-        onSubmit={async (data) => await saveMutation.mutateAsync(data)}
+        onSubmit={async (data) => { await saveMutation.mutateAsync(data) }}
       />
     </div>
   )
