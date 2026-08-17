@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       const {
         order_number, game_name, username, base_amount, final_credit,
         regular_bonus_pct, promo_bonus_pct, promo_name, payment_name,
-        customer_name, is_guest,
+        customer_name, is_guest, payment_screenshot_path
       } = body
 
       const promoPart = promo_bonus_pct > 0
@@ -79,21 +79,50 @@ Deno.serve(async (req) => {
       ].filter(Boolean).join('\n')
     }
 
+    // Generate signed URL if there's a screenshot
+    let photoUrl = null
+    if (body.payment_screenshot_path) {
+      const { data } = await adminClient.storage
+        .from('payment-screenshots')
+        .createSignedUrl(body.payment_screenshot_path, 60 * 60) // 1 hour
+      if (data?.signedUrl) {
+        photoUrl = data.signedUrl
+      }
+    }
+
     let sent = 0
     for (const dest of destinations) {
       try {
-        const resp = await fetch(
-          `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: dest.chat_id,
-              text: message,
-              parse_mode: 'Markdown',
-            }),
-          }
-        )
+        let resp
+        if (photoUrl && !isTest) {
+          resp = await fetch(
+            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: dest.chat_id,
+                photo: photoUrl,
+                caption: message,
+                parse_mode: 'Markdown',
+              }),
+            }
+          )
+        } else {
+          resp = await fetch(
+            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: dest.chat_id,
+                text: message,
+                parse_mode: 'Markdown',
+              }),
+            }
+          )
+        }
+        
         const data = await resp.json()
         if (data.ok) sent++
         else console.error('Telegram send error:', data)

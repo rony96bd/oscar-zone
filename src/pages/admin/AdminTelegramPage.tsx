@@ -27,9 +27,17 @@ export default function AdminTelegramPage() {
   })
 
   const testMutation = useMutation({
-    mutationFn: (id: string) => supabase.functions.invoke('send-telegram-notification', { body: { destination_id: id, test: true } }),
-    onSuccess: () => toast.success('Test message sent!'),
-    onError: () => toast.error('Test failed. Check bot token.'),
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke('send-telegram-notification', { 
+        body: { destination_id: id, test: true } 
+      })
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+      if (data?.skipped) throw new Error('Telegram Bot Token is missing in Supabase Secrets')
+      return data
+    },
+    onSuccess: () => toast.success('Test message sent! Check your Telegram.'),
+    onError: (err: any) => toast.error(`Test failed: ${err.message || 'Unknown error'}`),
   })
 
   const deleteMutation = useMutation({
@@ -85,8 +93,17 @@ export default function AdminTelegramPage() {
               {dest.description && <p className="text-xs text-muted-foreground">{dest.description}</p>}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => testMutation.mutate(dest.id)} className="btn-ghost-neon px-3 py-1.5 text-xs">
-                <TestTube className="h-3.5 w-3.5" /> Test
+              <button 
+                onClick={() => testMutation.mutate(dest.id)} 
+                disabled={testMutation.isPending}
+                className="btn-ghost-neon px-3 py-1.5 text-xs flex items-center gap-1"
+              >
+                {testMutation.isPending && testMutation.variables === dest.id ? (
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                ) : (
+                  <TestTube className="h-3.5 w-3.5" />
+                )}
+                Test
               </button>
               <button onClick={() => deleteMutation.mutate(dest.id)} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-destructive/20 transition-colors">
                 <Trash2 className="h-4 w-4 text-destructive" />

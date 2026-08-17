@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       username,
       base_amount,
       payment_method_id,
-      payment_screenshot_key, // R2 key from r2-upload-screenshot
+      payment_screenshot_path,
       customer_game_id,
     } = body
 
@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
         total_bonus_amount: totalBonus,
         final_game_credit: finalCredit,
         payment_method_id,
-        payment_screenshot_key: payment_screenshot_key || null,
+        payment_screenshot_key: payment_screenshot_path || null,
         status: 'pending_payment_review',
         promotion_id: promotionId,
         is_guest: isGuest,
@@ -224,7 +224,7 @@ Deno.serve(async (req) => {
           payment_name: paymentMethod.name,
           customer_name: profile?.full_name || username.trim(),
           is_guest: isGuest,
-          payment_screenshot_key: payment_screenshot_key || null,
+          payment_screenshot_path: payment_screenshot_path || null,
         },
       })
     } catch (tgErr) {

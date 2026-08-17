@@ -9,6 +9,9 @@ import { ProtectedRoute, AdminRoute } from '@/components/layout/ProtectedRoute'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
 import { useAuth } from '@/hooks/useAuth'
 import { useRealtimeNotifications } from '@/hooks/useRealtime'
+import { useThemeStore } from '@/stores/themeStore'
+import { useSettingsStore } from '@/stores/settingsStore'
+import { useEffect } from 'react'
 
 // Public Pages
 const HomePage = lazy(() => import('@/pages/public/HomePage'))
@@ -70,6 +73,13 @@ const queryClient = new QueryClient({
 function AppContent() {
   useAuth() // Initialize auth
   useRealtimeNotifications() // Subscribe to realtime notifications
+  const { fetchTheme } = useThemeStore()
+  const { fetchSettings } = useSettingsStore()
+
+  useEffect(() => {
+    fetchTheme()
+    fetchSettings()
+  }, [fetchTheme, fetchSettings])
 
   return (
     <Suspense fallback={<PageLoader />}>

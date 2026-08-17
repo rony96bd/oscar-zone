@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Gamepad2, Zap, Image as ImageIcon, CheckCircle, Loader2 } from 'lucide-react'
+import { ChevronLeft, Gamepad2, Zap, Image as ImageIcon, CheckCircle, Loader2, ZoomIn, X as XIcon, AlertTriangle, Info } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fetchGames } from '@/services/games'
+import { calculateBonusPreview } from '@/services/orders'
 import { useAuthStore } from '@/stores/authStore'
 import { toast } from 'sonner'
 import { cn, formatCurrency } from '@/lib/utils'
@@ -30,10 +31,20 @@ export default function LoadGamePage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orderComplete, setOrderComplete] = useState(false)
+  const [qrZoom, setQrZoom] = useState(false)
 
   const { data: games, isLoading: loadingGames } = useQuery({
     queryKey: ['games-active'],
     queryFn: fetchGames,
+  })
+
+  // Fetch bonus preview dynamically when game and amount change
+  const numericAmount = parseFloat(amount)
+  const { data: bonusData, isLoading: loadingBonus } = useQuery({
+    queryKey: ['bonus-preview', selectedGameId, numericAmount],
+    queryFn: () => calculateBonusPreview(selectedGameId, numericAmount, profile?.id),
+    enabled: !!selectedGameId && !isNaN(numericAmount) && numericAmount > 0,
+    staleTime: 30000,
   })
 
   // Fetch active payment methods
@@ -140,7 +151,7 @@ export default function LoadGamePage() {
 
   return (
     <div className="min-h-screen hero-bg pt-20 pb-20">
-      <div className="container max-w-4xl">
+      <div className="container max-w-4xl mx-auto px-4">
         <div className="flex items-center gap-4 mb-8">
           <button 
             onClick={() => navigate(-1)}
@@ -234,6 +245,26 @@ export default function LoadGamePage() {
                         className="game-input pl-8"
                       />
                     </div>
+                    {/* Bonus Preview Display */}
+                    {amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 && (
+                      <div className="mt-3 flex items-center justify-between p-3 rounded-lg border border-primary/20 bg-primary/5 animate-fade-in">
+                        <span className="text-xs text-muted-foreground">You will receive:</span>
+                        {loadingBonus ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        ) : (
+                          <div className="text-right">
+                            <span className="text-lg font-bold text-primary tracking-wide">
+                              {formatCurrency(bonusData?.final_credit || parseFloat(amount))}
+                            </span>
+                            {(bonusData?.total_bonus || 0) > 0 && (
+                              <p className="text-[10px] text-neon-green">
+                                Includes {formatCurrency(bonusData!.total_bonus)} bonus
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -267,32 +298,113 @@ export default function LoadGamePage() {
 
                   {/* Payment Details Reveal */}
                   {selectedMethod && (
-                    <div className="mt-4 p-4 rounded-xl border border-neon-green/30 bg-neon-green/5 animate-fade-in">
-                      <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-                        {selectedMethod.qr_code_url && (
-                          <div className="bg-white p-2 rounded-lg flex-shrink-0">
-                            <img src={selectedMethod.qr_code_url} alt="QR Code" className="w-32 h-32 object-contain" />
-                          </div>
-                        )}
-                        <div className="flex-1 text-center sm:text-left">
-                          <h4 className="font-semibold text-white mb-2">Send payment via {selectedMethod.name}</h4>
-                          
-                          {selectedMethod.tag && (
-                            <div className="inline-flex items-center gap-2 bg-game-darker border border-border px-4 py-2 rounded-lg mb-3">
-                              <span className="text-neon-green font-mono text-lg font-bold">{selectedMethod.tag}</span>
+                    <div className="mt-4 animate-fade-in">
+                      <div className="p-4 rounded-xl border border-neon-green/30 bg-neon-green/5">
+                        <h4 className="font-semibold text-white mb-4">
+                          Send payment via {selectedMethod.name}
+                        </h4>
+
+                        {/* Row: QR left | Tag+Instructions right */}
+                        <div className="flex flex-col sm:flex-row gap-4 items-start">
+
+                          {/* QR Code — clickable to zoom */}
+                          {selectedMethod.qr_code_url && (
+                            <div className="flex-shrink-0 flex flex-col items-center gap-2 mx-auto sm:mx-0">
+                              <button
+                                type="button"
+                                onClick={() => setQrZoom(true)}
+                                className="relative group bg-white p-2 rounded-lg cursor-zoom-in transition-transform hover:scale-105"
+                                title="Click to zoom"
+                              >
+                                <img
+                                  src={selectedMethod.qr_code_url}
+                                  alt="QR Code"
+                                  className="w-36 h-36 object-contain"
+                                  onError={(e) => { e.currentTarget.parentElement!.style.display = 'none' }}
+                                />
+                                <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/20 flex items-center justify-center transition-all">
+                                  <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                                </div>
+                              </button>
+                              <p className="text-xs text-muted-foreground">Tap to zoom</p>
                             </div>
                           )}
-                          
-                          {selectedMethod.payment_link && (
-                            <a href={selectedMethod.payment_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline block mb-3 text-sm">
-                              Click here to pay
-                            </a>
-                          )}
-                          
-                          {selectedMethod.instructions && (
-                            <p className="text-sm text-muted-foreground whitespace-pre-line">{selectedMethod.instructions}</p>
-                          )}
+
+                          {/* Right side: Tag + Link + Instructions */}
+                          <div className="flex-1 space-y-3 w-full">
+                            {/* Tag */}
+                            {selectedMethod.tag && (
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Send to</p>
+                                <div className="inline-flex items-center gap-2 bg-card border border-border px-4 py-2 rounded-lg">
+                                  <span className="text-neon-green font-mono text-lg font-bold">{selectedMethod.tag}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Payment Link */}
+                            {selectedMethod.payment_link && (
+                              <a href={selectedMethod.payment_link} target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 underline">
+                                Click here to pay
+                              </a>
+                            )}
+
+                            {/* Important Instructions — inline right of QR */}
+                            {selectedMethod.instructions && (
+                              <div className="rounded-lg border border-destructive/40 bg-destructive/8 p-3">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                  <Info className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+                                  <span className="text-[10px] font-bold text-destructive uppercase tracking-wider">Important Instructions</span>
+                                </div>
+                                <ul className="space-y-1.5">
+                                  {selectedMethod.instructions.split('\n').filter(Boolean).map((line, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-xs text-foreground/90">
+                                      {line.match(/^\d+\./) ? (
+                                        <>
+                                          <span className="flex-shrink-0 h-4 w-4 rounded-full bg-destructive/20 text-destructive text-[10px] font-bold flex items-center justify-center mt-0.5">
+                                            {line.match(/^(\d+)\./)?.[1]}
+                                          </span>
+                                          <span>{line.replace(/^\d+\.\s*/, '')}</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0 mt-0.5" />
+                                          <span>{line.replace(/^[-•*]\s*/, '')}</span>
+                                        </>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* QR Zoom Modal */}
+                  {qrZoom && selectedMethod?.qr_code_url && (
+                    <div
+                      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in"
+                      onClick={() => setQrZoom(false)}
+                    >
+                      <div className="relative" onClick={e => e.stopPropagation()}>
+                        <div className="bg-white p-4 rounded-2xl shadow-2xl">
+                          <img
+                            src={selectedMethod.qr_code_url}
+                            alt="QR Code Zoomed"
+                            className="w-72 h-72 object-contain"
+                          />
+                        </div>
+                        <p className="text-center text-white/70 text-sm mt-3">Scan with your camera app</p>
+                        <button
+                          onClick={() => setQrZoom(false)}
+                          className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <XIcon className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   )}

@@ -8,10 +8,10 @@ export function useAuth() {
   useEffect(() => {
     setLoading(true)
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Get initial session — await so isLoading stays true until profile is loaded
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        refreshProfile()
+        await refreshProfile()
       } else {
         setProfile(null)
       }

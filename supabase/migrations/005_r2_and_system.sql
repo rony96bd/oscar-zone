@@ -139,15 +139,9 @@ ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vip_customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
--- System settings: admin read/write only
-CREATE POLICY "admin_read_settings" ON system_settings
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.role IN ('admin', 'super_admin')
-    )
-  );
+-- System settings: everyone can read, admin write only
+CREATE POLICY "public_read_settings" ON system_settings
+  FOR SELECT USING (true);
 
 CREATE POLICY "admin_write_settings" ON system_settings
   FOR ALL USING (

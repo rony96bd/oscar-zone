@@ -3,11 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Zap, Eye, EyeOff, Loader2, User } from 'lucide-react'
+import { Eye, EyeOff, Loader2, User } from 'lucide-react'
+import { Logo } from '@/components/ui/Logo'
 import { supabase } from '@/lib/supabase'
-import { APP_NAME } from '@/lib/constants'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
 
 const schema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -22,7 +23,8 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   
-  const from = location.state?.from?.pathname || '/dashboard'
+  const { refreshProfile } = useAuthStore()
+  const from = location.state?.from?.pathname || null
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -32,7 +34,7 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       // Reconstruct the dummy email used during registration
-      const dummyEmail = `${data.username.toLowerCase()}@oscarzone.system`
+      const dummyEmail = `${data.username.toLowerCase()}@users.oscarzone.com`
       
       const { error } = await supabase.auth.signInWithPassword({
         email: dummyEmail,
@@ -45,8 +47,14 @@ export default function LoginPage() {
         throw error
       }
       
+      // Refresh profile to get latest role from DB
+      await refreshProfile()
+      const { profile } = useAuthStore.getState()
+      const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+      const destination = from || (isAdmin ? '/admin' : '/dashboard')
+      
       toast.success('Welcome back!')
-      navigate(from, { replace: true })
+      navigate(destination, { replace: true })
     } catch (err: any) {
       toast.error(err.message || 'Failed to sign in')
     } finally {
@@ -58,12 +66,9 @@ export default function LoginPage() {
     <div className="min-h-screen hero-bg flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 border border-primary/30">
-              <Zap className="h-6 w-6 text-primary" style={{ filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.8))' }} />
-            </div>
-            <span className="font-gaming font-bold text-xl text-white">{APP_NAME}</span>
-          </Link>
+          <div className="mb-6">
+            <Logo iconSize="lg" textClassName="text-xl" />
+          </div>
           <h1 className="text-2xl font-bold text-white">Welcome back</h1>
           <p className="text-muted-foreground text-sm mt-1">Sign in to your account</p>
         </div>

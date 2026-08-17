@@ -4,9 +4,34 @@ import { fetchOrderById, updateOrderStatus, migrateGuestOrderToUser } from '@/se
 import { PageLoader } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatDateTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
 import { CheckCircle, ExternalLink, UserCheck, Loader2 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { getScreenshotSignedUrl } from '@/services/r2'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { OrderStatus } from '@/types'
+
+function ScreenshotViewer({ path }: { path: string }) {
+  const { data: url, isLoading } = useQuery({
+    queryKey: ['screenshot-url', path],
+    queryFn: () => getScreenshotSignedUrl(path),
+    staleTime: 1000 * 60 * 5 // 5 mins
+  })
+
+  if (isLoading) return <p className="text-xs text-muted-foreground animate-pulse">Loading screenshot...</p>
+  if (!url) return <p className="text-xs text-destructive">Failed to load screenshot</p>
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col gap-2 group">
+      <div className="relative h-32 w-32 rounded-lg overflow-hidden border border-border group-hover:border-primary transition-colors">
+        <img src={url} alt="Screenshot" className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+          <ExternalLink className="h-5 w-5 text-white" />
+        </div>
+      </div>
+      <span className="text-xs text-primary group-hover:underline">View Full Image</span>
+    </a>
+  )
+}
 
 export default function AdminOrderDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -62,12 +87,8 @@ export default function AdminOrderDetailPage() {
       {/* Payment Screenshot */}
       {o.payment_screenshot_path && (
         <div className="glass-card p-4">
-          <h2 className="font-semibold text-white mb-3">Payment Screenshot</h2>
-          <a href={`${o.payment_screenshot_path}`} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm text-primary hover:text-primary/80"
-          >
-            <ExternalLink className="h-4 w-4" /> View Screenshot
-          </a>
+          <h2 className="font-semibold text-white mb-3 text-sm">Payment Screenshot</h2>
+          <ScreenshotViewer path={o.payment_screenshot_path} />
         </div>
       )}
 

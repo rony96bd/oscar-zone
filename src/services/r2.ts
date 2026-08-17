@@ -1,58 +1,44 @@
 import { supabase } from '@/lib/supabase'
 
 /**
- * Upload a payment screenshot to Cloudflare R2 via Edge Function.
- * Returns the R2 object key to store in the order.
+ * Upload a payment screenshot directly to Supabase Storage.
+ * Bypasses R2 Edge Function for simpler local/cloud setups.
  */
 export async function uploadPaymentScreenshot(
   file: File,
   tempOrderId: string
 ): Promise<string> {
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('temp_order_id', tempOrderId)
+  const { data: { user } } = await supabase.auth.getUser()
+  const folder = user?.id || 'guest'
+  
+  const ext = file.name.split('.').pop() || 'png'
+  const path = `${folder}/${tempOrderId}-${Date.now()}.${ext}`
 
-  const { data: { session } } = await supabase.auth.getSession()
-  const headers: Record<string, string> = {}
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`
+  const { error } = await supabase.storage
+    .from('payment-screenshots')
+    .upload(path, file, {
+      cacheControl: '3600',
+      upsert: false
+    })
+
+  if (error) {
+    throw new Error(error.message)
   }
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-  const resp = await fetch(
-    `${supabaseUrl}/functions/v1/r2-upload-screenshot`,
-    {
-      method: 'POST',
-      headers: {
-        ...headers,
-        'apikey': anonKey,
-      },
-      body: formData,
-    }
-  )
-
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({ error: 'Upload failed' }))
-    throw new Error(err.error || 'Failed to upload screenshot')
-  }
-
-  const data = await resp.json()
-  return data.key as string
+  return path
 }
 
 /**
  * Get a temporary signed URL to view a payment screenshot.
- * Only works if the authenticated user owns the order, or is an admin.
  */
-export async function getScreenshotSignedUrl(orderId: string): Promise<string | null> {
+export async function getScreenshotSignedUrl(path: string): Promise<string | null> {
   try {
-    const { data, error } = await supabase.functions.invoke('r2-get-signed-url', {
-      body: { order_id: orderId },
-    })
-    if (error || data?.error) return null
-    return data.url as string
+    const { data, error } = await supabase.storage
+      .from('payment-screenshots')
+      .createSignedUrl(path, 60 * 60) // 1 hour expiry
+    
+    if (error) return null
+    return data.signedUrl
   } catch {
     return null
   }

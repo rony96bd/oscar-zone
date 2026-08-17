@@ -2,12 +2,26 @@ import { useState } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { updateProfile } from '@/services/profiles'
 import { toast } from 'sonner'
-import { Save, Loader2 } from 'lucide-react'
+import { Save, Loader2, Copy, CheckCircle2 } from 'lucide-react'
 
 export default function ProfilePage() {
   const { profile, refreshProfile } = useAuthStore()
-  const [form, setForm] = useState({ full_name: profile?.full_name || '', phone: profile?.phone || '' })
+  const [form, setForm] = useState({ 
+    full_name: profile?.full_name || '', 
+    username: profile?.username || '',
+    telegram: profile?.telegram || ''
+  })
   const [isLoading, setIsLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const referralLink = `${window.location.origin}/register?ref=${profile?.referral_code || ''}`
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(referralLink)
+    setCopied(true)
+    toast.success('Referral link copied!')
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const handleSave = async () => {
     setIsLoading(true)
@@ -29,30 +43,53 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="font-semibold text-white">{profile?.full_name}</p>
-              <p className="text-xs text-muted-foreground">{profile?.email}</p>
+              <p className="text-xs text-muted-foreground">@{profile?.username || 'user'}</p>
             </div>
           </div>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Full Name</label>
-              <input type="text" value={form.full_name} onChange={e => setForm(p => ({ ...p, full_name: e.target.value }))} className="game-input" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Full Name</label>
+                <input type="text" value={form.full_name} onChange={e => setForm(p => ({ ...p, full_name: e.target.value }))} className="game-input" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Username</label>
+                <input type="text" value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} className="game-input" />
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Email</label>
-              <input type="email" value={profile?.email || ''} disabled className="game-input opacity-50" />
+              <label className="block text-sm font-medium text-foreground mb-2">Telegram (Optional)</label>
+              <input type="text" value={form.telegram} onChange={e => setForm(p => ({ ...p, telegram: e.target.value }))} placeholder="@yourtelegram" className="game-input" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Phone</label>
-              <input type="tel" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className="game-input" />
-            </div>
-            <div>
+            
+            <div className="pt-4 border-t border-border">
               <label className="block text-sm font-medium text-foreground mb-2">Referral Code</label>
-              <input type="text" value={profile?.referral_code || ''} disabled className="game-input opacity-50 font-mono" />
+              <input type="text" value={profile?.referral_code || ''} disabled className="game-input opacity-50 font-mono text-primary font-bold" />
             </div>
-            <button onClick={handleSave} disabled={isLoading} className="btn-neon w-full py-3">
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2 flex items-center justify-between">
+                Referral Link
+                <span className="text-[10px] text-muted-foreground font-normal">Share this link with friends</span>
+              </label>
+              <div className="flex gap-2">
+                <input type="text" value={referralLink} readOnly className="game-input font-mono text-xs text-muted-foreground flex-1" />
+                <button 
+                  onClick={copyToClipboard}
+                  className="btn-neon px-4 py-2 flex-shrink-0"
+                  type="button"
+                >
+                  {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            
+            <div className="pt-4">
+              <button onClick={handleSave} disabled={isLoading} className="btn-neon w-full py-3">
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {isLoading ? 'Saving...' : 'Save Changes'}
             </button>
+          </div>
           </div>
         </div>
       </div>

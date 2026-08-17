@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Zap, Loader2, CheckCircle } from 'lucide-react'
+import { Loader2, CheckCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { APP_NAME } from '@/lib/constants'
+import { Logo } from '@/components/ui/Logo'
 import { toast } from 'sonner'
 
 export default function ForgotPasswordPage() {
@@ -49,12 +49,9 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen hero-bg flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
-              <Zap className="h-5 w-5 text-primary" />
-            </div>
-            <span className="font-gaming font-bold text-lg text-white">{APP_NAME}</span>
-          </Link>
+          <div className="mb-6">
+            <Logo iconSize="lg" textClassName="text-xl" />
+          </div>
           <h1 className="text-2xl font-bold text-white">Reset Password</h1>
           <p className="text-muted-foreground text-sm mt-1">Enter your email to receive a reset link</p>
         </div>

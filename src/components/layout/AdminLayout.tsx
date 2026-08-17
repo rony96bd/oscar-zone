@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import { Logo } from '@/components/ui/Logo'
 import {
   LayoutDashboard, ShoppingBag, Users, Gamepad2, Joystick,
   Gift, CreditCard, UserCheck, MessageCircle, Bell, Send,
@@ -60,6 +61,7 @@ const navSections = [
 export function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [logoError, setLogoError] = useState(false)
   const { profile, signOut } = useAuthStore()
   const { unreadCount: chatUnread } = useChatStore()
   const { unreadCount: notifUnread } = useNotificationStore()
@@ -74,15 +76,17 @@ export function AdminLayout() {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center gap-2 px-4 h-16 border-b border-game-border">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
-          <Zap className="h-5 w-5 text-primary" style={{ filter: 'drop-shadow(0 0 6px rgba(0,212,255,0.8))' }} />
-        </div>
-        {sidebarOpen && (
-          <div>
-            <span className="font-gaming font-bold text-sm text-white block">{APP_NAME}</span>
-            <span className="text-[10px] text-muted-foreground">Admin Panel</span>
+      <div className={cn(
+        "flex items-center justify-center h-20 border-b border-game-border transition-all duration-300",
+        !sidebarOpen && "px-2"
+      )}>
+        {sidebarOpen ? (
+          <div className="flex flex-col items-center text-center">
+            <Logo iconSize="lg" textClassName="text-xl block tracking-wide" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-primary mt-1">Admin Panel</span>
           </div>
+        ) : (
+          <Logo iconSize="md" textClassName="hidden" />
         )}
       </div>
 

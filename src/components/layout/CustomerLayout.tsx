@@ -7,6 +7,7 @@ import {
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { NotificationBell } from '@/components/shared/NotificationBell'
+import { Logo } from '@/components/ui/Logo'
 import { APP_NAME } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
@@ -70,12 +71,7 @@ export function CustomerLayout() {
       >
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
-              <Zap className="h-5 w-5 text-primary" style={{ filter: 'drop-shadow(0 0 6px rgba(0,212,255,0.8))' }} />
-            </div>
-            <span className="font-gaming font-bold text-lg text-white tracking-wide">{APP_NAME}</span>
-          </Link>
+          <Logo iconSize="md" textClassName="text-lg tracking-wide" />
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-1">
@@ -237,11 +233,8 @@ export function CustomerLayout() {
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               <div className="col-span-2 md:col-span-1">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
-                    <Zap className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="font-gaming font-bold text-white">{APP_NAME}</span>
+                <div className="mb-4">
+                  <Logo iconSize="md" />
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Premium game loading service for US players.
