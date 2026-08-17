@@ -71,10 +71,23 @@ export async function updateOrderStatus(
   status: OrderStatus,
   note?: string
 ): Promise<void> {
-  const { error } = await supabase.functions.invoke('update-order-status', {
-    body: { order_id: orderId, status, note },
-  })
+  const updates: any = { status }
+  if (note) updates.admin_note = note
+  if (status === 'rejected') updates.rejection_reason = note
+
+  const { error } = await supabase
+    .from('orders')
+    .update(updates)
+    .eq('id', orderId)
+    
   if (error) throw error
+
+  // Log status history
+  await supabase.from('order_status_history').insert({
+    order_id: orderId,
+    status,
+    note
+  })
 }
 
 export async function assignOrderToAgent(orderId: string, agentId: string): Promise<void> {

@@ -96,11 +96,11 @@ export function getOrderStatusClass(status: string): string {
 
 export function getOrderStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    pending_payment_review: 'Pending Review',
+    pending_payment_review: 'Pending',
+    completed: 'Approved',
+    rejected: 'Reject',
     payment_verified: 'Payment Verified',
     processing: 'Processing',
-    completed: 'Completed',
-    rejected: 'Rejected',
     cancelled: 'Cancelled',
     refunded: 'Refunded',
   }

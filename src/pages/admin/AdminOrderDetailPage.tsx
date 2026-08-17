@@ -64,10 +64,9 @@ export default function AdminOrderDetailPage() {
 
   const o = order as any
   const ALLOWED: Record<string, OrderStatus[]> = {
-    pending_payment_review: ['payment_verified', 'rejected', 'cancelled'],
-    payment_verified: ['processing', 'rejected'],
-    processing: ['completed', 'rejected'],
-    completed: ['refunded'],
+    pending_payment_review: ['completed', 'rejected'],
+    completed: [],
+    rejected: []
   }
   const allowedTransitions = ALLOWED[o.status] || []
 
