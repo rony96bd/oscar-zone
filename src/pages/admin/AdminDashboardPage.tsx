@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchAdminStats } from '@/services/admin'
-import { ShoppingBag, Users, DollarSign, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { fetchFinanceReport } from '@/services/finance'
+import { ShoppingBag, Users, DollarSign, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, ArrowDownRight, ArrowUpRight, Wallet } from 'lucide-react'
 import { formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
 import { Link } from 'react-router-dom'
 
@@ -9,6 +10,13 @@ export default function AdminDashboardPage() {
     queryKey: ['admin-stats'],
     queryFn: fetchAdminStats,
     refetchInterval: 30000,
+  })
+
+  const today = new Date().toISOString().split('T')[0]
+  const { data: finance } = useQuery({
+    queryKey: ['finance', today, today],
+    queryFn: () => fetchFinanceReport(today, today),
+    refetchInterval: 60000,
   })
 
   if (isLoading) {
@@ -46,15 +54,46 @@ export default function AdminDashboardPage() {
           <div className="stat-value text-neon-gold">{pendingOrders}</div>
           <div className="stat-label">Pending Review</div>
         </div>
-        <div className="stat-card">
-          <DollarSign className="h-5 w-5 text-neon-green mb-2" />
-          <div className="stat-value">{formatCurrency(todayRevenue)}</div>
-          <div className="stat-label">Today Revenue</div>
+        <div className="stat-card border-neon-gold/30 bg-neon-gold/5">
+          <DollarSign className="h-5 w-5 text-neon-gold mb-2" />
+          <div className="stat-value text-neon-gold">{finance ? formatCurrency(finance.netProfit) : '...'}</div>
+          <div className="stat-label">Today's Net Profit</div>
         </div>
         <div className="stat-card">
           <Users className="h-5 w-5 text-purple-400 mb-2" />
           <div className="stat-value">{totalCustomers}</div>
           <div className="stat-label">Total Customers</div>
+        </div>
+      </div>
+
+      {/* Today's Finance Summary */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-gaming font-bold text-white">Today's Financial Summary</h2>
+          <Link to="/admin/reports" className="text-xs text-primary hover:text-primary/80">Detailed Report</Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 rounded-xl bg-black/40 border border-neon-green/20">
+            <div className="flex items-center gap-2 mb-2 text-neon-green">
+              <ArrowDownRight className="h-4 w-4" />
+              <span className="font-semibold text-sm">Money In (Loads)</span>
+            </div>
+            <p className="text-xl font-bold text-white">{finance ? formatCurrency(finance.totalLoads) : '...'}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-black/40 border border-orange-500/20">
+            <div className="flex items-center gap-2 mb-2 text-orange-500">
+              <Wallet className="h-4 w-4" />
+              <span className="font-semibold text-sm">Point Purchases</span>
+            </div>
+            <p className="text-xl font-bold text-white">{finance ? formatCurrency(finance.totalPurchases) : '...'}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-black/40 border border-destructive/20">
+            <div className="flex items-center gap-2 mb-2 text-destructive">
+              <ArrowUpRight className="h-4 w-4" />
+              <span className="font-semibold text-sm">Cashouts</span>
+            </div>
+            <p className="text-xl font-bold text-white">{finance ? formatCurrency(finance.totalCashouts) : '...'}</p>
+          </div>
         </div>
       </div>
 
