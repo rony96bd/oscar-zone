@@ -54,31 +54,22 @@ export function LiveChatWidget() {
     }
   }, [messages, isOpen])
 
+  // Poll for new messages every 3 seconds when chat is active
   useEffect(() => {
-    if (!conversation) return
+    if (!conversation || !isStarted) return
 
-    const subscription = supabase
-      .channel(`chat_widget_${conversation.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `conversation_id=eq.${conversation.id}`,
-        },
-        (payload) => {
-          setMessages((prev) => {
-            const exists = prev.some((m) => m.id === (payload.new as ChatMessage).id)
-            if (exists) return prev
-            return [...prev, payload.new as ChatMessage]
-          })
-        }
-      )
-      .subscribe()
+    const poll = async () => {
+      try {
+        const msgs = await fetchMessages(conversation.id)
+        setMessages(msgs)
+      } catch (err) {
+        console.error(err)
+      }
+    }
 
-    return () => { subscription.unsubscribe() }
-  }, [conversation])
+    const interval = setInterval(poll, 3000)
+    return () => clearInterval(interval)
+  }, [conversation, isStarted])
 
   const loadGuestSession = async (sessionId: string) => {
     try {

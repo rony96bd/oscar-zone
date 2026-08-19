@@ -2,9 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/authStore'
 import { fetchConversations, fetchMessages, sendMessage, closeConversation } from '@/services/chat'
-import { useRealtimeChat } from '@/hooks/useRealtime'
-import { MessageCircle, Send, X, User, Clock } from 'lucide-react'
-import { cn, formatTime, formatRelativeTime } from '@/lib/utils'
+import { MessageCircle, Send, X, User } from 'lucide-react'
+import { cn, formatTime } from '@/lib/utils'
 
 export default function AdminChatPage() {
   const { profile } = useAuthStore()
@@ -29,7 +28,19 @@ export default function AdminChatPage() {
   useEffect(() => { if ((fetchedMessages as any[]).length) setMessages(fetchedMessages as any[]) }, [fetchedMessages])
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-  useRealtimeChat(activeConvId || '', (msg: any) => setMessages(prev => [...prev, msg]))
+  // Poll for new messages every 3 seconds when a conversation is active
+  useEffect(() => {
+    if (!activeConvId) return
+    const interval = setInterval(async () => {
+      try {
+        const msgs = await fetchMessages(activeConvId)
+        setMessages(msgs)
+      } catch (err) {
+        console.error(err)
+      }
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [activeConvId])
 
   const sendMutation = useMutation({
     mutationFn: (content: string) => sendMessage(activeConvId!, profile!.id, content),
