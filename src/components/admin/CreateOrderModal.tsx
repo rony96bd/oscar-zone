@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Loader2 } from 'lucide-react'
 import { fetchGames } from '@/services/games'
 import { fetchPaymentMethods } from '@/services/payments'
+import { fetchCustomers } from '@/services/admin'
 import { calculateBonusPreview, adminCreateOrder } from '@/services/orders'
 import { toast } from 'sonner'
 
@@ -17,6 +18,7 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
 
   const { data: games } = useQuery({ queryKey: ['games'], queryFn: fetchGames, enabled: isOpen })
   const { data: paymentMethods } = useQuery({ queryKey: ['payment-methods'], queryFn: fetchPaymentMethods, enabled: isOpen })
+  const { data: customers } = useQuery({ queryKey: ['customers'], queryFn: () => fetchCustomers({ role: 'customer' }), enabled: isOpen })
 
   const { data: bonusData } = useQuery({
     queryKey: ['bonus', selectedGameId, parseFloat(amount), userId],
@@ -68,6 +70,28 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
         <div className="p-4 overflow-y-auto">
           <form id="create-order-form" onSubmit={createMutation.mutate} className="space-y-4">
             <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">Registered Customer (Optional)</label>
+              <select 
+                value={userId} 
+                onChange={e => {
+                  setUserId(e.target.value)
+                  // Auto-fill username if empty
+                  if (e.target.value && !username) {
+                    const c = customers?.find(c => c.id === e.target.value)
+                    if (c) setUsername(c.full_name || '')
+                  }
+                }} 
+                className="game-input w-full"
+              >
+                <option value="">-- Guest Order (No User) --</option>
+                {customers?.map(c => (
+                  <option key={c.id} value={c.id}>{c.full_name} ({c.email || c.phone || 'No Email'})</option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground mt-1">If selected, the order will appear in their dashboard.</p>
+            </div>
+
+            <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Game *</label>
               <select value={selectedGameId} onChange={e => setSelectedGameId(e.target.value)} className="game-input w-full" required>
                 <option value="">Select a game</option>
@@ -75,7 +99,7 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">Player Username / ID *</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">Player Username / ID in Game *</label>
               <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="game-input w-full" required />
             </div>
             <div>
@@ -102,12 +126,6 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
                   <option value="pending_payment_review">Pending</option>
                 </select>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">Customer User ID (Optional)</label>
-              <input type="text" value={userId} onChange={e => setUserId(e.target.value)} placeholder="UUID from profiles" className="game-input w-full" />
-              <p className="text-[10px] text-muted-foreground mt-1">Leave blank for guest order. Useful for linking to specific users.</p>
             </div>
 
             {bonusData && (
