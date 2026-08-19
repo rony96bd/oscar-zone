@@ -1,4 +1,4 @@
-﻿import { useQuery } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { Link, useNavigate } from "react-router-dom"
 import {
   Zap, ShoppingBag, Users, TrendingUp,
@@ -166,6 +166,32 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* === REFERRAL QUICK SHARE === */}
+      <div className="glass-card p-5 mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Share2 className="h-4 w-4 text-primary" />
+          <h2 className="font-semibold text-white text-sm">Refer & Earn</h2>
+          <span className="text-xs text-muted-foreground ml-1">— Earn {currentLevel?.commission_percentage || 2}% on every load</span>
+        </div>
+        <div className="flex gap-2">
+          <div className="flex-1 bg-game-darker border border-border rounded-xl px-3 py-2.5 font-mono text-xs text-muted-foreground truncate">
+            {referralUrl}
+          </div>
+          <button onClick={handleCopy} className="btn-neon px-3 py-2.5 flex-shrink-0 text-xs gap-1.5">
+            {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-xs text-muted-foreground">
+            Code: <span className="font-mono text-primary font-bold">{profile?.referral_code}</span>
+          </p>
+          <Link to="/earnings" className="text-xs text-primary flex items-center gap-0.5 hover:text-primary/80">
+            Full dashboard <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+      </div>
+
       {/* === QUICK STATS GRID === */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <div className="stat-card">
@@ -221,32 +247,6 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
-
-      {/* === REFERRAL QUICK SHARE === */}
-      <div className="glass-card p-5 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Share2 className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold text-white text-sm">Refer & Earn</h2>
-          <span className="text-xs text-muted-foreground ml-1">— Earn {currentLevel?.commission_percentage || 2}% on every load</span>
-        </div>
-        <div className="flex gap-2">
-          <div className="flex-1 bg-game-darker border border-border rounded-xl px-3 py-2.5 font-mono text-xs text-muted-foreground truncate">
-            {referralUrl}
-          </div>
-          <button onClick={handleCopy} className="btn-neon px-3 py-2.5 flex-shrink-0 text-xs gap-1.5">
-            {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? "Copied!" : "Copy"}
-          </button>
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-xs text-muted-foreground">
-            Code: <span className="font-mono text-primary font-bold">{profile?.referral_code}</span>
-          </p>
-          <Link to="/earnings" className="text-xs text-primary flex items-center gap-0.5 hover:text-primary/80">
-            Full dashboard <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
-      </div>
 
       {/* === RECENT ORDERS === */}
       <section>
