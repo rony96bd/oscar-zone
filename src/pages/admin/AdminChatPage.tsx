@@ -5,6 +5,7 @@ import { fetchConversations, fetchMessages, sendMessage, closeConversation } fro
 import { notifyNewMessage, requestNotificationPermission } from '@/hooks/useChatNotification'
 import { MessageCircle, Send, X, User, Bell } from 'lucide-react'
 import { cn, formatTime } from '@/lib/utils'
+import { useChatStore } from '@/stores/chatStore'
 
 export default function AdminChatPage() {
   const { profile } = useAuthStore()
@@ -23,12 +24,7 @@ export default function AdminChatPage() {
     }
   }, [])
 
-  const { data: conversations = [] } = useQuery({
-    queryKey: ['admin-conversations'],
-    queryFn: () => fetchConversations(profile!.id, 'admin'),
-    enabled: !!profile?.id,
-    refetchInterval: 5000, // Poll conversations list every 5s
-  })
+  const { conversations } = useChatStore() // Use global conversations from layout
 
   const { data: fetchedMessages = [] } = useQuery({
     queryKey: ['messages', activeConvId],
@@ -67,27 +63,6 @@ export default function AdminChatPage() {
     return () => clearInterval(interval)
   }, [activeConvId, profile?.id])
 
-  // Poll ALL conversations every 5s to detect new incoming chats
-  useEffect(() => {
-    if (!profile?.id) return
-    const interval = setInterval(async () => {
-      try {
-        const convs = await fetchConversations(profile.id, 'admin')
-        convs.forEach((conv: any) => {
-          if (conv.id !== activeConvId && conv.unread_count_agent > 0) {
-            // New message in background conversation
-            const name = conv.guest_name || conv.customer?.full_name || 'Guest'
-            notifyNewMessage(`New message from ${name}`, conv.last_message || 'New chat message')
-          }
-        })
-        queryClient.setQueryData(['admin-conversations'], convs)
-      } catch (err) {
-        console.error(err)
-      }
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [profile?.id, activeConvId, queryClient])
-
   const sendMutation = useMutation({
     mutationFn: (content: string) => sendMessage(activeConvId!, profile!.id, content),
     onSuccess: (msg: any) => setMessages(prev => [...prev, msg]),
@@ -96,7 +71,6 @@ export default function AdminChatPage() {
   const closeMutation = useMutation({
     mutationFn: (convId: string) => closeConversation(convId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-conversations'] })
       setActiveConvId(null)
       setMessages([])
     }

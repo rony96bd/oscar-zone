@@ -6,10 +6,12 @@ import {
   Image, Megaphone, BarChart3, Shield, ClipboardList,
   Settings, LogOut, Menu, X, ChevronRight, Zap, Bot
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { useChatStore } from '@/stores/chatStore'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { fetchConversations } from '@/services/chat'
+import { notifyNewMessage } from '@/hooks/useChatNotification'
 import { APP_NAME } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
@@ -63,10 +65,41 @@ export function AdminLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [logoError, setLogoError] = useState(false)
   const { profile, signOut } = useAuthStore()
-  const { unreadCount: chatUnread } = useChatStore()
+  const { unreadCount: chatUnread, setConversations } = useChatStore()
   const { unreadCount: notifUnread } = useNotificationStore()
   const location = useLocation()
   const navigate = useNavigate()
+
+  // Keep track of previous conversations to detect new unread messages
+  const prevConvsRef = useRef<Record<string, number>>({})
+
+  // Global polling for admin chats
+  useEffect(() => {
+    if (!profile?.id) return
+    const poll = async () => {
+      try {
+        const convs = await fetchConversations(profile.id, 'admin')
+        setConversations(convs) // updates the unread badge automatically
+        
+        // Detect if any conversation has a NEW unread message
+        convs.forEach((conv: any) => {
+          const prevUnread = prevConvsRef.current[conv.id] || 0
+          if (conv.unread_count_agent > prevUnread) {
+            // It's a new message! Show notification
+            const name = conv.guest_name || conv.customer?.full_name || 'Guest'
+            notifyNewMessage(`New message from ${name}`, conv.last_message || 'New chat message')
+          }
+          prevConvsRef.current[conv.id] = conv.unread_count_agent
+        })
+      } catch (err) {
+        console.error(err)
+      }
+    }
+    
+    poll() // initial fetch
+    const interval = setInterval(poll, 5000) // poll every 5s
+    return () => clearInterval(interval)
+  }, [profile?.id, setConversations])
 
   const isActive = (href: string, exact?: boolean) => {
     if (exact) return location.pathname === href
