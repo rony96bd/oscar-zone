@@ -56,6 +56,7 @@ export function notifyNewMessage(title: string, body: string) {
   // Show in-app toast for guaranteed visibility
   import('sonner').then(({ toast }) => {
     toast(title, {
+      id: body.substring(0, 50), // prevent duplicates
       description: body,
       duration: 5000,
       position: 'top-right',

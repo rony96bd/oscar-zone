@@ -52,8 +52,9 @@ export default function AdminChatPage() {
         if (newMsgs.length > 0) {
           const hasGuestReply = newMsgs.some((msg: any) => msg.is_guest || (msg.sender_id && msg.sender_id !== profile?.id))
           if (hasGuestReply) {
-            // We are actively looking at it, play sound and mark as read so global layout doesn't notify again
-            notifyNewMessage('New Message', newMsgs[newMsgs.length - 1].content?.slice(0, 80) || 'New chat message')
+            // We are actively looking at it, mark as read so global layout doesn't notify
+            const { playNotificationSound } = await import('@/hooks/useChatNotification')
+            playNotificationSound()
             const { markConversationAsRead } = await import('@/services/chat')
             await markConversationAsRead(activeConvId, 'admin')
           }
@@ -137,7 +138,6 @@ export default function AdminChatPage() {
               key={conv.id}
               onClick={async () => {
                 setActiveConvId(conv.id)
-                lastMsgCount.current[conv.id] = 0 // reset counter on open
                 try {
                   const { markConversationAsRead } = await import('@/services/chat')
                   await markConversationAsRead(conv.id, 'admin')
