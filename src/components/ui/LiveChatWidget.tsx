@@ -136,7 +136,7 @@ export function LiveChatWidget() {
       const conv = await createGuestConversation(sessionId, name, contact || null)
       setConversation(conv)
       const msg = await sendMessage(conv.id, null, initialMessage, false, true)
-      setMessages([msg])
+      setMessages((prev) => [...prev, msg])
       setIsStarted(true)
     } catch (err) {
       console.error(err)
@@ -154,7 +154,7 @@ export function LiveChatWidget() {
       const conv = await createConversation(profile.id, 'Support Request')
       setConversation(conv)
       const msg = await sendMessage(conv.id, profile.id, initialMessage, false, false)
-      setMessages([msg])
+      setMessages((prev) => [...prev, msg])
       setIsStarted(true)
     } catch (err) {
       console.error(err)
@@ -169,11 +169,18 @@ export function LiveChatWidget() {
     const content = newMessage
     setNewMessage('')
     try {
+      let msg: ChatMessage
       if (isAuthenticated && profile) {
-        await sendMessage(conversation.id, profile.id, content, false, false)
+        msg = await sendMessage(conversation.id, profile.id, content, false, false)
       } else {
-        await sendMessage(conversation.id, null, content, false, true)
+        msg = await sendMessage(conversation.id, null, content, false, true)
       }
+      // Add immediately to local state
+      setMessages((prev) => {
+        const exists = prev.some((m) => m.id === msg.id)
+        if (exists) return prev
+        return [...prev, msg]
+      })
     } catch (err) {
       console.error(err)
       setNewMessage(content)
