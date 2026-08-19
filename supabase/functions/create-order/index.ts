@@ -53,7 +53,16 @@ Deno.serve(async (req) => {
       payment_method_id,
       payment_screenshot_path,
       customer_game_id,
+      guest_verified_user_id,
     } = body
+
+    // If guest and they verified their game username, link the order to that user
+    if (!userId && guest_verified_user_id) {
+      userId = guest_verified_user_id
+      // Fetch profile to apply custom bonuses if any
+      const { data } = await adminClient.from('profiles').select('*').eq('id', userId).single()
+      if (data) profile = data
+    }
 
     // ── Validations ──────────────────────────────────────────────
 

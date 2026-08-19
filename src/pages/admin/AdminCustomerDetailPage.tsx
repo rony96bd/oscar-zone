@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchCustomerDetail, updateCustomerStatus, assignCustomerGame } from '@/services/admin'
 import { fetchGuestOrders } from '@/services/orders'
+import { fetchGames } from '@/services/games'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
 import { Link } from 'react-router-dom'
@@ -18,9 +19,24 @@ export default function AdminCustomerDetailPage() {
     enabled: !!id,
   })
 
+  const { data: games } = useQuery({
+    queryKey: ['games-active'],
+    queryFn: fetchGames,
+  })
+
   const statusMutation = useMutation({
     mutationFn: (status: string) => updateCustomerStatus(id!, status),
     onSuccess: () => { toast.success('Status updated'); qc.invalidateQueries({ queryKey: ['admin-customer', id] }) },
+  })
+
+  const assignGameMutation = useMutation({
+    mutationFn: (data: { gameId: string; username: string; status: string }) => 
+      assignCustomerGame(id!, data.gameId, data.username),
+    onSuccess: () => {
+      toast.success('Game account linked successfully')
+      qc.invalidateQueries({ queryKey: ['admin-customer', id] })
+    },
+    onError: (err: any) => toast.error(err.message)
   })
 
   if (isLoading) return <PageLoader />
@@ -99,10 +115,59 @@ export default function AdminCustomerDetailPage() {
           ].map(({ label, value }) => (
             <div key={label}>
               <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="text-sm font-medium text-foreground">{value}</p>
+              <p className="font-medium text-white">{value || 'N/A'}</p>
             </div>
           ))}
         </div>
+      </div>
+      
+      {/* Customer Games (Game IDs) */}
+      <div className="glass-card p-6">
+        <h2 className="font-semibold text-white mb-4 flex items-center gap-2"><Star className="h-4 w-4 text-neon-gold" /> In-Game Accounts</h2>
+        
+        {/* List of their games */}
+        <div className="space-y-2 mb-6">
+          {(c.customer_games || []).map((cg: any) => (
+            <div key={cg.id} className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/10">
+              <div>
+                <p className="text-sm font-semibold text-white">{cg.game?.name || 'Unknown Game'}</p>
+                <p className="text-xs text-primary font-mono">{cg.username}</p>
+              </div>
+              <span className={`text-[10px] px-2 py-1 rounded-full uppercase font-bold ${cg.status === 'active' ? 'bg-neon-green/20 text-neon-green' : 'bg-destructive/20 text-destructive'}`}>
+                {cg.status}
+              </span>
+            </div>
+          ))}
+          {(!c.customer_games || c.customer_games.length === 0) && (
+            <p className="text-sm text-muted-foreground text-center py-2">No game accounts linked yet.</p>
+          )}
+        </div>
+
+        {/* Add new game form */}
+        <form onSubmit={(e) => {
+          e.preventDefault()
+          const fd = new FormData(e.currentTarget)
+          const gameId = fd.get('game_id') as string
+          const username = fd.get('username') as string
+          if (!gameId || !username) return toast.error('Fill required fields')
+          assignGameMutation.mutate({ gameId, username, status: 'active' })
+          e.currentTarget.reset()
+        }} className="p-4 rounded-xl border border-border bg-black/20 space-y-4">
+          <h3 className="text-sm font-semibold text-white">Assign New Game Account</h3>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <select name="game_id" className="game-input flex-1" required>
+              <option value="">-- Select Game --</option>
+              {games?.map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+            <input type="text" name="username" placeholder="In-Game Username" className="game-input flex-1" required />
+            <button type="submit" disabled={assignGameMutation.isPending} className="btn-neon px-4">
+              Add
+            </button>
+          </div>
+          <p className="text-[10px] text-muted-foreground">This username will be selectable by the customer when loading funds, and verified for guests.</p>
+        </form>
       </div>
     </div>
   )

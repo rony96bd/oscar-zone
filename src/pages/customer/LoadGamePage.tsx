@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, Gamepad2, Zap, Image as ImageIcon, CheckCircle, Loader2, ZoomIn, X as XIcon, AlertTriangle, Info } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { fetchGames } from '@/services/games'
+import { fetchGames, fetchCustomerGames } from '@/services/games'
 import { calculateBonusPreview } from '@/services/orders'
 import { useAuthStore } from '@/stores/authStore'
 import { useSettingsStore } from '@/stores/settingsStore'
@@ -35,9 +35,19 @@ export default function LoadGamePage() {
   const [orderComplete, setOrderComplete] = useState(false)
   const [qrZoom, setQrZoom] = useState(false)
 
+  // Guest verification states
+  const [isVerifyingUsername, setIsVerifyingUsername] = useState(false)
+  const [guestVerifiedUserId, setGuestVerifiedUserId] = useState<string | null>(null)
+
   const { data: games, isLoading: loadingGames } = useQuery({
     queryKey: ['games-active'],
     queryFn: fetchGames,
+  })
+
+  const { data: customerGames } = useQuery({
+    queryKey: ['customer-games', profile?.id],
+    queryFn: () => fetchCustomerGames(profile!.id),
+    enabled: isAuthenticated && !!profile?.id,
   })
 
   // Fetch bonus preview dynamically when game and amount change
@@ -69,13 +79,47 @@ export default function LoadGamePage() {
     }
   }, [profile])
 
+  const handleMethodSelect = (method: PaymentMethod) => {
+    setSelectedMethod(method)
+  }
+
+  const handleVerifyGuestUsername = async () => {
+    if (!username || !selectedGameId) return
+    setIsVerifyingUsername(true)
+    setGuestVerifiedUserId(null)
+    
+    try {
+      const { data, error } = await supabase.rpc('verify_game_username', {
+        p_game_id: selectedGameId,
+        p_username: username
+      })
+      
+      if (error) throw error
+      
+      if (data) {
+        setGuestVerifiedUserId(data)
+        toast.success('Username verified!')
+      } else {
+        toast.error('Username not found. Please contact Live Support to create a new game account.')
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Failed to verify username.')
+    } finally {
+      setIsVerifyingUsername(false)
+    }
+  }
+
   const selectedGame = games?.find(g => g.id === selectedGameId)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!selectedGame) return toast.error('Please select a game')
-    if (!username) return toast.error('Please enter your Game Username or Name')
+    if (!username) return toast.error('Please enter your Game Username')
+    if (!isAuthenticated && !guestVerifiedUserId) {
+      return toast.error('Please verify your Game Username before submitting')
+    }
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return toast.error('Please enter a valid amount')
     if (Number(amount) < selectedGame.minimum_amount) {
       return toast.error(`Minimum load amount for this game is ${formatCurrency(selectedGame.minimum_amount)}`)
@@ -98,6 +142,7 @@ export default function LoadGamePage() {
           payment_method_id: selectedMethod.id,
           payment_screenshot_path: screenshotKey,
           is_guest: !isAuthenticated,
+          guest_verified_user_id: guestVerifiedUserId,
         },
       })
 
@@ -220,14 +265,58 @@ export default function LoadGamePage() {
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">2</span>
                       Game Username / Your Name
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="e.g. player123"
-                      className="game-input"
-                    />
+                    {isAuthenticated ? (
+                      <select 
+                        required
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="game-input"
+                        disabled={!selectedGameId}
+                      >
+                        <option value="">-- Select your Game ID --</option>
+                        {customerGames?.filter(cg => cg.game_id === selectedGameId).map(cg => (
+                          <option key={cg.id} value={cg.username}>{cg.username}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          required
+                          value={username}
+                          onChange={(e) => {
+                            setUsername(e.target.value)
+                            setGuestVerifiedUserId(null)
+                          }}
+                          placeholder="e.g. player123"
+                          className="game-input flex-1"
+                          disabled={!selectedGameId}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleVerifyGuestUsername}
+                          disabled={!username || !selectedGameId || isVerifyingUsername || !!guestVerifiedUserId}
+                          className={cn(
+                            "px-4 py-2 rounded-xl border text-sm font-semibold transition-all",
+                            guestVerifiedUserId 
+                              ? "bg-neon-green/20 border-neon-green/30 text-neon-green"
+                              : "bg-primary/20 border-primary/30 text-primary hover:bg-primary/30"
+                          )}
+                        >
+                          {isVerifyingUsername ? <Loader2 className="h-4 w-4 animate-spin" /> : guestVerifiedUserId ? <CheckCircle className="h-4 w-4" /> : 'Verify'}
+                        </button>
+                      </div>
+                    )}
+                    {isAuthenticated && selectedGameId && customerGames?.filter(cg => cg.game_id === selectedGameId).length === 0 && (
+                      <p className="text-xs text-destructive mt-2 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" /> No accounts found for this game. Contact Support.
+                      </p>
+                    )}
+                    {!isAuthenticated && guestVerifiedUserId && (
+                      <p className="text-xs text-neon-green mt-2 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" /> Account verified.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
