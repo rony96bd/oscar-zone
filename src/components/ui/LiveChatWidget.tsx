@@ -1,36 +1,52 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { useLocation } from 'react-router-dom'
 import { MessageCircle, X, Send, User, Link as LinkIcon, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { createGuestConversation, fetchGuestConversation, sendMessage, fetchMessages } from '@/services/chat'
+import { createGuestConversation, createConversation, fetchGuestConversation, sendMessage, fetchMessages } from '@/services/chat'
 import type { ChatConversation, ChatMessage } from '@/types'
 import { formatTime } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
 
 export function LiveChatWidget() {
+  const location = useLocation()
+  const { profile, isAuthenticated } = useAuthStore()
+
   const [isOpen, setIsOpen] = useState(false)
   const [isStarted, setIsStarted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   const [conversation, setConversation] = useState<ChatConversation | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
-  
+
+  // Guest form fields
   const [name, setName] = useState('')
   const [contact, setContact] = useState('')
   const [initialMessage, setInitialMessage] = useState('')
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // Don't render on admin pages
+  const isAdminPage = location.pathname.startsWith('/admin')
+
   useEffect(() => {
-    // Check if guest has an existing session
-    const sessionId = localStorage.getItem('guest_chat_session')
-    if (sessionId) {
-      loadGuestSession(sessionId)
+    if (isAdminPage) return
+
+    if (isAuthenticated && profile) {
+      // Logged-in user: check if they have a conversation
+      loadUserSession()
     } else {
-      setIsLoading(false)
+      // Guest: check localStorage session
+      const sessionId = localStorage.getItem('guest_chat_session')
+      if (sessionId) {
+        loadGuestSession(sessionId)
+      } else {
+        setIsLoading(false)
+      }
     }
-  }, [])
+  }, [isAuthenticated, profile, isAdminPage])
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -42,7 +58,7 @@ export function LiveChatWidget() {
     if (!conversation) return
 
     const subscription = supabase
-      .channel(`guest_chat_${conversation.id}`)
+      .channel(`chat_widget_${conversation.id}`)
       .on(
         'postgres_changes',
         {
@@ -52,14 +68,16 @@ export function LiveChatWidget() {
           filter: `conversation_id=eq.${conversation.id}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as ChatMessage])
+          setMessages((prev) => {
+            const exists = prev.some((m) => m.id === (payload.new as ChatMessage).id)
+            if (exists) return prev
+            return [...prev, payload.new as ChatMessage]
+          })
         }
       )
       .subscribe()
 
-    return () => {
-      subscription.unsubscribe()
-    }
+    return () => { subscription.unsubscribe() }
   }, [conversation])
 
   const loadGuestSession = async (sessionId: string) => {
@@ -72,16 +90,42 @@ export function LiveChatWidget() {
         setMessages(msgs)
       }
     } catch (err) {
-      console.error('Failed to load guest session:', err)
+      console.error(err)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const startChat = async (e: React.FormEvent) => {
+  const loadUserSession = async () => {
+    if (!profile) return
+    try {
+      // Look for existing open conversation for this user
+      const { data } = await supabase
+        .from('chat_conversations')
+        .select('*')
+        .eq('customer_id', profile.id)
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (data) {
+        setConversation(data)
+        setIsStarted(true)
+        const msgs = await fetchMessages(data.id)
+        setMessages(msgs)
+      }
+    } catch {
+      // No existing conversation — will start fresh
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Guest: start chat from form
+  const startGuestChat = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !initialMessage.trim()) return
-
     setIsSubmitting(true)
     try {
       let sessionId = localStorage.getItem('guest_chat_session')
@@ -89,15 +133,31 @@ export function LiveChatWidget() {
         sessionId = crypto.randomUUID()
         localStorage.setItem('guest_chat_session', sessionId)
       }
-
       const conv = await createGuestConversation(sessionId, name, contact || null)
       setConversation(conv)
-      
       const msg = await sendMessage(conv.id, null, initialMessage, false, true)
       setMessages([msg])
       setIsStarted(true)
     } catch (err) {
-      console.error('Failed to start chat:', err)
+      console.error(err)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Logged-in user: start chat directly with first message
+  const startUserChat = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!initialMessage.trim() || !profile) return
+    setIsSubmitting(true)
+    try {
+      const conv = await createConversation(profile.id, 'Support Request')
+      setConversation(conv)
+      const msg = await sendMessage(conv.id, profile.id, initialMessage, false, false)
+      setMessages([msg])
+      setIsStarted(true)
+    } catch (err) {
+      console.error(err)
     } finally {
       setIsSubmitting(false)
     }
@@ -106,16 +166,26 @@ export function LiveChatWidget() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMessage.trim() || !conversation) return
-
     const content = newMessage
     setNewMessage('')
     try {
-      await sendMessage(conversation.id, null, content, false, true)
+      if (isAuthenticated && profile) {
+        await sendMessage(conversation.id, profile.id, content, false, false)
+      } else {
+        await sendMessage(conversation.id, null, content, false, true)
+      }
     } catch (err) {
-      console.error('Failed to send message:', err)
+      console.error(err)
       setNewMessage(content)
     }
   }
+
+  // Hide on admin pages
+  if (isAdminPage) return null
+
+  const displayName = isAuthenticated && profile
+    ? profile.full_name || profile.username || 'You'
+    : name || 'You'
 
   const widgetContent = (
     <div className="fixed bottom-6 right-6" style={{ zIndex: 2147483647 }}>
@@ -131,9 +201,12 @@ export function LiveChatWidget() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="flex h-[500px] max-h-[80vh] w-[350px] max-w-[calc(100vw-3rem)] flex-col rounded-2xl border border-border bg-black shadow-2xl overflow-hidden animate-scale-in">
+        <div
+          className="flex h-[500px] max-h-[80vh] w-[350px] max-w-[calc(100vw-3rem)] flex-col rounded-2xl border border-white/10 shadow-2xl overflow-hidden animate-scale-in"
+          style={{ background: '#0a0a0f' }}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between bg-black/40 p-4 border-b border-border">
+          <div className="flex items-center justify-between p-4 border-b border-white/10" style={{ background: '#111118' }}>
             <div>
               <h3 className="font-semibold text-white">Live Support</h3>
               <p className="text-xs text-neon-green">We typically reply in a few minutes</p>
@@ -146,80 +219,92 @@ export function LiveChatWidget() {
             </button>
           </div>
 
-          {/* Content */}
+          {/* Body */}
           <div className="flex-1 overflow-hidden relative">
             {isLoading ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-neon-green" />
               </div>
+
             ) : !isStarted ? (
               /* Pre-Chat Form */
-              <div className="p-5 h-full overflow-y-auto no-scrollbar">
-                <p className="text-sm text-muted-foreground mb-6">
-                  Please fill out this form before starting the chat.
+              <div className="p-5 h-full overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+                <p className="text-sm text-muted-foreground mb-5">
+                  {isAuthenticated
+                    ? `Hi ${displayName}! How can we help you today?`
+                    : 'Please fill out this form before starting the chat.'}
                 </p>
-                <form onSubmit={startChat} className="space-y-4">
+                <form onSubmit={isAuthenticated ? startUserChat : startGuestChat} className="space-y-4">
+                  {/* Guest-only fields */}
+                  {!isAuthenticated && (
+                    <>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                          Your Name <span className="text-neon-green">*</span>
+                        </label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <input
+                            required
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-neon-green/50"
+                            placeholder="John Doe"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Contact Link (Optional)</label>
+                        <div className="relative">
+                          <LinkIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <input
+                            value={contact}
+                            onChange={(e) => setContact(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-neon-green/50"
+                            placeholder="Telegram, WhatsApp, etc."
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Your Name <span className="text-neon-green">*</span></label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <input
-                        required
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="game-input pl-9 text-sm"
-                        placeholder="John Doe"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Contact Link (Optional)</label>
-                    <div className="relative">
-                      <LinkIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <input
-                        value={contact}
-                        onChange={(e) => setContact(e.target.value)}
-                        className="game-input pl-9 text-sm"
-                        placeholder="Telegram, WhatsApp, etc."
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">How can we help? <span className="text-neon-green">*</span></label>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      How can we help? <span className="text-neon-green">*</span>
+                    </label>
                     <textarea
                       required
                       value={initialMessage}
                       onChange={(e) => setInitialMessage(e.target.value)}
-                      className="game-input text-sm h-24 resize-none"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-neon-green/50 h-24 resize-none"
                       placeholder="Type your message here..."
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="btn-neon w-full py-2 text-sm"
+                    className="w-full py-2.5 rounded-lg text-sm font-semibold text-black transition-all"
+                    style={{ background: '#00ff88' }}
                   >
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Start Chat'}
                   </button>
                 </form>
               </div>
+
             ) : (
-              /* Active Chat Area */
+              /* Active Chat */
               <div className="flex h-full flex-col">
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ scrollbarWidth: 'none' }}>
                   {messages.map((msg) => {
-                    const isMine = msg.is_guest
+                    const isMine = isAuthenticated ? msg.sender_id === profile?.id : msg.is_guest
                     return (
-                      <div
-                        key={msg.id}
-                        className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
-                      >
+                      <div key={msg.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                         <div
                           className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${
                             isMine
-                              ? 'bg-neon-green text-black rounded-tr-sm'
-                              : 'bg-white/10 text-white rounded-tl-sm'
+                              ? 'text-black rounded-tr-sm'
+                              : 'text-white rounded-tl-sm'
                           }`}
+                          style={{ background: isMine ? '#00ff88' : 'rgba(255,255,255,0.1)' }}
                         >
                           {msg.content}
                         </div>
@@ -231,20 +316,22 @@ export function LiveChatWidget() {
                   })}
                   <div ref={messagesEndRef} />
                 </div>
-                
-                {/* Chat Input */}
-                <div className="border-t border-border bg-black/40 p-3">
+
+                {/* Input */}
+                <div className="border-t border-white/10 p-3" style={{ background: '#111118' }}>
                   <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                     <input
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       placeholder="Type your message..."
-                      className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-neon-green/50 transition-colors"
+                      className="flex-1 rounded-full px-4 py-2 text-sm text-white focus:outline-none"
+                      style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
                     />
                     <button
                       type="submit"
                       disabled={!newMessage.trim()}
-                      className="flex h-9 w-9 items-center justify-center rounded-full bg-neon-green text-black disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 transition-transform active:scale-95"
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-black disabled:opacity-40 flex-shrink-0 transition-transform active:scale-95"
+                      style={{ background: '#00ff88' }}
                     >
                       <Send className="h-4 w-4" />
                     </button>
