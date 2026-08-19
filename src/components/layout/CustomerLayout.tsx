@@ -102,13 +102,6 @@ export function CustomerLayout() {
             {isAuthenticated ? (
               <>
                 <NotificationBell />
-                <Link
-                  to="/load"
-                  className="hidden sm:flex btn-neon text-xs px-4 py-2"
-                >
-                  <Zap className="h-3.5 w-3.5" />
-                  Load Game
-                </Link>
                 <div className="relative group">
                   <button className="flex items-center gap-2 rounded-xl p-2 hover:bg-white/5 transition-colors">
                     <div className="h-8 w-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
