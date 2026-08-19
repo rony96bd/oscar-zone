@@ -88,7 +88,8 @@ export async function sendMessage(
   senderId: string | null,
   content: string,
   isInternalNote = false,
-  isGuest = false
+  isGuest = false,
+  senderRole: 'admin' | 'customer' | 'guest' = 'customer'
 ): Promise<ChatMessage> {
   const { data, error } = await supabase
     .from('chat_messages')
@@ -103,16 +104,46 @@ export async function sendMessage(
     .single()
   if (error) throw error
 
-  // Update conversation last_message
+  // Fetch current conversation to update unread counts
+  const { data: conv } = await supabase
+    .from('chat_conversations')
+    .select('unread_count_agent, unread_count_customer')
+    .eq('id', conversationId)
+    .single()
+
+  const updates: any = {
+    last_message: content.slice(0, 100),
+    last_message_at: new Date().toISOString(),
+  }
+
+  if (conv) {
+    if (senderRole === 'admin') {
+      updates.unread_count_customer = (conv.unread_count_customer || 0) + 1
+    } else {
+      updates.unread_count_agent = (conv.unread_count_agent || 0) + 1
+    }
+  }
+
   await supabase
     .from('chat_conversations')
-    .update({
-      last_message: content.slice(0, 100),
-      last_message_at: new Date().toISOString(),
-    })
+    .update(updates)
     .eq('id', conversationId)
 
   return data
+}
+
+export async function markConversationAsRead(
+  conversationId: string,
+  role: 'admin' | 'customer'
+): Promise<void> {
+  const updates = role === 'admin' 
+    ? { unread_count_agent: 0 } 
+    : { unread_count_customer: 0 }
+    
+  await supabase
+    .from('chat_conversations')
+    .update(updates)
+    .eq('id', conversationId)
 }
 
 export async function closeConversation(conversationId: string): Promise<void> {

@@ -64,7 +64,7 @@ export default function AdminChatPage() {
   }, [activeConvId, profile?.id])
 
   const sendMutation = useMutation({
-    mutationFn: (content: string) => sendMessage(activeConvId!, profile!.id, content),
+    mutationFn: (content: string) => sendMessage(activeConvId!, profile!.id, content, false, false, 'admin'),
     onSuccess: (msg: any) => setMessages(prev => [...prev, msg]),
   })
 
@@ -130,9 +130,16 @@ export default function AdminChatPage() {
           {(conversations as any[]).map((conv: any) => (
             <button
               key={conv.id}
-              onClick={() => {
+              onClick={async () => {
                 setActiveConvId(conv.id)
                 lastMsgCount.current[conv.id] = 0 // reset counter on open
+                try {
+                  const { markConversationAsRead } = await import('@/services/chat')
+                  await markConversationAsRead(conv.id, 'admin')
+                  // Also optimistically update the local state if needed, or wait for next poll
+                } catch (e) {
+                  console.error(e)
+                }
               }}
               className={cn(
                 'w-full p-3 text-left hover:bg-muted/30 transition-colors border-b border-border',

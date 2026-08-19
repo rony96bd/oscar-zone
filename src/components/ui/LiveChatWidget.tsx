@@ -149,7 +149,7 @@ export function LiveChatWidget() {
       }
       const conv = await createGuestConversation(sessionId, name, contact || null)
       setConversation(conv)
-      const msg = await sendMessage(conv.id, null, initialMessage, false, true)
+      const msg = await sendMessage(conv.id, null, initialMessage, false, true, 'guest')
       setMessages((prev) => [...prev, msg])
       setIsStarted(true)
     } catch (err) {
@@ -169,7 +169,7 @@ export function LiveChatWidget() {
     try {
       const conv = await createConversation(profile.id, 'Support Request')
       setConversation(conv)
-      const msg = await sendMessage(conv.id, profile.id, initialMessage, false, false)
+      const msg = await sendMessage(conv.id, profile.id, initialMessage, false, false, 'customer')
       setMessages((prev) => [...prev, msg])
       setIsStarted(true)
     } catch (err) {
@@ -187,9 +187,9 @@ export function LiveChatWidget() {
     try {
       let msg: ChatMessage
       if (isAuthenticated && profile) {
-        msg = await sendMessage(conversation.id, profile.id, content, false, false)
+        msg = await sendMessage(conversation.id, profile.id, content, false, false, 'customer')
       } else {
-        msg = await sendMessage(conversation.id, null, content, false, true)
+        msg = await sendMessage(conversation.id, null, content, false, true, 'guest')
       }
       // Add immediately to local state
       setMessages((prev) => {
@@ -215,7 +215,21 @@ export function LiveChatWidget() {
       {/* Floating Button */}
       {!isOpen && (
         <button
-          onClick={() => { setIsOpen(true); setHasUnread(false) }}
+          onClick={async () => {
+            setIsOpen(true)
+            setHasUnread(false)
+            if (Notification.permission === 'default') {
+              requestNotificationPermission()
+            }
+            if (conversation) {
+              try {
+                const { markConversationAsRead } = await import('@/services/chat')
+                await markConversationAsRead(conversation.id, 'customer')
+              } catch (e) {
+                console.error(e)
+              }
+            }
+          }}
           className="relative flex h-14 w-14 items-center justify-center rounded-full bg-neon-green text-black shadow-lg shadow-neon-green/20 hover:scale-105 active:scale-95 transition-all"
         >
           <MessageCircle className="h-6 w-6" />
