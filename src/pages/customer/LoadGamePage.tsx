@@ -12,6 +12,7 @@ import { cn, formatCurrency } from '@/lib/utils'
 import { ScreenshotUpload } from '@/components/customer/ScreenshotUpload'
 import { APP_NAME } from '@/lib/constants'
 import type { Game, PaymentMethod } from '@/types'
+import { Turnstile } from '@marsidev/react-turnstile'
 
 export default function LoadGamePage() {
   const [searchParams] = useSearchParams()
@@ -38,6 +39,9 @@ export default function LoadGamePage() {
   // Guest verification states
   const [isVerifyingUsername, setIsVerifyingUsername] = useState(false)
   const [guestVerifiedUserId, setGuestVerifiedUserId] = useState<string | null>(null)
+  
+  // Turnstile state
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
 
   const { data: games, isLoading: loadingGames } = useQuery({
     queryKey: ['games-active'],
@@ -129,6 +133,7 @@ export default function LoadGamePage() {
     }
     if (!selectedMethod) return toast.error('Please select a payment method')
     if (!screenshotKey) return toast.error('Please upload your payment screenshot')
+    if (!turnstileToken) return toast.error('Please complete the security check')
 
     setIsSubmitting(true)
 
@@ -143,6 +148,7 @@ export default function LoadGamePage() {
           payment_screenshot_path: screenshotKey,
           is_guest: !isAuthenticated,
           guest_verified_user_id: guestVerifiedUserId,
+          cf_turnstile_token: turnstileToken,
         },
       })
 
@@ -520,11 +526,18 @@ export default function LoadGamePage() {
                     orderId="temp" // Just a placeholder for R2 key generation
                   />
                 </div>
-
-                <div className="pt-4 border-t border-border">
+                <div className="pt-4 border-t border-border flex flex-col items-center gap-4">
+                  <Turnstile 
+                    siteKey="0x4AAAAAAEVMea_wWH0o2Jxu"
+                    onSuccess={(token) => setTurnstileToken(token)}
+                    onError={() => setTurnstileToken(null)}
+                    options={{
+                      theme: 'dark',
+                    }}
+                  />
                   <button
                     type="submit"
-                    disabled={isSubmitting || !selectedGame || !username || !amount || !selectedMethod || !screenshotKey}
+                    disabled={isSubmitting || !selectedGame || !username || !amount || !selectedMethod || !screenshotKey || !turnstileToken}
                     className="btn-neon w-full py-4 text-lg"
                   >
                     {isSubmitting ? (

@@ -54,7 +54,32 @@ Deno.serve(async (req) => {
       payment_screenshot_path,
       customer_game_id,
       guest_verified_user_id,
+      cf_turnstile_token,
     } = body
+
+    // Validate Turnstile Token
+    if (!cf_turnstile_token) {
+      return new Response(JSON.stringify({ error: 'Security check failed. Please refresh the page.' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const turnstileSecret = Deno.env.get('TURNSTILE_SECRET_KEY') ?? '0x4AAAAAAEVMeYWGXlcs-pcFslQ8T9AMNY4'
+    const formData = new FormData()
+    formData.append('secret', turnstileSecret)
+    formData.append('response', cf_turnstile_token)
+
+    const turnstileRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      body: formData
+    })
+    const turnstileOutcome = await turnstileRes.json()
+
+    if (!turnstileOutcome.success) {
+      return new Response(JSON.stringify({ error: 'Security check failed. You might be a bot.' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     // If guest and they verified their game username, link the order to that user
     if (!userId && guest_verified_user_id) {
