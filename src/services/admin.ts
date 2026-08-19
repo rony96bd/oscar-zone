@@ -68,7 +68,7 @@ export async function fetchCustomers(filters: { search?: string; role?: string }
 }
 
 export async function fetchCustomerDetail(customerId: string): Promise<any> {
-  const [profileRes, ordersRes] = await Promise.all([
+  const [profileRes, ordersRes, gamesRes] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', customerId).single(),
     supabase
       .from('orders')
@@ -76,10 +76,19 @@ export async function fetchCustomerDetail(customerId: string): Promise<any> {
       .eq('user_id', customerId)
       .order('created_at', { ascending: false })
       .limit(20),
+    supabase
+      .from('customer_games')
+      .select('*, game:games(name)')
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false }),
   ])
 
   if (profileRes.error) throw profileRes.error
-  return { ...profileRes.data, orders: ordersRes.data || [] }
+  return { 
+    ...profileRes.data, 
+    orders: ordersRes.data || [],
+    customer_games: gamesRes.data || []
+  }
 }
 
 export async function updateCustomerStatus(customerId: string, status: string): Promise<void> {
