@@ -44,16 +44,16 @@ export default function RegisterPage() {
 
   const usernameValue = watch('username')
 
-  if (!allowRegistration) {
+  if (!allowRegistration && !refCode) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <div className="glass-card w-full max-w-md p-8 text-center space-y-4">
+        <div className="glass-card w-full max-w-md p-8 text-center space-y-4 animate-scale-in">
           <Logo className="mx-auto h-12 w-auto mb-6" />
           <div className="mx-auto h-16 w-16 bg-destructive/10 rounded-full flex items-center justify-center text-destructive mb-4">
             <XIcon className="h-8 w-8" />
           </div>
           <h2 className="text-2xl font-gaming font-bold text-white">Registration Closed</h2>
-          <p className="text-muted-foreground">Public registration is currently disabled by the administrator.</p>
+          <p className="text-muted-foreground">Public registration is currently disabled by the administrator. You need a valid referral link from an existing member to create an account.</p>
           <button onClick={() => navigate('/login')} className="btn-neon px-8 py-2 mt-4">
             Go to Login
           </button>
