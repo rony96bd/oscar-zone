@@ -88,7 +88,14 @@ export default function LoadGamePage() {
   }
 
   const handleVerifyGuestUsername = async () => {
-    if (!username || !selectedGameId) return
+    if (!selectedGameId) {
+      toast.error('Please select a game first (Step 1)')
+      return
+    }
+    if (!username) {
+      toast.error('Please enter a username')
+      return
+    }
     setIsVerifyingUsername(true)
     setGuestVerifiedUserId(null)
     
@@ -277,7 +284,6 @@ export default function LoadGamePage() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className="game-input"
-                        disabled={!selectedGameId}
                       >
                         <option value="">-- Select your Game ID --</option>
                         {customerGames?.filter(cg => cg.game_id === selectedGameId).map(cg => (
@@ -296,12 +302,11 @@ export default function LoadGamePage() {
                           }}
                           placeholder="e.g. player123"
                           className="game-input flex-1"
-                          disabled={!selectedGameId}
                         />
                         <button
                           type="button"
                           onClick={handleVerifyGuestUsername}
-                          disabled={!username || !selectedGameId || isVerifyingUsername || !!guestVerifiedUserId}
+                          disabled={isVerifyingUsername || !!guestVerifiedUserId}
                           className={cn(
                             "px-4 py-2 rounded-xl border text-sm font-semibold transition-all",
                             guestVerifiedUserId 
