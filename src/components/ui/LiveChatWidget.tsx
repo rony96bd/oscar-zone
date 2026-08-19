@@ -7,6 +7,7 @@ import { createGuestConversation, createConversation, fetchGuestConversation, se
 import type { ChatConversation, ChatMessage } from '@/types'
 import { formatTime } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
+import { notifyNewMessage } from '@/hooks/useChatNotification'
 
 export function LiveChatWidget() {
   const location = useLocation()
@@ -16,6 +17,7 @@ export function LiveChatWidget() {
   const [isStarted, setIsStarted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [hasUnread, setHasUnread] = useState(false)  // pulsing dot
 
   const [conversation, setConversation] = useState<ChatConversation | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -61,7 +63,21 @@ export function LiveChatWidget() {
     const poll = async () => {
       try {
         const msgs = await fetchMessages(conversation.id)
-        setMessages(msgs)
+        setMessages(prev => {
+          const prevCount = prev.length
+          if (msgs.length > prevCount) {
+            // Check if new messages are from admin (not guest, not current user)
+            const newMsgs = msgs.slice(prevCount)
+            const hasAdminReply = newMsgs.some((m: ChatMessage) =>
+              !m.is_guest && m.sender_id !== profile?.id
+            )
+            if (hasAdminReply) {
+              notifyNewMessage('Support Reply', newMsgs[newMsgs.length - 1].content?.slice(0, 80) || 'New reply from support')
+              if (!isOpen) setHasUnread(true)
+            }
+          }
+          return msgs
+        })
       } catch (err) {
         console.error(err)
       }
@@ -69,7 +85,7 @@ export function LiveChatWidget() {
 
     const interval = setInterval(poll, 3000)
     return () => clearInterval(interval)
-  }, [conversation, isStarted])
+  }, [conversation, isStarted, isOpen, profile?.id])
 
   const loadGuestSession = async (sessionId: string) => {
     try {
@@ -190,10 +206,13 @@ export function LiveChatWidget() {
       {/* Floating Button */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-neon-green text-black shadow-lg shadow-neon-green/20 hover:scale-105 active:scale-95 transition-all"
+          onClick={() => { setIsOpen(true); setHasUnread(false) }}
+          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-neon-green text-black shadow-lg shadow-neon-green/20 hover:scale-105 active:scale-95 transition-all"
         >
           <MessageCircle className="h-6 w-6" />
+          {hasUnread && (
+            <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-red-500 border-2 border-black animate-pulse" />
+          )}
         </button>
       )}
 
