@@ -5,17 +5,24 @@ export async function fetchConversations(
   userId: string,
   role: 'customer' | 'admin'
 ): Promise<ChatConversation[]> {
-  let query = supabase
-    .from('chat_conversations')
-    .select('*, customer:profiles!left(id, full_name, username, avatar_url), assigned_agent:profiles!assigned_agent_id(id, full_name)')
-    .order('last_message_at', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false })
-
-  if (role === 'customer') {
-    query = query.eq('customer_id', userId)
+  if (role === 'admin') {
+    // Admin sees ALL conversations including guest ones
+    const { data, error } = await supabase
+      .from('chat_conversations')
+      .select('*, customer:profiles!left(id, full_name, username, avatar_url), assigned_agent:profiles!assigned_agent_id(id, full_name)')
+      .order('last_message_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data || []
   }
 
-  const { data, error } = await query
+  // Customer sees only their own conversations
+  const { data, error } = await supabase
+    .from('chat_conversations')
+    .select('*, customer:profiles!left(id, full_name, username, avatar_url), assigned_agent:profiles!assigned_agent_id(id, full_name)')
+    .eq('customer_id', userId)
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
   if (error) throw error
   return data || []
 }
