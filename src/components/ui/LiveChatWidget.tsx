@@ -36,6 +36,11 @@ export function LiveChatWidget() {
   useEffect(() => {
     if (isAdminPage) return
 
+    // Auto-request notification permission for everyone
+    if (Notification.permission === 'default') {
+      requestNotificationPermission()
+    }
+
     if (isAuthenticated && profile) {
       // Logged-in user: check if they have a conversation
       loadUserSession()
