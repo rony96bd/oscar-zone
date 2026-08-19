@@ -84,6 +84,10 @@ export default function AdminChatPage() {
     onSuccess: (_, deletedId) => {
       setMessages(prev => prev.filter(m => m.id !== deletedId))
       import('sonner').then(({ toast }) => toast.success('Message deleted'))
+    },
+    onError: (err) => {
+      console.error(err)
+      import('sonner').then(({ toast }) => toast.error('Failed to delete message (RLS Policy Issue?)'))
     }
   })
 
@@ -93,6 +97,10 @@ export default function AdminChatPage() {
       setActiveConvId(null)
       setMessages([])
       import('sonner').then(({ toast }) => toast.success('Conversation deleted'))
+    },
+    onError: (err) => {
+      console.error(err)
+      import('sonner').then(({ toast }) => toast.error('Failed to delete conversation (RLS Policy Issue?)'))
     }
   })
 
