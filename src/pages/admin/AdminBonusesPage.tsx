@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAllPromotions, createPromotion, updatePromotion } from '@/services/promotions'
 import { Plus, Gift, Edit, ToggleLeft, ToggleRight, Users } from 'lucide-react'
 import { useState } from 'react'
@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { formatDate } from '@/lib/utils'
 import { PromotionModal } from '@/components/admin/PromotionModal'
 import { PromotionUsersModal } from '@/components/admin/PromotionUsersModal'
+import { AssignedUsersList } from '@/components/admin/AssignedUsersList'
 
 export default function AdminBonusesPage() {
   const qc = useQueryClient()
@@ -87,7 +88,8 @@ export default function AdminBonusesPage() {
                     
                     {promo.applicable_customer_ids?.length > 0 && (
                       <p className="text-xs text-primary mt-1 flex items-center gap-1">
-                        <Users className="h-3 w-3" /> {promo.applicable_customer_ids.length} Specific Users Assigned
+                        <Users className="h-3 w-3" /> 
+                        <AssignedUsersList ids={promo.applicable_customer_ids} />
                       </p>
                     )}
                   </div>

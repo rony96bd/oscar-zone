@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Search, Plus, Trash2, Loader2, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { updatePromotion } from '@/services/promotions'
@@ -51,20 +51,22 @@ export function PromotionUsersModal({ isOpen, onClose, promotion }: PromotionUse
 
   // Search users
   useEffect(() => {
-    if (!searchTerm.trim()) {
-      setSearchResults([])
-      return
-    }
-
     const timer = setTimeout(async () => {
       setIsSearching(true)
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('profiles')
           .select('*')
           .eq('role', 'customer')
-          .or(`full_name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
-          .limit(10)
+          .limit(20)
+
+        if (searchTerm.trim()) {
+          query = query.or(`full_name.ilike.%${searchTerm.trim()}%,username.ilike.%${searchTerm.trim()}%,phone.ilike.%${searchTerm.trim()}%`)
+        } else {
+          query = query.order('created_at', { ascending: false })
+        }
+
+        const { data, error } = await query
         
         if (!error && data) {
           setSearchResults(data)
@@ -185,10 +187,8 @@ export function PromotionUsersModal({ isOpen, onClose, promotion }: PromotionUse
                     </div>
                   )
                 })
-              ) : searchTerm.trim() ? (
-                <p className="text-center text-sm text-muted-foreground py-4">No customers found.</p>
               ) : (
-                <p className="text-center text-xs text-muted-foreground py-4">Type to search customers to add.</p>
+                <p className="text-center text-sm text-muted-foreground py-4">No customers found.</p>
               )}
             </div>
           </div>
