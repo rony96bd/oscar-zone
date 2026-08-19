@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X } from 'lucide-react'
+import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useThemeStore, ThemeName } from '@/stores/themeStore'
@@ -37,10 +37,18 @@ export default function AdminSettingsPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(siteLogoUrl)
   const [isUploading, setIsUploading] = useState(false)
 
+  const { allowRegistration, setAllowRegistration } = useSettingsStore()
+  const [selectedAllowReg, setSelectedAllowReg] = useState(allowRegistration)
+  const [isSavingReg, setIsSavingReg] = useState(false)
+
   // Keep local state in sync with global state initially
   useEffect(() => {
     setSelectedTheme(currentTheme)
   }, [currentTheme])
+
+  useEffect(() => {
+    setSelectedAllowReg(allowRegistration)
+  }, [allowRegistration])
 
   useEffect(() => {
     setLogoPreview(siteLogoUrl)
@@ -140,6 +148,29 @@ export default function AdminSettingsPage() {
       toast.error('Failed to update theme')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleSaveRegistration = async () => {
+    setIsSavingReg(true)
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          key: 'allow_registration',
+          value: selectedAllowReg ? 'true' : 'false',
+          description: 'Allow or block new public user registrations'
+        }, { onConflict: 'key' })
+        
+      if (error) throw error
+
+      setAllowRegistration(selectedAllowReg)
+      toast.success(selectedAllowReg ? 'Public registration enabled.' : 'Public registration blocked.')
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Failed to update registration settings')
+    } finally {
+      setIsSavingReg(false)
     }
   }
 
@@ -272,6 +303,45 @@ export default function AdminSettingsPage() {
               )}
             </div>
           ))}
+        </div>
+      </div>
+      
+      {/* Registration Settings */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+              <Users className="h-5 w-5 text-orange-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Public Registration</h2>
+              <p className="text-sm text-muted-foreground">Allow or block new users from signing up</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSaveRegistration}
+            disabled={isSavingReg || selectedAllowReg === allowRegistration}
+            className="btn-neon px-6 py-2 text-sm"
+          >
+            {isSavingReg ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Status
+          </button>
+        </div>
+
+        <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-black/20">
+          <div className="flex-1">
+            <h3 className="font-bold text-white">Enable Sign Ups</h3>
+            <p className="text-xs text-muted-foreground">If turned off, the Sign Up button will be hidden and registration will be blocked. Useful to prevent fake accounts for referral abuse.</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="sr-only peer" 
+              checked={selectedAllowReg}
+              onChange={(e) => setSelectedAllowReg(e.target.checked)}
+            />
+            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-green shadow-[0_0_10px_rgba(0,255,136,0.2)] peer-checked:shadow-[0_0_15px_rgba(0,255,136,0.5)]"></div>
+          </label>
         </div>
       </div>
     </div>

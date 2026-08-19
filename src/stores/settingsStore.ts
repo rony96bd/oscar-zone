@@ -1,31 +1,40 @@
-import { create } from 'zustand'
+﻿import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 
 interface SettingsState {
   siteLogoUrl: string | null
+  allowRegistration: boolean
   isLoading: boolean
   fetchSettings: () => Promise<void>
   setSiteLogoUrl: (url: string) => void
+  setAllowRegistration: (allow: boolean) => void
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   siteLogoUrl: null,
+  allowRegistration: true, // Default to true
   isLoading: true,
 
   fetchSettings: async () => {
     try {
       const { data, error } = await supabase
         .from('system_settings')
-        .select('value')
-        .eq('key', 'site_logo_url')
-        .maybeSingle()
+        .select('key, value')
         
       if (!error && data) {
-        let url = data.value
+        const logoSetting = data.find(d => d.key === 'site_logo_url')
+        let url = logoSetting?.value || null
         if (typeof url === 'string' && url.startsWith('"') && url.endsWith('"')) {
           url = url.slice(1, -1)
         }
-        set({ siteLogoUrl: url, isLoading: false })
+
+        const regSetting = data.find(d => d.key === 'allow_registration')
+        let allowReg = true
+        if (regSetting) {
+          allowReg = regSetting.value === 'true' || regSetting.value === true
+        }
+
+        set({ siteLogoUrl: url, allowRegistration: allowReg, isLoading: false })
       } else {
         set({ isLoading: false })
       }
@@ -38,4 +47,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setSiteLogoUrl: (url: string) => {
     set({ siteLogoUrl: url })
   },
+  
+  setAllowRegistration: (allow: boolean) => {
+    set({ allowRegistration: allow })
+  }
 }))

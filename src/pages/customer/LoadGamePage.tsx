@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { fetchGames } from '@/services/games'
 import { calculateBonusPreview } from '@/services/orders'
 import { useAuthStore } from '@/stores/authStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { toast } from 'sonner'
 import { cn, formatCurrency } from '@/lib/utils'
 import { ScreenshotUpload } from '@/components/customer/ScreenshotUpload'
@@ -16,6 +17,7 @@ export default function LoadGamePage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { profile, isAuthenticated } = useAuthStore()
+  const { allowRegistration } = useSettingsStore()
   
   const initialGameId = searchParams.get('game') || ''
   const [selectedGameId, setSelectedGameId] = useState(initialGameId)
@@ -484,7 +486,7 @@ export default function LoadGamePage() {
               </div>
             </div>
 
-            {!isAuthenticated && (
+            {!isAuthenticated && allowRegistration && (
               <div className="glass-card p-6 border-primary/30 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl rounded-full" />
                 <h3 className="text-base font-bold text-white mb-2">Create an account!</h3>

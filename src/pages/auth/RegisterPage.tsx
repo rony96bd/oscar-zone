@@ -3,10 +3,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, Loader2, User, CheckCircle, MessageCircle, Zap } from 'lucide-react'
+import { Eye, EyeOff, Loader2, User, CheckCircle, MessageCircle, Zap, X as XIcon } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Logo } from '@/components/ui/Logo'
 import { useAuthStore } from '@/stores/authStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -35,12 +36,31 @@ export default function RegisterPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const refCode = searchParams.get('ref') || ''
+  const { allowRegistration } = useSettingsStore()
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
 
   const usernameValue = watch('username')
+
+  if (!allowRegistration) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <div className="glass-card w-full max-w-md p-8 text-center space-y-4">
+          <Logo className="mx-auto h-12 w-auto mb-6" />
+          <div className="mx-auto h-16 w-16 bg-destructive/10 rounded-full flex items-center justify-center text-destructive mb-4">
+            <XIcon className="h-8 w-8" />
+          </div>
+          <h2 className="text-2xl font-gaming font-bold text-white">Registration Closed</h2>
+          <p className="text-muted-foreground">Public registration is currently disabled by the administrator.</p>
+          <button onClick={() => navigate('/login')} className="btn-neon px-8 py-2 mt-4">
+            Go to Login
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   // Check username availability on blur
   const handleUsernameBlur = async () => {

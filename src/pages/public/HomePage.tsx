@@ -10,9 +10,11 @@ import { GameCard } from '@/components/customer/GameCard'
 import { APP_NAME, APP_TAGLINE, APP_DESCRIPTION } from '@/lib/constants'
 import { useNavigate as useNav } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 export default function HomePage() {
   const { isAuthenticated } = useAuthStore()
+  const { allowRegistration } = useSettingsStore()
   const navigate = useNavigate()
 
   const { data: games = [] } = useQuery({
@@ -203,9 +205,11 @@ export default function HomePage() {
               <Zap className="h-5 w-5" />
               Quick Load (No Account)
             </Link>
-            <Link to="/register" className="btn-ghost-neon px-8 py-4">
-              Create Account for Bonuses
-            </Link>
+            {allowRegistration && (
+              <Link to="/register" className="btn-ghost-neon px-8 py-4">
+                Create Account for Bonuses
+              </Link>
+            )}
           </div>
         </div>
       </section>

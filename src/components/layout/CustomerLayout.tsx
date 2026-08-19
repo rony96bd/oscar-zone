@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { NotificationBell } from '@/components/shared/NotificationBell'
 import { Logo } from '@/components/ui/Logo'
 import { APP_NAME } from '@/lib/constants'
@@ -43,6 +44,7 @@ export function CustomerLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const { profile, isAuthenticated, signOut } = useAuthStore()
+  const { allowRegistration } = useSettingsStore()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -141,9 +143,11 @@ export function CustomerLayout() {
                 <Link to="/login" className="btn-ghost-neon text-sm px-4 py-2">
                   Sign In
                 </Link>
-                <Link to="/register" className="btn-neon text-sm px-4 py-2">
-                  Get Started
-                </Link>
+                {allowRegistration && (
+                  <Link to="/register" className="btn-neon text-sm px-4 py-2">
+                    Get Started
+                  </Link>
+                )}
               </>
             )}
 

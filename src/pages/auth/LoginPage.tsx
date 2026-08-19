@@ -3,7 +3,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, Loader2, User } from 'lucide-react'
+import { APP_NAME } from '@/lib/constants'
+import { LogIn, Loader2, Gamepad2, Eye, EyeOff, User } from 'lucide-react'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { Logo } from '@/components/ui/Logo'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -21,6 +23,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const { allowRegistration } = useSettingsStore()
   const location = useLocation()
   
   const { refreshProfile } = useAuthStore()
@@ -126,12 +129,14 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-primary font-medium hover:text-primary/80">
-              Sign Up
-            </Link>
-          </p>
+          {allowRegistration && (
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-primary font-medium hover:text-primary/80">
+                Sign Up
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     </div>
