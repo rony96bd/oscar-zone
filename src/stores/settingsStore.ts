@@ -1,18 +1,27 @@
-﻿import { create } from 'zustand'
+import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 
 interface SettingsState {
   siteLogoUrl: string | null
   allowRegistration: boolean
+  supportEmail: string
+  supportPhone: string
+  supportTelegram: string
+  supportFacebook: string
   isLoading: boolean
   fetchSettings: () => Promise<void>
   setSiteLogoUrl: (url: string) => void
   setAllowRegistration: (allow: boolean) => void
+  updateSupportSettings: (updates: Partial<SettingsState>) => void
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   siteLogoUrl: null,
-  allowRegistration: true, // Default to true
+  allowRegistration: true,
+  supportEmail: 'support@oscarzone.com',
+  supportPhone: '+1 (555) 000-0000',
+  supportTelegram: 'https://t.me/oscarzone',
+  supportFacebook: 'https://facebook.com/oscarzone',
   isLoading: true,
 
   fetchSettings: async () => {
@@ -34,7 +43,27 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           allowReg = regSetting.value === 'true' || regSetting.value === true
         }
 
-        set({ siteLogoUrl: url, allowRegistration: allowReg, isLoading: false })
+        const cleanValue = (val: any) => {
+          if (typeof val === 'string' && val.startsWith('"') && val.endsWith('"')) {
+            return val.slice(1, -1)
+          }
+          return val
+        }
+
+        const sEmail = data.find(d => d.key === 'support_email')?.value
+        const sPhone = data.find(d => d.key === 'support_phone')?.value
+        const sTelegram = data.find(d => d.key === 'support_telegram')?.value
+        const sFacebook = data.find(d => d.key === 'support_facebook')?.value
+
+        set({ 
+          siteLogoUrl: url, 
+          allowRegistration: allowReg, 
+          supportEmail: sEmail ? cleanValue(sEmail) : 'support@oscarzone.com',
+          supportPhone: sPhone ? cleanValue(sPhone) : '+1 (555) 000-0000',
+          supportTelegram: sTelegram ? cleanValue(sTelegram) : 'https://t.me/oscarzone',
+          supportFacebook: sFacebook ? cleanValue(sFacebook) : 'https://facebook.com/oscarzone',
+          isLoading: false 
+        })
       } else {
         set({ isLoading: false })
       }
@@ -50,5 +79,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   
   setAllowRegistration: (allow: boolean) => {
     set({ allowRegistration: allow })
+  },
+
+  updateSupportSettings: (updates: Partial<SettingsState>) => {
+    set((state) => ({ ...state, ...updates }))
   }
 }))

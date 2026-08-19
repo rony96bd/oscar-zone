@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users } from 'lucide-react'
+﻿import { useState, useEffect } from 'react'
+import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users, Phone } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useThemeStore, ThemeName } from '@/stores/themeStore'
@@ -29,7 +29,7 @@ const THEMES = [
 
 export default function AdminSettingsPage() {
   const { theme: currentTheme, fetchTheme, setTheme: setGlobalTheme } = useThemeStore()
-  const { siteLogoUrl, setSiteLogoUrl, fetchSettings } = useSettingsStore()
+  const { siteLogoUrl, setSiteLogoUrl, fetchSettings, updateSupportSettings } = useSettingsStore()
   
   const [selectedTheme, setSelectedTheme] = useState<ThemeName>(currentTheme)
   const [isSaving, setIsSaving] = useState(false)
@@ -40,6 +40,16 @@ export default function AdminSettingsPage() {
   const { allowRegistration, setAllowRegistration } = useSettingsStore()
   const [selectedAllowReg, setSelectedAllowReg] = useState(allowRegistration)
   const [isSavingReg, setIsSavingReg] = useState(false)
+
+  // Contact Support Settings
+  const { supportEmail, supportPhone, supportTelegram, supportFacebook } = useSettingsStore()
+  const [contactData, setContactData] = useState({
+    supportEmail,
+    supportPhone,
+    supportTelegram,
+    supportFacebook
+  })
+  const [isSavingContact, setIsSavingContact] = useState(false)
 
   // Keep local state in sync with global state initially
   useEffect(() => {
@@ -53,6 +63,15 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     setLogoPreview(siteLogoUrl)
   }, [siteLogoUrl])
+  
+  useEffect(() => {
+    setContactData({
+      supportEmail,
+      supportPhone,
+      supportTelegram,
+      supportFacebook
+    })
+  }, [supportEmail, supportPhone, supportTelegram, supportFacebook])
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -171,6 +190,32 @@ export default function AdminSettingsPage() {
       toast.error('Failed to update registration settings')
     } finally {
       setIsSavingReg(false)
+    }
+  }
+
+  const handleSaveContact = async () => {
+    setIsSavingContact(true)
+    try {
+      const updates = [
+        { key: 'support_email', value: contactData.supportEmail, description: 'Support Email Address' },
+        { key: 'support_phone', value: contactData.supportPhone, description: 'Support Phone Number' },
+        { key: 'support_telegram', value: contactData.supportTelegram, description: 'Support Telegram Link' },
+        { key: 'support_facebook', value: contactData.supportFacebook, description: 'Support Facebook Link' }
+      ]
+      
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert(updates, { onConflict: 'key' })
+        
+      if (error) throw error
+      
+      updateSupportSettings(contactData)
+      toast.success('Support contact settings updated.')
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Failed to update contact settings')
+    } finally {
+      setIsSavingContact(false)
     }
   }
 
@@ -342,6 +387,72 @@ export default function AdminSettingsPage() {
             />
             <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-green shadow-[0_0_10px_rgba(0,255,136,0.2)] peer-checked:shadow-[0_0_15px_rgba(0,255,136,0.5)]"></div>
           </label>
+        </div>
+      </div>
+      
+      {/* Contact Settings */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+              <Phone className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Contact & Support Settings</h2>
+              <p className="text-sm text-muted-foreground">Manage links displayed on the Contact page</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSaveContact}
+            disabled={isSavingContact}
+            className="btn-neon px-6 py-2 text-sm"
+          >
+            {isSavingContact ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Contacts
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">Email Address</label>
+            <input 
+              type="email" 
+              value={contactData.supportEmail}
+              onChange={e => setContactData({...contactData, supportEmail: e.target.value})}
+              className="game-input text-sm" 
+              placeholder="support@example.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">Phone Number (Optional)</label>
+            <input 
+              type="text" 
+              value={contactData.supportPhone}
+              onChange={e => setContactData({...contactData, supportPhone: e.target.value})}
+              className="game-input text-sm" 
+              placeholder="+1 555-0000"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">Telegram Link</label>
+            <input 
+              type="url" 
+              value={contactData.supportTelegram}
+              onChange={e => setContactData({...contactData, supportTelegram: e.target.value})}
+              className="game-input text-sm" 
+              placeholder="https://t.me/yourchannel"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">Facebook Page Link</label>
+            <input 
+              type="url" 
+              value={contactData.supportFacebook}
+              onChange={e => setContactData({...contactData, supportFacebook: e.target.value})}
+              className="game-input text-sm" 
+              placeholder="https://facebook.com/yourpage"
+            />
+          </div>
         </div>
       </div>
     </div>
