@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 
 const schema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -28,6 +29,7 @@ interface CreateUserModalProps {
 
 export function CreateUserModal({ isOpen, onClose, defaultRole = 'customer' }: CreateUserModalProps) {
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
@@ -60,6 +62,9 @@ export function CreateUserModal({ isOpen, onClose, defaultRole = 'customer' }: C
       // Invalidate queries based on role
       if (data.role === 'customer') {
         qc.invalidateQueries({ queryKey: ['admin-customers'] })
+        if (result.user?.id) {
+          navigate(`/admin/customers/${result.user.id}`)
+        }
       } else {
         qc.invalidateQueries({ queryKey: ['admin-users'] })
       }
