@@ -41,13 +41,13 @@ serve(async (req) => {
   }
 
   // Verify admin role
-  const { data: profile } = await supabase
+  const { data: adminProfile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', adminId)
     .single()
 
-  if (!profile || !['admin', 'super_admin', 'support_agent'].includes(profile.role)) {
+  if (!adminProfile || !['admin', 'super_admin', 'support_agent'].includes(adminProfile.role)) {
     return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
       status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -55,10 +55,10 @@ serve(async (req) => {
 
   const { order_id, status, note } = await req.json()
 
-  // Get current order
+  // Get current order with user info
   const { data: order } = await supabase
     .from('orders')
-    .select('id, status, user_id, game_id, order_number')
+    .select('id, status, user_id, game_id, order_number, base_amount')
     .eq('id', order_id)
     .single()
 
@@ -125,8 +125,138 @@ serve(async (req) => {
     }
   }
 
+  // ── REFERRAL SYSTEM ──────────────────────────────────────────
+  // Only process when order is completed and has a real user (not guest)
+  if (status === 'completed' && order.user_id) {
+    try {
+      // Fetch referral qualification settings
+      const { data: settings } = await supabase
+        .from('system_settings')
+        .select('key, value')
+        .in('key', ['referral_qualify_on', 'referral_min_load_amount'])
+
+      const minLoadRaw = settings?.find(s => s.key === 'referral_min_load_amount')?.value
+      const minLoadAmount = parseFloat(
+        typeof minLoadRaw === 'string'
+          ? minLoadRaw.replace(/"/g, '')
+          : String(minLoadRaw ?? '5')
+      )
+
+      // Check if the completed order meets minimum amount
+      const orderAmount = parseFloat(order.base_amount) || 0
+      const meetsMinLoad = orderAmount >= minLoadAmount
+
+      // Get the customer's profile to find their referrer
+      const { data: customerProfile } = await supabase
+        .from('profiles')
+        .select('id, referred_by')
+        .eq('id', order.user_id)
+        .single()
+
+      if (!customerProfile?.referred_by) {
+        // No referrer, skip
+      } else {
+        const referrerId = customerProfile.referred_by
+
+        // Find the referral record between referrer and this customer
+        const { data: referralRecord } = await supabase
+          .from('referrals')
+          .select('id, status')
+          .eq('referrer_id', referrerId)
+          .eq('referred_id', order.user_id)
+          .single()
+
+        if (referralRecord) {
+          // ── QUALIFY REFERRAL ──────────────────────────────────
+          // If referral is still pending and order meets criteria, qualify it
+          if (referralRecord.status === 'pending' && meetsMinLoad) {
+            await supabase
+              .from('referrals')
+              .update({ status: 'qualified', qualified_at: new Date().toISOString() })
+              .eq('id', referralRecord.id)
+
+            // Notify referrer about their new qualified referral
+            const { data: referredProfile } = await supabase
+              .from('profiles')
+              .select('full_name, username')
+              .eq('id', order.user_id)
+              .single()
+
+            await supabase.from('notifications').insert({
+              user_id: referrerId,
+              title: '🎉 New Qualified Referral!',
+              message: `${referredProfile?.full_name || referredProfile?.username || 'A user'} you referred just completed their first qualifying load! You earned a referral commission.`,
+              category: 'referral',
+              action_url: '/earnings',
+            })
+          }
+
+          // ── CALCULATE COMMISSION ──────────────────────────────
+          // Always calculate commission when referral is qualified (or just became qualified)
+          // This gives lifetime commission on every completed load
+          const isNowQualified = (referralRecord.status === 'pending' && meetsMinLoad) || referralRecord.status === 'qualified'
+
+          if (isNowQualified) {
+            // Fetch referrer's current qualified referral count to determine their level
+            const { data: qualifiedReferrals } = await supabase
+              .from('referrals')
+              .select('id')
+              .eq('referrer_id', referrerId)
+              .eq('status', 'qualified')
+
+            // Count current qualified (include the one we just qualified)
+            const qualifiedCount = (qualifiedReferrals?.length || 0)
+
+            // Get commission levels
+            const { data: levels } = await supabase
+              .from('referral_levels')
+              .select('*')
+              .order('level')
+
+            // Find the referrer's current level
+            const currentLevel = (levels || []).find(
+              l => qualifiedCount >= l.min_referrals && (l.max_referrals === null || qualifiedCount <= l.max_referrals)
+            )
+
+            const commissionPct = currentLevel?.commission_percentage ?? 0
+            const commissionAmount = (orderAmount * commissionPct) / 100
+
+            if (commissionAmount > 0) {
+              // Insert immutable earnings record
+              await supabase.from('referral_earnings').insert({
+                user_id: referrerId,
+                referral_id: referralRecord.id,
+                source_order_id: order_id,
+                deposit_amount: orderAmount,
+                commission_percentage: commissionPct,
+                commission_amount: commissionAmount,
+                level: currentLevel?.level ?? 0,
+                status: 'pending',
+              })
+
+              // Notify referrer about commission earned
+              await supabase.from('notifications').insert({
+                user_id: referrerId,
+                title: '💰 Commission Earned!',
+                message: `You earned $${commissionAmount.toFixed(2)} commission (${commissionPct}%) from a referral load of $${orderAmount.toFixed(2)}.`,
+                category: 'referral',
+                action_url: '/earnings',
+              })
+            }
+          }
+        }
+      }
+    } catch (refErr) {
+      // Non-fatal — don't fail the whole order update
+      console.error('Referral processing error (non-fatal):', refErr)
+    }
+  }
+  // ── END REFERRAL SYSTEM ──────────────────────────────────────
+
   return new Response(
     JSON.stringify({ success: true }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   )
 })
+
+
