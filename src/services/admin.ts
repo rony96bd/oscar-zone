@@ -49,7 +49,13 @@ export async function fetchCustomers(filters: { search?: string; role?: string }
     .select('*')
     .order('created_at', { ascending: false })
 
-  if (filters.role) query = query.eq('role', filters.role)
+  if (filters.role) {
+    if (filters.role.includes(',')) {
+      query = query.in('role', filters.role.split(','))
+    } else {
+      query = query.eq('role', filters.role)
+    }
+  }
   if (filters.search) {
     query = query.or(
       `full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone.ilike.%${filters.search}%`

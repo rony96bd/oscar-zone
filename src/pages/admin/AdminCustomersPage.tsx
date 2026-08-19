@@ -2,37 +2,37 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchCustomers } from '@/services/admin'
-import { Search, Users, Shield } from 'lucide-react'
-import { formatRelativeTime } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { Search, Plus } from 'lucide-react'
+import { formatRelativeTime, cn } from '@/lib/utils'
+import { CreateUserModal } from '@/components/admin/CreateUserModal'
 
 export default function AdminCustomersPage() {
   const [search, setSearch] = useState('')
-  const [role, setRole] = useState('')
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const { data: customers = [], isLoading } = useQuery({
-    queryKey: ['admin-customers', search, role],
-    queryFn: () => fetchCustomers({ search, role }),
+    queryKey: ['admin-customers', search],
+    queryFn: () => fetchCustomers({ search, role: 'customer' }),
   })
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-gaming font-bold text-white">Customers</h1>
-        <p className="text-muted-foreground text-sm">{customers.length} users found</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-gaming font-bold text-white">Customers</h1>
+          <p className="text-muted-foreground text-sm">{customers.length} users found</p>
+        </div>
+        <button onClick={() => setIsModalOpen(true)} className="btn-neon text-sm px-4 py-2">
+          <Plus className="h-4 w-4" /> Add Customer
+        </button>
       </div>
       <div className="flex gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, username, telegram..." className="game-input pl-10" />
         </div>
-        <select value={role} onChange={e => setRole(e.target.value)} className="game-input w-40">
-          <option value="">All Roles</option>
-          <option value="customer">Customer</option>
-          <option value="admin">Admin</option>
-          <option value="support_agent">Support</option>
-        </select>
       </div>
+      <CreateUserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} defaultRole="customer" />
       {isLoading ? (
         <div className="space-y-3">{[...Array(8)].map((_, i) => <div key={i} className="h-16 skeleton rounded-xl" />)}</div>
       ) : (
