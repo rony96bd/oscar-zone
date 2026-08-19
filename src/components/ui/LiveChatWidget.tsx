@@ -5,15 +5,18 @@ import { MessageCircle, X, Send, User, Link as LinkIcon, Loader2 } from 'lucide-
 import { supabase } from '@/lib/supabase'
 import { createGuestConversation, createConversation, fetchGuestConversation, sendMessage, fetchMessages, uploadChatAttachment } from '@/services/chat'
 import type { ChatConversation, ChatMessage } from '@/types'
-import { formatTime } from '@/lib/utils'
+import { formatTime, cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { notifyNewMessage, requestNotificationPermission } from '@/hooks/useChatNotification'
 
 export function LiveChatWidget() {
   const location = useLocation()
   const { profile, isAuthenticated } = useAuthStore()
+  const { supportTelegram, supportFacebook } = useSettingsStore()
 
   const [isOpen, setIsOpen] = useState(false)
+  const [showOptions, setShowOptions] = useState(false)
   const [isStarted, setIsStarted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -231,28 +234,71 @@ export function LiveChatWidget() {
 
   const widgetContent = (
     <div className="fixed bottom-6 right-6" style={{ zIndex: 2147483647 }}>
+      {/* Contact Options */}
+      {!isOpen && showOptions && (
+        <div className="absolute bottom-20 right-0 mb-2 flex flex-col gap-3 items-end animate-fade-in">
+          <a
+            href={supportFacebook}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setShowOptions(false)}
+            className="flex items-center gap-3 group"
+          >
+            <span className="bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Facebook</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:scale-105 active:scale-95 transition-all border border-white/10">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+            </div>
+          </a>
+          <a
+            href={supportTelegram}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setShowOptions(false)}
+            className="flex items-center gap-3 group"
+          >
+            <span className="bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Telegram</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg hover:scale-105 active:scale-95 transition-all border border-white/10">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </div>
+          </a>
+          <button
+            onClick={async () => {
+              setShowOptions(false)
+              setIsOpen(true)
+              setHasUnread(false)
+              if (Notification.permission === 'default') {
+                requestNotificationPermission()
+              }
+              if (conversation) {
+                try {
+                  const { markConversationAsRead } = await import('@/services/chat')
+                  await markConversationAsRead(conversation.id, 'customer')
+                } catch (e) {
+                  console.error(e)
+                }
+              }
+            }}
+            className="flex items-center gap-3 group"
+          >
+            <span className="bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Live Chat</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-black shadow-lg hover:scale-105 active:scale-95 transition-all">
+              <MessageCircle className="h-5 w-5" />
+            </div>
+          </button>
+        </div>
+      )}
+
       {/* Floating Button */}
       {!isOpen && (
         <button
-          onClick={async () => {
-            setIsOpen(true)
-            setHasUnread(false)
-            if (Notification.permission === 'default') {
-              requestNotificationPermission()
-            }
-            if (conversation) {
-              try {
-                const { markConversationAsRead } = await import('@/services/chat')
-                await markConversationAsRead(conversation.id, 'customer')
-              } catch (e) {
-                console.error(e)
-              }
-            }
-          }}
-          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-neon-green text-black shadow-lg shadow-neon-green/20 hover:scale-105 active:scale-95 transition-all"
+          onClick={() => setShowOptions(!showOptions)}
+          className={cn(
+            "relative flex h-14 w-14 items-center justify-center rounded-full text-black shadow-lg hover:scale-105 active:scale-95 transition-all",
+            showOptions ? "bg-white shadow-white/20" : "bg-neon-green shadow-neon-green/20"
+          )}
         >
-          <MessageCircle className="h-6 w-6" />
-          {hasUnread && (
+          {showOptions ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
+          {hasUnread && !showOptions && (
             <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-red-500 border-2 border-black animate-pulse" />
           )}
         </button>
