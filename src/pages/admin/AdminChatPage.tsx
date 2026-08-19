@@ -113,10 +113,17 @@ export default function AdminChatPage() {
     setNotifEnabled(granted)
   }
 
+  // Request permission on first interaction to bypass browser auto-block
+  const handleFirstInteraction = () => {
+    if (Notification.permission === 'default') {
+      handleEnableNotif()
+    }
+  }
+
   const activeConv = (conversations as any[]).find((c: any) => c.id === activeConvId)
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-9rem)]">
+    <div className="flex gap-4 h-[calc(100vh-9rem)]" onClick={handleFirstInteraction}>
       {/* Conversations List */}
       <div className="w-64 flex-shrink-0 glass-card flex flex-col overflow-hidden">
         <div className="p-4 border-b border-border">
