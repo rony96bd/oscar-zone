@@ -7,7 +7,7 @@ import { createGuestConversation, createConversation, fetchGuestConversation, se
 import type { ChatConversation, ChatMessage } from '@/types'
 import { formatTime } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
-import { notifyNewMessage } from '@/hooks/useChatNotification'
+import { notifyNewMessage, requestNotificationPermission } from '@/hooks/useChatNotification'
 
 export function LiveChatWidget() {
   const location = useLocation()
@@ -134,6 +134,8 @@ export function LiveChatWidget() {
     e.preventDefault()
     if (!name.trim() || !initialMessage.trim()) return
     setIsSubmitting(true)
+    // Ask for notification permission when chat starts
+    requestNotificationPermission()
     try {
       let sessionId = localStorage.getItem('guest_chat_session')
       if (!sessionId) {
@@ -157,6 +159,8 @@ export function LiveChatWidget() {
     e.preventDefault()
     if (!initialMessage.trim() || !profile) return
     setIsSubmitting(true)
+    // Ask for notification permission when chat starts
+    requestNotificationPermission()
     try {
       const conv = await createConversation(profile.id, 'Support Request')
       setConversation(conv)

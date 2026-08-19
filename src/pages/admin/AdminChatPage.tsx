@@ -14,8 +14,14 @@ export default function AdminChatPage() {
   const [input, setInput] = useState('')
   const [notifEnabled, setNotifEnabled] = useState(Notification.permission === 'granted')
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  // Track last known message count per conversation to detect new messages
   const lastMsgCount = useRef<Record<string, number>>({})
+
+  // Auto-request notification permission when admin opens the page
+  useEffect(() => {
+    if (Notification.permission === 'default') {
+      requestNotificationPermission().then(granted => setNotifEnabled(granted))
+    }
+  }, [])
 
   const { data: conversations = [] } = useQuery({
     queryKey: ['admin-conversations'],
