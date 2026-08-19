@@ -1,7 +1,8 @@
-﻿import { useState, useEffect } from 'react'
+﻿import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Loader2 } from 'lucide-react'
 import { fetchGames } from '@/services/games'
+import { fetchPaymentMethods } from '@/services/payments'
 import { calculateBonusPreview, adminCreateOrder } from '@/services/orders'
 import { toast } from 'sonner'
 
@@ -11,9 +12,11 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
   const [amount, setAmount] = useState('')
   const [userId, setUserId] = useState('')
   const [status, setStatus] = useState('completed')
+  const [paymentMethodId, setPaymentMethodId] = useState('')
   const qc = useQueryClient()
 
   const { data: games } = useQuery({ queryKey: ['games'], queryFn: fetchGames, enabled: isOpen })
+  const { data: paymentMethods } = useQuery({ queryKey: ['payment-methods'], queryFn: fetchPaymentMethods, enabled: isOpen })
 
   const { data: bonusData } = useQuery({
     queryKey: ['bonus', selectedGameId, parseFloat(amount), userId],
@@ -34,7 +37,8 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
         user_id: userId || undefined,
         total_bonus: bonusData?.total_bonus || 0,
         final_credit: bonusData?.final_credit || parseFloat(amount),
-        status: status as any
+        status: status as any,
+        payment_method_id: paymentMethodId || undefined
       })
     },
     onSuccess: () => {
@@ -45,6 +49,7 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
       setUsername('')
       setAmount('')
       setUserId('')
+      setPaymentMethodId('')
     },
     onError: (err: any) => toast.error(err.message || 'Failed to create order')
   })
@@ -77,33 +82,47 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Amount ($) *</label>
               <input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className="game-input w-full" required />
             </div>
+            
+            <div className="p-3 border border-border rounded-lg bg-black/20 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Payment Method</label>
+                <select value={paymentMethodId} onChange={e => setPaymentMethodId(e.target.value)} className="game-input w-full">
+                  <option value="">-- None / Manual --</option>
+                  {paymentMethods?.map(pm => (
+                    <option key={pm.id} value={pm.id}>{pm.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Status</label>
+                <select value={status} onChange={e => setStatus(e.target.value)} className="game-input w-full">
+                  <option value="completed">Completed</option>
+                  <option value="payment_verified">Payment Verified</option>
+                  <option value="pending_payment_review">Pending</option>
+                </select>
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Customer User ID (Optional)</label>
               <input type="text" value={userId} onChange={e => setUserId(e.target.value)} placeholder="UUID from profiles" className="game-input w-full" />
-              <p className="text-[10px] text-muted-foreground mt-1">Leave blank for guest order</p>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">Status</label>
-              <select value={status} onChange={e => setStatus(e.target.value)} className="game-input w-full">
-                <option value="completed">Completed</option>
-                <option value="payment_verified">Payment Verified</option>
-                <option value="pending_payment_review">Pending</option>
-              </select>
+              <p className="text-[10px] text-muted-foreground mt-1">Leave blank for guest order. Useful for linking to specific users.</p>
             </div>
 
             {bonusData && (
               <div className="p-3 rounded-lg bg-white/5 border border-white/10 space-y-1 text-sm">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Base Amount:</span>
-                  <span className="text-white"></span>
+                  <span className="text-white">${parseFloat(amount).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-neon-gold">
                   <span>Bonus:</span>
-                  <span>+</span>
+                  <span>+${bonusData.total_bonus.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-neon-green pt-1 border-t border-white/10">
                   <span>Final Credit:</span>
-                  <span></span>
+                  <span>${bonusData.final_credit.toFixed(2)}</span>
                 </div>
               </div>
             )}
