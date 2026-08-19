@@ -13,6 +13,8 @@ import { useThemeStore } from '@/stores/themeStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useEffect } from 'react'
 import { LiveChatWidget } from '@/components/ui/LiveChatWidget'
+import { ScrollToTop } from '@/components/shared/ScrollToTop'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 
 // Public Pages
 const HomePage = lazy(() => import('@/pages/public/HomePage'))
@@ -83,6 +85,7 @@ function AppContent() {
   }, [fetchTheme, fetchSettings])
 
   return (
+    <ErrorBoundary>
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Customer Website */}
@@ -157,6 +160,7 @@ function AppContent() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
+    </ErrorBoundary>
   )
 }
 
@@ -164,6 +168,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ScrollToTop />
         <AppContent />
         <LiveChatWidget />
         <Toaster
