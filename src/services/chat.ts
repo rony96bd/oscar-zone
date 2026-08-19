@@ -7,7 +7,7 @@ export async function fetchConversations(
 ): Promise<ChatConversation[]> {
   let query = supabase
     .from('chat_conversations')
-    .select('*, customer:profiles!customer_id(*), assigned_agent:profiles!assigned_agent_id(*)')
+    .select('*, customer:profiles!left(id, full_name, username, avatar_url), assigned_agent:profiles!assigned_agent_id(id, full_name)')
     .order('last_message_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
 
@@ -23,7 +23,7 @@ export async function fetchConversations(
 export async function fetchMessages(conversationId: string): Promise<ChatMessage[]> {
   const { data, error } = await supabase
     .from('chat_messages')
-    .select('*, sender:profiles!sender_id(*)')
+    .select('*')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
   if (error) throw error
