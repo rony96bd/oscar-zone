@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchOrders, updateOrderStatus, migrateGuestOrderToUser } from '@/services/orders'
-import { Search, Filter, RefreshCw, ChevronRight, Clock, CheckCircle, XCircle, UserCheck } from 'lucide-react'
+import { Search, Filter, RefreshCw, ChevronRight, Clock, CheckCircle, XCircle, UserCheck, Plus } from 'lucide-react'
 import { cn, formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { OrderStatus } from '@/types'
+import { CreateOrderModal } from '@/components/admin/CreateOrderModal'
 
 const STATUS_OPTIONS: { label: string; value: string }[] = [
   { label: 'All Orders', value: '' },
@@ -21,6 +22,7 @@ export default function AdminOrdersPage() {
   const [status, setStatus] = useState<OrderStatus | ''>('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const qc = useQueryClient()
 
   const { data, isLoading, refetch } = useQuery({
@@ -54,14 +56,19 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-gaming font-bold text-white">Orders</h1>
           <p className="text-muted-foreground text-sm">{total} total orders</p>
         </div>
-        <button onClick={() => refetch()} className="btn-ghost-neon px-3 py-2 text-sm">
-          <RefreshCw className="h-4 w-4" />
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => refetch()} className="btn-ghost-neon px-3 py-2 text-sm">
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <button onClick={() => setIsCreateModalOpen(true)} className="btn-neon px-4 py-2 text-sm flex items-center gap-2">
+            <Plus className="h-4 w-4" /> Create Order
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -145,6 +152,8 @@ export default function AdminOrdersPage() {
           <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * 20 >= total} className="btn-ghost-neon px-4 py-2 text-sm disabled:opacity-40">Next</button>
         </div>
       )}
+      
+      <CreateOrderModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
     </div>
   )
 }

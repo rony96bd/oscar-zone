@@ -223,3 +223,52 @@ export async function calculateBonusPreview(
     promotion_name: bestPromo?.name || null,
   }
 }
+
+export async function adminCreateOrder(payload: {
+  user_id?: string
+  game_id: string
+  username: string
+  base_amount: number
+  payment_method_id?: string
+  total_bonus?: number
+  final_credit?: number
+  status?: OrderStatus
+}): Promise<Order> {
+  // Generate random order number
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let orderNumber = 'ORD-'
+  for (let i = 0; i < 6; i++) {
+    orderNumber += chars[Math.floor(Math.random() * chars.length)]
+  }
+
+  const { data, error } = await supabase
+    .from('orders')
+    .insert({
+      order_number: orderNumber,
+      user_id: payload.user_id || null,
+      game_id: payload.game_id,
+      username: payload.username,
+      guest_name: !payload.user_id ? payload.username : null,
+      is_guest: !payload.user_id,
+      base_amount: payload.base_amount,
+      total_bonus: payload.total_bonus || 0,
+      final_credit: payload.final_credit || payload.base_amount,
+      payment_method_id: payload.payment_method_id || null,
+      status: payload.status || 'completed', // Default to completed if created by admin
+      payment_screenshot: null, // Admin created usually doesn't need screenshot
+      admin_note: 'Created manually by admin',
+    })
+    .select('*, game:games(*), profile:profiles!user_id(*)')
+    .single()
+
+  if (error) throw error
+
+  // Log status history
+  await supabase.from('order_status_history').insert({
+    order_id: data.id,
+    status: data.status,
+    note: 'Order created by admin'
+  })
+
+  return data
+}
