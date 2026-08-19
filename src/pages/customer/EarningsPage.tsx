@@ -57,7 +57,7 @@ export default function EarningsPage() {
       </div>
       <div className="game-card p-6 mb-6">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="font-gaming font-bold text-white">Level {currentLevel?.level || 0} \u2014 {currentLevel?.label || 'Getting Started'}</h2>
+          <h2 className="font-gaming font-bold text-white">Level {currentLevel?.level || 0} — {currentLevel?.label || 'Getting Started'}</h2>
           <span className="text-neon-green font-bold">{currentLevel?.commission_percentage || 0}%</span>
         </div>
         <p className="text-xs text-muted-foreground mb-3">{qualifiedCount} / {progressMax} Referrals</p>

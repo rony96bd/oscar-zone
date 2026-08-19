@@ -59,12 +59,12 @@ export default function DashboardPage() {
     <div className="container mx-auto px-4 py-8 pb-24 lg:pb-8">
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-gaming font-bold text-white">
-          Welcome back, <span className="text-gradient-blue">{profile?.full_name?.split(' ')[0] || 'Player'}</span> \uD83D\uDD25
+          Welcome back, <span className="text-gradient-blue">{profile?.full_name?.split(' ')[0] || 'Player'}</span> 🔥
         </h1>
         <p className="text-muted-foreground mt-1">
-          {profile?.is_vip && <span className="text-neon-gold font-semibold mr-2">\u2605 VIP Member</span>}
+          {profile?.is_vip && <span className="text-neon-gold font-semibold mr-2">★ VIP Member</span>}
           {activePromo ? (
-            <span className="text-neon-green">{activePromo.bonus_percentage}% Bonus Active \u2014 {activePromo.name}!</span>
+            <span className="text-neon-green">{activePromo.bonus_percentage}% Bonus Active — {activePromo.name}!</span>
           ) : 'Load your games and earn bonuses!'}
         </p>
       </div>
@@ -162,7 +162,7 @@ export default function DashboardPage() {
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-white text-sm">{order.game?.name}</p>
-                  <p className="text-xs text-muted-foreground">{order.order_number} \u2022 {formatRelativeTime(order.created_at)}</p>
+                  <p className="text-xs text-muted-foreground">{order.order_number} • {formatRelativeTime(order.created_at)}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-white text-sm">{formatCurrency(order.final_game_credit)}</p>

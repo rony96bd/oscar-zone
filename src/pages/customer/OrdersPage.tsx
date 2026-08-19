@@ -66,7 +66,7 @@ export default function OrdersPage() {
                   <span className="font-gaming font-bold text-white text-sm">{order.game?.name}</span>
                   <span className={getOrderStatusClass(order.status)}>{getOrderStatusLabel(order.status)}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">{order.order_number} \u2022 {order.username} \u2022 {formatRelativeTime(order.created_at)}</p>
+                <p className="text-xs text-muted-foreground">{order.order_number} • {order.username} • {formatRelativeTime(order.created_at)}</p>
               </div>
               <div className="text-sm sm:text-right">
                 <div className="font-bold text-white">{formatCurrency(order.final_game_credit)}</div>
