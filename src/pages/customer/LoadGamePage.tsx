@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, Gamepad2, Zap, Image as ImageIcon, CheckCircle, Loader2, ZoomIn, X as XIcon, AlertTriangle, Info } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -17,10 +17,12 @@ import { Turnstile } from '@marsidev/react-turnstile'
 export default function LoadGamePage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { profile, isAuthenticated } = useAuthStore()
   const { allowRegistration } = useSettingsStore()
   
-  const initialGameId = searchParams.get('game') || ''
+  const stateGameId = location.state?.gameId
+  const initialGameId = stateGameId || searchParams.get('game') || ''
   const [selectedGameId, setSelectedGameId] = useState(initialGameId)
   
   const [username, setUsername] = useState(profile?.username || profile?.full_name || '')
@@ -78,10 +80,34 @@ export default function LoadGamePage() {
 
   // Auto-fill username if profile exists
   useEffect(() => {
+    if (location.state?.customerGameId && customerGames) {
+      const cg = customerGames.find((g: any) => g.id === location.state.customerGameId)
+      if (cg) {
+        setUsername(cg.username)
+        return
+      }
+    }
+    
+    // Auto-select username if they select a game and only have 1 account for it
+    if (isAuthenticated && selectedGameId && customerGames) {
+      const accountsForGame = customerGames.filter((cg: any) => cg.game_id === selectedGameId)
+      if (accountsForGame.length > 0) {
+        // If they haven't selected a valid username for this game yet, or only have 1
+        if (accountsForGame.length === 1 || !accountsForGame.find(cg => cg.username === username)) {
+          setUsername(accountsForGame[0].username)
+          return
+        }
+        return // keep existing valid selection
+      } else {
+        setUsername('') // Clear if they have no accounts for this game
+        return
+      }
+    }
+
     if (profile?.username || profile?.full_name) {
       if (!username) setUsername(profile.username || profile.full_name || '')
     }
-  }, [profile])
+  }, [profile, customerGames, location.state, selectedGameId, isAuthenticated])
 
   const handleMethodSelect = (method: PaymentMethod) => {
     setSelectedMethod(method)
