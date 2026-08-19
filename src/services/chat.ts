@@ -6,20 +6,18 @@ export async function fetchConversations(
   role: 'customer' | 'admin'
 ): Promise<ChatConversation[]> {
   if (role === 'admin') {
-    // Admin sees ALL conversations including guest ones
     const { data, error } = await supabase
       .from('chat_conversations')
-      .select('*, customer:profiles!left(id, full_name, username, avatar_url), assigned_agent:profiles!assigned_agent_id(id, full_name)')
+      .select('*')
       .order('last_message_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
-    if (error) throw error
+    if (error) { console.error('fetchConversations admin error:', error); throw error }
     return data || []
   }
 
-  // Customer sees only their own conversations
   const { data, error } = await supabase
     .from('chat_conversations')
-    .select('*, customer:profiles!left(id, full_name, username, avatar_url), assigned_agent:profiles!assigned_agent_id(id, full_name)')
+    .select('*')
     .eq('customer_id', userId)
     .order('last_message_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
