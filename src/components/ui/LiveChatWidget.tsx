@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
 import { MessageCircle, X, Send, User, Link as LinkIcon, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { createGuestConversation, createConversation, fetchGuestConversation, sendMessage, fetchMessages } from '@/services/chat'
+import { createGuestConversation, createConversation, fetchGuestConversation, sendMessage, fetchMessages, uploadChatAttachment } from '@/services/chat'
 import type { ChatConversation, ChatMessage } from '@/types'
 import { formatTime } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
@@ -23,6 +23,8 @@ export function LiveChatWidget() {
   const [conversation, setConversation] = useState<ChatConversation | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
 
   // Guest form fields
   const [name, setName] = useState('')
@@ -184,16 +186,26 @@ export function LiveChatWidget() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || !conversation) return
+    if ((!newMessage.trim() && !attachment) || !conversation) return
     const content = newMessage
+    const currentAttachment = attachment
     setNewMessage('')
+    setAttachment(null)
+    setUploading(true)
+    
     try {
+      let attachmentUrl = undefined
+      if (currentAttachment) {
+        attachmentUrl = await uploadChatAttachment(currentAttachment)
+      }
+
       let msg: ChatMessage
       if (isAuthenticated && profile) {
-        msg = await sendMessage(conversation.id, profile.id, content, false, false, 'customer')
+        msg = await sendMessage(conversation.id, profile.id, content || 'Sent an attachment', false, false, 'customer', attachmentUrl)
       } else {
-        msg = await sendMessage(conversation.id, null, content, false, true, 'guest')
+        msg = await sendMessage(conversation.id, null, content || 'Sent an attachment', false, true, 'guest', attachmentUrl)
       }
+      
       // Add immediately to local state
       setMessages((prev) => {
         const exists = prev.some((m) => m.id === msg.id)
@@ -202,7 +214,11 @@ export function LiveChatWidget() {
       })
     } catch (err) {
       console.error(err)
+      import('sonner').then(({ toast }) => toast.error('Failed to send message'))
       setNewMessage(content)
+      setAttachment(currentAttachment)
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -349,7 +365,12 @@ export function LiveChatWidget() {
                           }`}
                           style={{ background: isMine ? '#00ff88' : 'rgba(255,255,255,0.1)' }}
                         >
-                          {msg.content}
+                          {msg.attachment_url && (
+                            <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="block mb-2">
+                              <img src={msg.attachment_url} alt="Attachment" className="max-w-full rounded-lg object-cover" style={{ maxHeight: '150px' }} />
+                            </a>
+                          )}
+                          {msg.content !== 'Sent an attachment' && msg.content}
                         </div>
                         <span className="mt-1 text-[10px] text-muted-foreground">
                           {formatTime(msg.created_at)}
@@ -360,24 +381,60 @@ export function LiveChatWidget() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input */}
                 <div className="border-t border-white/10 p-3" style={{ background: '#111118' }}>
-                  <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                    <input
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type your message..."
-                      className="flex-1 rounded-full px-4 py-2 text-sm text-white focus:outline-none"
-                      style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
-                    />
-                    <button
-                      type="submit"
-                      disabled={!newMessage.trim()}
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-black disabled:opacity-40 flex-shrink-0 transition-transform active:scale-95"
-                      style={{ background: '#00ff88' }}
-                    >
-                      <Send className="h-4 w-4" />
-                    </button>
+                  <form onSubmit={handleSendMessage} className="flex flex-col gap-2">
+                    {uploading && (
+                      <div className="flex items-center gap-2 px-2 text-xs text-neon-green">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Uploading image...
+                      </div>
+                    )}
+                    {attachment && (
+                      <div className="relative w-fit">
+                        <img src={URL.createObjectURL(attachment)} alt="Attachment" className="h-16 w-16 object-cover rounded" />
+                        <button
+                          type="button"
+                          onClick={() => setAttachment(null)}
+                          className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive flex items-center justify-center text-white hover:scale-110"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <label className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:text-white transition-colors flex-shrink-0" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              if (file.size > 2 * 1024 * 1024) {
+                                import('sonner').then(({ toast }) => toast.error('Image must be less than 2MB'))
+                                return
+                              }
+                              setAttachment(file)
+                            }
+                          }}
+                        />
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                      </label>
+                      <input
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Type your message..."
+                        className="flex-1 rounded-full px-4 py-2 text-sm text-white focus:outline-none"
+                        style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+                      />
+                      <button
+                        type="submit"
+                        disabled={(!newMessage.trim() && !attachment) || uploading}
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-black disabled:opacity-40 flex-shrink-0 transition-transform active:scale-95"
+                        style={{ background: '#00ff88' }}
+                      >
+                        <Send className="h-4 w-4" />
+                      </button>
+                    </div>
                   </form>
                 </div>
               </div>

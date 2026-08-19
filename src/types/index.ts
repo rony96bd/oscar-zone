@@ -243,7 +243,7 @@ export interface ChatMessage {
   sender_id: string | null
   is_guest: boolean
   content: string
-  attachment_url: string | null
+  attachment_url?: string
   is_internal_note: boolean
   is_read: boolean
   created_at: string

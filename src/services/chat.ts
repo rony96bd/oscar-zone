@@ -89,7 +89,8 @@ export async function sendMessage(
   content: string,
   isInternalNote = false,
   isGuest = false,
-  senderRole: 'admin' | 'customer' | 'guest' = 'customer'
+  senderRole: 'admin' | 'customer' | 'guest' = 'customer',
+  attachmentUrl?: string
 ): Promise<ChatMessage> {
   const { data, error } = await supabase
     .from('chat_messages')
@@ -98,6 +99,7 @@ export async function sendMessage(
       sender_id: senderId,
       is_guest: isGuest,
       content,
+      attachment_url: attachmentUrl || null,
       is_internal_note: isInternalNote,
     })
     .select()
@@ -155,6 +157,80 @@ export async function closeConversation(conversationId: string): Promise<void> {
     .from('chat_conversations')
     .update({ status: 'closed' })
     .eq('id', conversationId)
+  if (error) throw error
+}
+
+export async function uploadChatAttachment(file: File): Promise<string> {
+  if (file.size > 2 * 1024 * 1024) throw new Error('File size must be less than 2MB')
+  if (!file.type.startsWith('image/')) throw new Error('Only images are allowed')
+
+  const fileExt = file.name.split('.').pop()
+  const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
+  
+  const { error: uploadError } = await supabase.storage
+    .from('chat_attachments')
+    .upload(fileName, file)
+    
+  if (uploadError) throw uploadError
+  
+  const { data } = supabase.storage
+    .from('chat_attachments')
+    .getPublicUrl(fileName)
+    
+  return data.publicUrl
+}
+
+export async function deleteMessage(messageId: string): Promise<void> {
+  // First fetch the message to get attachment URL
+  const { data: msg } = await supabase
+    .from('chat_messages')
+    .select('attachment_url')
+    .eq('id', messageId)
+    .single()
+    
+  if (msg?.attachment_url) {
+    const urlParts = msg.attachment_url.split('/')
+    const fileName = urlParts[urlParts.length - 1]
+    if (fileName) {
+      await supabase.storage.from('chat_attachments').remove([fileName])
+    }
+  }
+  
+  const { error } = await supabase
+    .from('chat_messages')
+    .delete()
+    .eq('id', messageId)
+    
+  if (error) throw error
+}
+
+export async function deleteConversation(conversationId: string): Promise<void> {
+  // Fetch all messages with attachments
+  const { data: msgs } = await supabase
+    .from('chat_messages')
+    .select('attachment_url')
+    .eq('conversation_id', conversationId)
+    .not('attachment_url', 'is', null)
+    
+  if (msgs && msgs.length > 0) {
+    const filesToRemove = msgs
+      .map(m => {
+        const parts = m.attachment_url?.split('/')
+        return parts ? parts[parts.length - 1] : null
+      })
+      .filter((f): f is string => Boolean(f))
+      
+    if (filesToRemove.length > 0) {
+      await supabase.storage.from('chat_attachments').remove(filesToRemove)
+    }
+  }
+  
+  // Delete the conversation (will cascade delete messages in DB)
+  const { error } = await supabase
+    .from('chat_conversations')
+    .delete()
+    .eq('id', conversationId)
+    
   if (error) throw error
 }
 
