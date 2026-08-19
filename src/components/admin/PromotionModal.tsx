@@ -12,6 +12,7 @@ const schema = z.object({
   bonus_percentage: z.coerce.number().min(0).max(100),
   minimum_amount: z.coerce.number().min(0),
   priority: z.coerce.number().min(0),
+  per_user_limit: z.number().nullable().optional(),
   is_active: z.boolean(),
 })
 
@@ -41,6 +42,7 @@ export function PromotionModal({ isOpen, onClose, initialData, onSubmit }: Promo
       bonus_percentage: 0,
       minimum_amount: 0,
       priority: 0,
+      per_user_limit: null,
       is_active: true,
     },
   })
@@ -54,6 +56,7 @@ export function PromotionModal({ isOpen, onClose, initialData, onSubmit }: Promo
         bonus_percentage: initialData.bonus_percentage,
         minimum_amount: initialData.minimum_amount,
         priority: initialData.priority,
+        per_user_limit: initialData.per_user_limit,
         is_active: initialData.is_active,
       })
     } else if (isOpen && !initialData) {
@@ -64,6 +67,7 @@ export function PromotionModal({ isOpen, onClose, initialData, onSubmit }: Promo
         bonus_percentage: 0,
         minimum_amount: 0,
         priority: 0,
+        per_user_limit: null,
         is_active: true,
       })
     }
@@ -119,16 +123,30 @@ export function PromotionModal({ isOpen, onClose, initialData, onSubmit }: Promo
             />
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-muted-foreground mb-1 block">Type (Rule)</label>
-            <select {...register('type')} className="game-input">
-              <option value="regular">Regular Bonus</option>
-              <option value="first_load">Account First Load (Lifetime)</option>
-              <option value="daily">Daily First Load (Today)</option>
-              <option value="weekend">Weekend Special</option>
-              <option value="vip">VIP Only</option>
-            </select>
-            {errors.type && <p className="text-xs text-destructive mt-1">{errors.type.message}</p>}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-1 block">Type (Rule)</label>
+              <select {...register('type')} className="game-input">
+                <option value="regular">Regular Bonus</option>
+                <option value="first_load">Account First Load (Lifetime)</option>
+                <option value="daily">Daily First Load (Today)</option>
+                <option value="weekend">Weekend Special</option>
+                <option value="vip">VIP Only</option>
+                <option value="customer_specific">Specific Users Only</option>
+              </select>
+              {errors.type && <p className="text-xs text-destructive mt-1">{errors.type.message}</p>}
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-1 block">Usage Limit Per User</label>
+              <select {...register('per_user_limit', { setValueAs: v => v === '' ? null : Number(v) })} className="game-input">
+                <option value="">Unlimited</option>
+                <option value="1">Once Only (1 time)</option>
+                <option value="2">2 times</option>
+                <option value="3">3 times</option>
+                <option value="4">4 times</option>
+                <option value="5">5 times</option>
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

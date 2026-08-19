@@ -77,6 +77,33 @@ serve(async (req) => {
       if (promo.end_date && new Date(promo.end_date) < now) continue
       if (promo.applicable_game_ids?.length && !promo.applicable_game_ids.includes(game_id)) continue
 
+      // Specific users only check
+      if (promo.applicable_customer_ids && promo.applicable_customer_ids.length > 0) {
+        if (!effectiveUserId || !promo.applicable_customer_ids.includes(effectiveUserId)) {
+          continue
+        }
+      }
+
+      // Usage limit per user check
+      if (promo.per_user_limit && effectiveUserId) {
+        const { count } = await supabase
+          .from('orders')
+          .select('id', { count: 'exact' })
+          .eq('user_id', effectiveUserId)
+          .eq('promotion_id', promo.id)
+          .neq('status', 'rejected')
+          .neq('status', 'cancelled')
+          .neq('status', 'refunded')
+        
+        if ((count || 0) >= promo.per_user_limit) {
+          continue
+        }
+      }
+
+      // Legacy first_load check (must be literally their first successful order globally)
+      // Note: If you want a first_load bonus that applies to specific users regardless of their past history,
+      // use the 'per_user_limit' = 1 and 'customer_specific' type instead of 'first_load'. 
+      // We will keep this global check for 'first_load' type just in case.
       if (promo.type === 'first_load' && effectiveUserId) {
         const { count } = await supabase
           .from('orders')
@@ -99,6 +126,7 @@ serve(async (req) => {
       JSON.stringify({
         regular_bonus_pct: regularBonusPct,
         regular_bonus_amount: regularBonusAmount,
+        promotion_id: bestPromo?.id || null,
         promotion_name: bestPromo?.name || null,
         promo_bonus_pct: promoBonusPct,
         promo_bonus_amount: promoBonusAmount,

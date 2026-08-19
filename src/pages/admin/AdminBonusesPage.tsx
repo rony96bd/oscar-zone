@@ -1,15 +1,19 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAllPromotions, createPromotion, updatePromotion } from '@/services/promotions'
-import { Plus, Gift, Edit, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Plus, Gift, Edit, ToggleLeft, ToggleRight, Users } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { formatDate } from '@/lib/utils'
 import { PromotionModal } from '@/components/admin/PromotionModal'
+import { PromotionUsersModal } from '@/components/admin/PromotionUsersModal'
 
 export default function AdminBonusesPage() {
   const qc = useQueryClient()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPromo, setEditingPromo] = useState<any>(null)
+  
+  const [isUsersModalOpen, setIsUsersModalOpen] = useState(false)
+  const [managingUsersPromo, setManagingUsersPromo] = useState<any>(null)
 
   const { data: promotions = [], isLoading } = useQuery({
     queryKey: ['admin-promotions'],
@@ -43,6 +47,11 @@ export default function AdminBonusesPage() {
     setEditingPromo(promo)
     setIsModalOpen(true)
   }
+  
+  const openManageUsers = (promo: any) => {
+    setManagingUsersPromo(promo)
+    setIsUsersModalOpen(true)
+  }
 
   return (
     <div className="space-y-6">
@@ -64,21 +73,38 @@ export default function AdminBonusesPage() {
                     <Gift className="h-5 w-5 text-neon-gold" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mb-1">
                       <p className="font-semibold text-white">{promo.name}</p>
                       <span className="text-xs text-muted-foreground bg-muted/30 px-2 py-0.5 rounded">{promo.type}</span>
+                      {promo.per_user_limit && (
+                        <span className="text-[10px] text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded">
+                          Max Uses: {promo.per_user_limit}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-neon-gold font-bold">+{promo.bonus_percentage}% Bonus</p>
                     <p className="text-xs text-muted-foreground">Min: ${promo.minimum_amount}{promo.maximum_amount ? ` / Max: $${promo.maximum_amount}` : ''}</p>
-                    {promo.end_date && <p className="text-xs text-muted-foreground">Ends: {formatDate(promo.end_date)}</p>}
+                    
+                    {promo.applicable_customer_ids?.length > 0 && (
+                      <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                        <Users className="h-3 w-3" /> {promo.applicable_customer_ids.length} Specific Users Assigned
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
+                    onClick={() => openManageUsers(promo)}
+                    className="p-2 rounded-lg hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors flex items-center gap-2 text-xs font-medium"
+                    title="Assign specific users"
+                  >
+                    <Users className="h-4 w-4" /> Users
+                  </button>
+                  <button
                     onClick={() => openEdit(promo)}
                     className="p-2 rounded-lg hover:bg-white/5 text-muted-foreground hover:text-white transition-colors"
                   >
-                    <Edit className="h-5 w-5" />
+                    <Edit className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => toggleMutation.mutate({ id: promo.id, is_active: !promo.is_active })}
@@ -100,6 +126,12 @@ export default function AdminBonusesPage() {
         onClose={() => setIsModalOpen(false)}
         initialData={editingPromo}
         onSubmit={async (data) => { await saveMutation.mutateAsync(data) }}
+      />
+      
+      <PromotionUsersModal
+        isOpen={isUsersModalOpen}
+        onClose={() => setIsUsersModalOpen(false)}
+        promotion={managingUsersPromo}
       />
     </div>
   )
