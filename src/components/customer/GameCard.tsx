@@ -1,4 +1,4 @@
-import { ExternalLink, Gamepad2, Zap } from 'lucide-react'
+import { ExternalLink, Gamepad2, Zap, Download } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { Game } from '@/types'
 import { cn } from '@/lib/utils'
@@ -161,9 +161,10 @@ interface SavedGameCardProps {
   username: string
   onLoad: () => void
   logoUrl?: string | null
+  downloadUrl?: string | null
 }
 
-export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl }: SavedGameCardProps) {
+export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, downloadUrl }: SavedGameCardProps) {
   const theme = GAME_THEMES[gameSlug] || {
     gradient: 'from-primary/20 to-primary/5',
     glow: 'rgba(0,212,255,0.4)',
@@ -172,7 +173,7 @@ export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl }:
   const initials = gameName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
   return (
-    <div className="game-card p-4 flex items-center gap-4">
+    <div className="game-card p-4 flex flex-col gap-3">
       <div
         className="absolute inset-0 bg-gradient-to-br opacity-30 pointer-events-none"
         style={{ backgroundImage: `linear-gradient(135deg, ${theme.accent}20, transparent)` }}
@@ -194,18 +195,31 @@ export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl }:
             {username}
           </p>
         </div>
-        <button
-          onClick={onLoad}
-          className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold"
-          style={{
-            background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent}80)`,
-            color: '#080c14',
-            boxShadow: `0 0 12px ${theme.glow}`,
-          }}
-        >
-          <Zap className="h-3.5 w-3.5" />
-          LOAD
-        </button>
+        <div className="flex items-center gap-2">
+          {downloadUrl && (
+            <a
+              href={downloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-lg bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
+              title={`Download ${gameName}`}
+            >
+              <Download className="h-4 w-4" />
+            </a>
+          )}
+          <button
+            onClick={onLoad}
+            className="flex-shrink-0 flex items-center gap-1.5 px-4 h-8 rounded-lg text-xs font-bold"
+            style={{
+              background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent}80)`,
+              color: '#080c14',
+              boxShadow: `0 0 12px ${theme.glow}`,
+            }}
+          >
+            <Zap className="h-3.5 w-3.5" />
+            LOAD
+          </button>
+        </div>
       </div>
     </div>
   )
