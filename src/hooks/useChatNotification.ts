@@ -48,8 +48,17 @@ export function showBrowserNotification(title: string, body: string, icon?: stri
   }
 }
 
-// Combined: play sound + show browser notification
+// Combined: play sound + show browser notification + toast
 export function notifyNewMessage(title: string, body: string) {
   playNotificationSound()
   showBrowserNotification(title, body)
+  
+  // Show in-app toast for guaranteed visibility
+  import('sonner').then(({ toast }) => {
+    toast(title, {
+      description: body,
+      duration: 5000,
+      position: 'top-right',
+    })
+  })
 }

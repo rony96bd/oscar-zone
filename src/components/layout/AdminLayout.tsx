@@ -72,6 +72,7 @@ export function AdminLayout() {
 
   // Keep track of previous conversations to detect new unread messages
   const prevConvsRef = useRef<Record<string, number>>({})
+  const isFirstFetchRef = useRef(true)
 
   // Global polling for admin chats
   useEffect(() => {
@@ -83,14 +84,16 @@ export function AdminLayout() {
         
         // Detect if any conversation has a NEW unread message
         convs.forEach((conv: any) => {
-          const prevUnread = prevConvsRef.current[conv.id] || 0
-          if (conv.unread_count_agent > prevUnread) {
+          const prevUnread = prevConvsRef.current[conv.id] ?? conv.unread_count_agent
+          if (!isFirstFetchRef.current && conv.unread_count_agent > prevUnread) {
             // It's a new message! Show notification
             const name = conv.guest_name || conv.customer?.full_name || 'Guest'
             notifyNewMessage(`New message from ${name}`, conv.last_message || 'New chat message')
           }
           prevConvsRef.current[conv.id] = conv.unread_count_agent
         })
+        
+        isFirstFetchRef.current = false
       } catch (err) {
         console.error(err)
       }

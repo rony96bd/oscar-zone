@@ -48,12 +48,17 @@ export default function AdminChatPage() {
         const msgs = await fetchMessages(activeConvId)
         const prev = lastMsgCount.current[activeConvId] ?? msgs.length
         const newMsgs = msgs.slice(prev)
-        // Notify admin if new message from guest/customer
-        newMsgs.forEach((msg: any) => {
-          if (msg.is_guest || (msg.sender_id && msg.sender_id !== profile?.id)) {
-            notifyNewMessage('New Message', msg.content?.slice(0, 80) || 'New chat message')
+        
+        if (newMsgs.length > 0) {
+          const hasGuestReply = newMsgs.some((msg: any) => msg.is_guest || (msg.sender_id && msg.sender_id !== profile?.id))
+          if (hasGuestReply) {
+            // We are actively looking at it, play sound and mark as read so global layout doesn't notify again
+            notifyNewMessage('New Message', newMsgs[newMsgs.length - 1].content?.slice(0, 80) || 'New chat message')
+            const { markConversationAsRead } = await import('@/services/chat')
+            await markConversationAsRead(activeConvId, 'admin')
           }
-        })
+        }
+        
         lastMsgCount.current[activeConvId] = msgs.length
         setMessages(msgs)
       } catch (err) {

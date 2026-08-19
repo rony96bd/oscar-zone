@@ -18,6 +18,7 @@ export function LiveChatWidget() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasUnread, setHasUnread] = useState(false)  // pulsing dot
+  const lastMsgCount = useRef<number>(0)
 
   const [conversation, setConversation] = useState<ChatConversation | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -56,7 +57,7 @@ export function LiveChatWidget() {
   }, [isAuthenticated, profile, isAdminPage])
 
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && isOpen) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages, isOpen])
@@ -68,21 +69,23 @@ export function LiveChatWidget() {
     const poll = async () => {
       try {
         const msgs = await fetchMessages(conversation.id)
-        setMessages(prev => {
-          const prevCount = prev.length
-          if (msgs.length > prevCount) {
-            // Check if new messages are from admin (not guest, not current user)
-            const newMsgs = msgs.slice(prevCount)
-            const hasAdminReply = newMsgs.some((m: ChatMessage) =>
-              !m.is_guest && m.sender_id !== profile?.id
-            )
-            if (hasAdminReply) {
-              notifyNewMessage('Support Reply', newMsgs[newMsgs.length - 1].content?.slice(0, 80) || 'New reply from support')
-              if (!isOpen) setHasUnread(true)
+        
+        const prevCount = lastMsgCount.current || msgs.length
+        if (msgs.length > prevCount) {
+          const newMsgs = msgs.slice(prevCount)
+          const hasAdminReply = newMsgs.some((m: ChatMessage) =>
+            !m.is_guest && m.sender_id !== profile?.id
+          )
+          if (hasAdminReply) {
+            notifyNewMessage('Support Reply', newMsgs[newMsgs.length - 1].content?.slice(0, 80) || 'New reply from support')
+            if (!isOpen) {
+              setHasUnread(true)
             }
           }
-          return msgs
-        })
+        }
+        
+        lastMsgCount.current = msgs.length
+        setMessages(msgs)
       } catch (err) {
         console.error(err)
       }

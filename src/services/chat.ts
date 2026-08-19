@@ -124,10 +124,14 @@ export async function sendMessage(
     }
   }
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('chat_conversations')
     .update(updates)
     .eq('id', conversationId)
+    
+  if (updateError) {
+    console.error('Failed to update conversation unread counts:', updateError)
+  }
 
   return data
 }
