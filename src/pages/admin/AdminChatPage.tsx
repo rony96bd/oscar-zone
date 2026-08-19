@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/authStore'
-import { fetchConversations, fetchMessages, sendMessage, closeConversation, uploadChatAttachment, deleteMessage, deleteConversation } from '@/services/chat'
+import { fetchConversations, fetchMessages, sendMessage, closeConversation, uploadChatAttachment, deleteMessage, deleteConversation, clearConversationMessages } from '@/services/chat'
 import { notifyNewMessage, requestNotificationPermission } from '@/hooks/useChatNotification'
-import { MessageCircle, Send, X, User, Bell, Loader2, Trash2 } from 'lucide-react'
+import { MessageCircle, Send, X, User, Bell, Loader2, Trash2, Eraser } from 'lucide-react'
 import { cn, formatTime } from '@/lib/utils'
 import { useChatStore } from '@/stores/chatStore'
 
@@ -104,6 +104,18 @@ export default function AdminChatPage() {
     }
   })
 
+  const clearConvMutation = useMutation({
+    mutationFn: (convId: string) => clearConversationMessages(convId),
+    onSuccess: () => {
+      setMessages([])
+      import('sonner').then(({ toast }) => toast.success('Chat cleared'))
+    },
+    onError: (err) => {
+      console.error(err)
+      import('sonner').then(({ toast }) => toast.error('Failed to clear chat'))
+    }
+  })
+
   const handleSend = async () => {
     if ((!input.trim() && !attachment) || !activeConvId) return
     const content = input
@@ -140,88 +152,78 @@ export default function AdminChatPage() {
   // Request permission on first interaction to bypass browser auto-block
   const handleFirstInteraction = () => {
     if (Notification.permission === 'default') {
-      handleEnableNotif()
+      requestNotificationPermission().then(granted => setNotifEnabled(granted))
     }
   }
 
   const activeConv = (conversations as any[]).find((c: any) => c.id === activeConvId)
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-9rem)]" onClick={handleFirstInteraction}>
+    <div className="flex h-[calc(100vh-8rem)] gap-4" onClick={handleFirstInteraction}>
       {/* Conversations List */}
-      <div className="w-64 flex-shrink-0 glass-card flex flex-col overflow-hidden">
-        <div className="p-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-gaming font-bold text-white text-sm">Live Chat</h2>
-              <p className="text-xs text-muted-foreground">
-                {(conversations as any[]).filter((c: any) => c.status === 'open').length} open
-              </p>
-            </div>
-            {!notifEnabled && (
-              <button
-                onClick={handleEnableNotif}
-                title="Enable notifications"
-                className="flex items-center gap-1 text-[10px] text-neon-gold hover:text-white transition-colors"
-              >
-                <Bell className="h-3.5 w-3.5" />
-                Enable
-              </button>
-            )}
-            {notifEnabled && (
-              <Bell className="h-3.5 w-3.5 text-neon-green" />
-            )}
-          </div>
+      <div className="w-80 glass-card flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-border flex justify-between items-center bg-black/20">
+          <h2 className="font-gaming font-bold text-white flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-neon-green" />
+            Live Chat
+          </h2>
+          <button 
+            onClick={handleEnableNotif}
+            className={cn("p-1.5 rounded-md transition-colors", notifEnabled ? "text-neon-green bg-neon-green/10" : "text-muted-foreground hover:bg-white/5")}
+            title={notifEnabled ? "Notifications enabled" : "Enable notifications"}
+          >
+            <Bell className="h-4 w-4" />
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {(conversations as any[]).length === 0 && (
-            <p className="text-xs text-muted-foreground p-4 text-center">No conversations yet</p>
-          )}
-          {(conversations as any[]).map((conv: any) => (
-            <button
-              key={conv.id}
-              onClick={async () => {
-                setActiveConvId(conv.id)
-                try {
-                  const { markConversationAsRead } = await import('@/services/chat')
-                  await markConversationAsRead(conv.id, 'admin')
-                  // Also optimistically update the local state if needed, or wait for next poll
-                } catch (e) {
-                  console.error(e)
-                }
-              }}
-              className={cn(
-                'w-full p-3 text-left hover:bg-muted/30 transition-colors border-b border-border',
-                activeConvId === conv.id && 'bg-primary/10'
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <div className="relative h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  <User className="h-3.5 w-3.5 text-primary" />
+          {(conversations as any[]).length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <MessageCircle className="h-8 w-8 mx-auto mb-3 opacity-20" />
+              <p className="text-sm">No active chats</p>
+            </div>
+          ) : (
+            (conversations as any[]).map((conv: any) => (
+              <button
+                key={conv.id}
+                onClick={async () => {
+                  setActiveConvId(conv.id)
+                  try {
+                    const { markConversationAsRead } = await import('@/services/chat')
+                    await markConversationAsRead(conv.id, 'admin')
+                  } catch (e) {
+                    console.error(e)
+                  }
+                }}
+                className={cn(
+                  'w-full flex flex-col p-4 border-b border-border text-left transition-colors relative',
+                  activeConvId === conv.id ? 'bg-neon-green/10' : 'hover:bg-white/5'
+                )}
+              >
+                <div className="flex justify-between items-start mb-1">
+                  <span className="font-semibold text-white text-sm truncate pr-2">
+                    {conv.guest_name || conv.customer?.full_name || 'Guest'}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                    {formatTime(conv.last_message_at || conv.created_at)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-xs text-muted-foreground truncate pr-4">
+                    {conv.last_message || conv.subject}
+                  </span>
                   {conv.unread_count_agent > 0 && (
-                    <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-destructive text-[9px] text-white flex items-center justify-center">
+                    <span className="flex-shrink-0 h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-neon-green text-black text-[10px] font-bold">
                       {conv.unread_count_agent}
                     </span>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1">
-                    <p className="text-xs font-semibold text-white truncate">
-                      {conv.guest_name || conv.customer?.full_name || 'Guest'}
-                    </p>
-                    {conv.guest_name && (
-                      <span className="text-[9px] text-muted-foreground bg-white/10 px-1 rounded">Guest</span>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground truncate">{conv.last_message || conv.subject}</p>
-                </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            ))
+          )}
         </div>
       </div>
 
-      {/* Chat Window */}
+      {/* Chat Area */}
       {activeConv ? (
         <div className="flex-1 glass-card flex flex-col overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b border-border">
@@ -240,6 +242,16 @@ export default function AdminChatPage() {
               <p className="text-xs text-muted-foreground">{activeConv.subject}</p>
             </div>
             <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to clear all messages in this chat?')) {
+                    clearConvMutation.mutate(activeConvId!)
+                  }
+                }} 
+                className="btn-ghost-neon px-3 py-1.5 text-xs text-orange-500 hover:bg-orange-500/10"
+              >
+                <Eraser className="h-3.5 w-3.5" /> Clear Chat
+              </button>
               <button 
                 onClick={() => {
                   if (window.confirm('Are you sure you want to delete this entire conversation? All messages and files will be permanently deleted.')) {

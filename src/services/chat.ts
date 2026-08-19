@@ -234,6 +234,47 @@ export async function deleteConversation(conversationId: string): Promise<void> 
   if (error) throw error
 }
 
+export async function clearConversationMessages(conversationId: string): Promise<void> {
+  // Fetch all messages with attachments
+  const { data: msgs } = await supabase
+    .from('chat_messages')
+    .select('attachment_url')
+    .eq('conversation_id', conversationId)
+    .not('attachment_url', 'is', null)
+    
+  if (msgs && msgs.length > 0) {
+    const filesToRemove = msgs
+      .map(m => {
+        const parts = m.attachment_url?.split('/')
+        return parts ? parts[parts.length - 1] : null
+      })
+      .filter((f): f is string => Boolean(f))
+      
+    if (filesToRemove.length > 0) {
+      await supabase.storage.from('chat_attachments').remove(filesToRemove)
+    }
+  }
+  
+  // Delete only the messages
+  const { error } = await supabase
+    .from('chat_messages')
+    .delete()
+    .eq('conversation_id', conversationId)
+    
+  if (error) throw error
+  
+  // Reset last message info in conversation
+  await supabase
+    .from('chat_conversations')
+    .update({ 
+      last_message: null,
+      last_message_at: null,
+      unread_count_agent: 0,
+      unread_count_customer: 0
+    })
+    .eq('id', conversationId)
+}
+
 export async function assignAgent(conversationId: string, agentId: string): Promise<void> {
   const { error } = await supabase
     .from('chat_conversations')
