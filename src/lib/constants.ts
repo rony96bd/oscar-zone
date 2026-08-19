@@ -4,6 +4,8 @@ export const APP_DESCRIPTION = 'The #1 trusted game loading service for US playe
 
 export const SUPPORT_EMAIL = 'support@oscarzone.com'
 export const SUPPORT_PHONE = '+1 (555) 000-0000'
+export const SUPPORT_TELEGRAM = 'https://t.me/oscarzone'
+export const SUPPORT_FACEBOOK = 'https://facebook.com/oscarzone'
 
 export const SCREENSHOT_BUCKET = 'payment-screenshots'
 export const AVATAR_BUCKET = 'avatars'
