@@ -1,50 +1,8 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Loader2, CheckCircle } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import { Logo } from '@/components/ui/Logo'
-import { toast } from 'sonner'
+import { HeadphonesIcon } from 'lucide-react'
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [sent, setSent] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      })
-      if (error) throw error
-      setSent(true)
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to send reset email')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  if (sent) {
-    return (
-      <div className="min-h-screen hero-bg flex items-center justify-center px-4">
-        <div className="glass-card p-8 max-w-md w-full text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/20 mx-auto mb-4">
-            <CheckCircle className="h-7 w-7 text-primary" />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">Check your email</h2>
-          <p className="text-muted-foreground text-sm mb-6">
-            We sent a password reset link to <strong>{email}</strong>
-          </p>
-          <Link to="/login" className="btn-ghost-neon px-6 py-2 text-sm">
-            Back to Sign In
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen hero-bg flex items-center justify-center px-4">
       <div className="w-full max-w-md">
@@ -53,30 +11,32 @@ export default function ForgotPasswordPage() {
             <Logo iconSize="lg" textClassName="text-xl" />
           </div>
           <h1 className="text-2xl font-bold text-white">Reset Password</h1>
-          <p className="text-muted-foreground text-sm mt-1">Enter your email to receive a reset link</p>
+          <p className="text-muted-foreground text-sm mt-1">Contact support to reset your password</p>
         </div>
-        <div className="glass-card p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="game-input"
-                required
-              />
+        <div className="glass-card p-8 text-center">
+          
+          <div className="flex justify-center mb-6">
+            <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
+              <HeadphonesIcon className="h-8 w-8 text-primary" />
             </div>
-            <button type="submit" disabled={isLoading} className="btn-neon w-full py-3">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {isLoading ? 'Sending...' : 'Send Reset Link'}
-            </button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Remember your password?{' '}
-            <Link to="/login" className="text-primary hover:text-primary/80">Sign In</Link>
+          </div>
+          
+          <h2 className="text-lg font-bold text-white mb-3">Forgot your password?</h2>
+          <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
+            For security reasons, password resets are handled manually by our support team. Please contact us via Live Chat or the Support page to get a new password.
           </p>
+
+          <div className="space-y-4">
+            <Link to="/contact" className="btn-neon w-full py-3 inline-block">
+              Contact Support
+            </Link>
+            
+            <p className="text-center text-sm text-muted-foreground">
+              Remember your password?{' '}
+              <Link to="/login" className="text-primary hover:text-primary/80">Sign In</Link>
+            </p>
+          </div>
+
         </div>
       </div>
     </div>

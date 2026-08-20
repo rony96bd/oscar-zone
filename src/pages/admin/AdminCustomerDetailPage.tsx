@@ -1,17 +1,18 @@
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchCustomerDetail, updateCustomerStatus, assignCustomerGame } from '@/services/admin'
-import { fetchGuestOrders } from '@/services/orders'
 import { fetchGames } from '@/services/games'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
-import { Link } from 'react-router-dom'
-import { Shield, ShoppingBag, Star } from 'lucide-react'
+import { Shield, ShoppingBag, Star, Lock } from 'lucide-react'
 import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
 
 export default function AdminCustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const qc = useQueryClient()
+  const [newPassword, setNewPassword] = useState('')
 
   const { data: customer, isLoading } = useQuery({
     queryKey: ['admin-customer', id],
@@ -27,6 +28,24 @@ export default function AdminCustomerDetailPage() {
   const statusMutation = useMutation({
     mutationFn: (status: string) => updateCustomerStatus(id!, status),
     onSuccess: () => { toast.success('Status updated'); qc.invalidateQueries({ queryKey: ['admin-customer', id] }) },
+  })
+
+  const passwordMutation = useMutation({
+    mutationFn: async (password: string) => {
+      const { data, error } = await supabase.functions.invoke('admin-set-password', {
+        body: { userId: id, newPassword: password }
+      })
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+      return data
+    },
+    onSuccess: () => {
+      toast.success('Password updated successfully')
+      setNewPassword('')
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to update password')
+    }
   })
 
   const assignGameMutation = useMutation({
@@ -64,7 +83,7 @@ export default function AdminCustomerDetailPage() {
       {/* Account Status */}
       <div className="glass-card p-6">
         <h2 className="font-semibold text-white mb-4">Account Status</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-6">
           {['active', 'suspended', 'restricted'].map(status => (
             <button
               key={status}
@@ -76,6 +95,29 @@ export default function AdminCustomerDetailPage() {
               {status}
             </button>
           ))}
+        </div>
+
+        <h2 className="font-semibold text-white mb-4 pt-4 border-t border-border flex items-center gap-2">
+          <Lock className="h-4 w-4" /> Security
+        </h2>
+        <div className="flex flex-col gap-2 max-w-sm">
+          <label className="text-xs text-muted-foreground">Force Password Reset</label>
+          <div className="flex gap-2">
+            <input 
+              type="text" 
+              placeholder="New Password (min 6 chars)" 
+              className="game-input flex-1"
+              onChange={(e) => setNewPassword(e.target.value)}
+              value={newPassword}
+            />
+            <button
+              onClick={() => passwordMutation.mutate(newPassword)}
+              className="btn-neon px-4"
+              disabled={!newPassword || newPassword.length < 6 || passwordMutation.isPending}
+            >
+              {passwordMutation.isPending ? 'Updating...' : 'Update'}
+            </button>
+          </div>
         </div>
       </div>
 
