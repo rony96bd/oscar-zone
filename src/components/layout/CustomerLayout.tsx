@@ -1,4 +1,4 @@
-﻿import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home, Gamepad2, Star, HelpCircle, Users, Phone,
   LayoutDashboard, Joystick, ShoppingBag, DollarSign,
@@ -170,12 +170,12 @@ export function CustomerLayout() {
                 </div>
               </>
             ) : (
-              <div className="hidden sm:flex items-center gap-2">
-                <Link to="/login" className="btn-ghost px-4 py-2 text-sm">
-                  Log In
+              <div className="flex items-center gap-2">
+                <Link to="/login" className="btn-ghost px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20">
+                  Sign In
                 </Link>
                 {allowRegistration && (
-                  <Link to="/register" className="btn-neon px-4 py-2 text-sm">
+                  <Link to="/register" className="hidden sm:flex btn-neon px-4 py-2 text-sm">
                     Sign Up
                   </Link>
                 )}
