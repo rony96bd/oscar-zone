@@ -60,6 +60,62 @@ const navSections = [
   },
 ]
 
+function AdminNotificationDropdown() {
+  const { unreadCount: chatUnread } = useChatStore()
+  const { unreadCount: notifUnread, notifications } = useNotificationStore()
+  const totalUnread = chatUnread + notifUnread
+
+  const recentNotifs = notifications.slice(0, 3)
+
+  return (
+    <div className="relative group">
+      <Link to="/admin/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-muted hover:bg-accent transition-colors">
+        <Bell className="h-5 w-5 text-muted-foreground" />
+        {totalUnread > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
+            {totalUnread > 9 ? '9+' : totalUnread}
+          </span>
+        )}
+      </Link>
+
+      <div className="absolute right-0 top-full mt-2 w-72 glass-card py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-2xl z-50">
+        <div className="px-4 py-2 border-b border-border">
+          <h3 className="font-semibold text-white">Notifications</h3>
+        </div>
+        <div className="max-h-80 overflow-y-auto">
+          {totalUnread === 0 && recentNotifs.length === 0 && (
+            <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
+          )}
+          
+          {chatUnread > 0 && (
+            <Link to="/admin/chat" className="flex items-start gap-3 p-3 hover:bg-white/5 border-b border-white/5 transition-colors">
+              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                <MessageCircle className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white">Live Chat</p>
+                <p className="text-xs text-muted-foreground">You have {chatUnread} unread message(s)</p>
+              </div>
+            </Link>
+          )}
+
+          {recentNotifs.map(n => (
+            <Link key={n.id} to="/admin/notifications" className={`flex flex-col gap-1 p-3 hover:bg-white/5 border-b border-white/5 transition-colors ${!n.is_read ? 'bg-primary/5' : ''}`}>
+              <p className="text-sm font-medium text-white">{n.title}</p>
+              <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
+            </Link>
+          ))}
+        </div>
+        <div className="p-2 border-t border-border mt-1">
+          <Link to="/admin/notifications" className="block w-full text-center py-2 text-sm text-primary hover:bg-white/5 rounded-lg transition-colors">
+            View All Notifications
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
@@ -246,18 +302,7 @@ export function AdminLayout() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              to="/admin/orders"
-              className="btn-neon text-xs px-3 py-2"
-            >
-              <ShoppingBag className="h-3.5 w-3.5" />
-              New Orders
-              {chatUnread > 0 && (
-                <span className="ml-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-bold text-white flex items-center justify-center">
-                  {chatUnread}
-                </span>
-              )}
-            </Link>
+            <AdminNotificationDropdown />
           </div>
         </header>
 
