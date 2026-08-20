@@ -43,7 +43,7 @@ export function LiveChatWidget() {
     if (isAdminPage) return
 
     // Auto-request notification permission for everyone
-    if (Notification.permission === 'default') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       requestNotificationPermission()
     }
 
@@ -266,7 +266,7 @@ export function LiveChatWidget() {
               setShowOptions(false)
               setIsOpen(true)
               setHasUnread(false)
-              if (Notification.permission === 'default') {
+              if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
                 requestNotificationPermission()
               }
               if (conversation) {

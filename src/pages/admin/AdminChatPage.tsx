@@ -15,13 +15,13 @@ export default function AdminChatPage() {
   const [input, setInput] = useState('')
   const [attachment, setAttachment] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [notifEnabled, setNotifEnabled] = useState(Notification.permission === 'granted')
+  const [notifEnabled, setNotifEnabled] = useState(typeof Notification !== 'undefined' && Notification.permission === 'granted')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const lastMsgCount = useRef<Record<string, number>>({})
 
   // Auto-request notification permission when admin opens the page
   useEffect(() => {
-    if (Notification.permission === 'default') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       requestNotificationPermission().then(granted => setNotifEnabled(granted))
     }
   }, [])
@@ -151,7 +151,7 @@ export default function AdminChatPage() {
 
   // Request permission on first interaction to bypass browser auto-block
   const handleFirstInteraction = () => {
-    if (Notification.permission === 'default') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       requestNotificationPermission().then(granted => setNotifEnabled(granted))
     }
   }
