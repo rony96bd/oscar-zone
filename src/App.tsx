@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
-import { lazy, Suspense } from 'react'
+import React, { lazy, Suspense } from 'react'
 
 import { CustomerLayout } from '@/components/layout/CustomerLayout'
 import { AdminLayout } from '@/components/layout/AdminLayout'
@@ -73,6 +73,30 @@ const queryClient = new QueryClient({
   },
 })
 
+class GlobalErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 20, color: 'red', wordBreak: 'break-all' }}>
+          <h2>Something went wrong.</h2>
+          <pre>{this.state.error?.message}</pre>
+          <pre>{this.state.error?.stack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function AppContent() {
   useAuth() // Initialize auth
   useRealtimeNotifications() // Subscribe to realtime notifications
@@ -85,7 +109,6 @@ function AppContent() {
   }, [fetchTheme, fetchSettings])
 
   return (
-    <ErrorBoundary>
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Customer Website */}
@@ -160,24 +183,25 @@ function AppContent() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
-    </ErrorBoundary>
   )
 }
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <ScrollToTop />
-        <AppContent />
-        <LiveChatWidget />
-        <Toaster
-          theme="dark"
-          position="top-right"
-          richColors
-          closeButton
-        />
-      </BrowserRouter>
-    </QueryClientProvider>
+    <GlobalErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <ScrollToTop />
+          <AppContent />
+          <LiveChatWidget />
+          <Toaster
+            theme="dark"
+            position="top-right"
+            richColors
+            closeButton
+          />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </GlobalErrorBoundary>
   )
 }
