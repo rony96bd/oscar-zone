@@ -166,7 +166,7 @@ export function AdminLayout() {
     return location.pathname.startsWith(href)
   }
 
-  const SidebarContent = () => (
+  const sidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className={cn(
@@ -259,7 +259,7 @@ export function AdminLayout() {
           sidebarOpen ? 'w-56' : 'w-16'
         )}
       >
-        <SidebarContent />
+        {sidebarContent()}
       </aside>
 
       {/* Mobile Sidebar Overlay */}
@@ -270,7 +270,7 @@ export function AdminLayout() {
             onClick={() => setMobileSidebarOpen(false)}
           />
           <aside className="fixed left-0 top-0 bottom-0 z-50 w-56 admin-sidebar lg:hidden">
-            <SidebarContent />
+            {sidebarContent()}
           </aside>
         </>
       )}
