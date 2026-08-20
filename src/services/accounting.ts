@@ -68,6 +68,8 @@ export interface AccountingStats {
   totalCashouts: number
   totalAgentCommissions: number
   netProfit: number
+  depositsByMethod: Record<string, number>
+  commissionsByMethod: Record<string, number>
 }
 
 export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
@@ -78,14 +80,16 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
       totalDeposits: 0,
       totalCashouts: 0,
       totalAgentCommissions: 0,
-      netProfit: 0
+      netProfit: 0,
+      depositsByMethod: {},
+      commissionsByMethod: {}
     }
   }
 
   // Fetch all completed orders in this cycle
   const { data: orders, error: orderError } = await supabase
     .from('orders')
-    .select('base_amount, payment_methods(agent_commission_rate)')
+    .select('base_amount, payment_methods(name, agent_commission_rate)')
     .eq('status', 'completed')
     .gte('created_at', activeCycle.start_date);
     
@@ -102,18 +106,27 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
 
   let totalDeposits = 0;
   let totalAgentCommissions = 0;
+  const depositsByMethod: Record<string, number> = {};
+  const commissionsByMethod: Record<string, number> = {};
   
   (orders || []).forEach(order => {
     totalDeposits += order.base_amount;
     let rate = 0;
+    let methodName = 'Unknown';
     if (order.payment_methods) {
       if (Array.isArray(order.payment_methods)) {
         rate = order.payment_methods[0]?.agent_commission_rate || 0;
+        methodName = order.payment_methods[0]?.name || 'Unknown';
       } else {
         rate = (order.payment_methods as any).agent_commission_rate || 0;
+        methodName = (order.payment_methods as any).name || 'Unknown';
       }
     }
-    totalAgentCommissions += (order.base_amount * rate) / 100;
+    const commission = (order.base_amount * rate) / 100;
+    totalAgentCommissions += commission;
+    
+    depositsByMethod[methodName] = (depositsByMethod[methodName] || 0) + order.base_amount;
+    commissionsByMethod[methodName] = (commissionsByMethod[methodName] || 0) + commission;
   });
 
   const totalCashouts = (cashouts || []).reduce((sum, c) => sum + c.amount, 0);
@@ -124,6 +137,8 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
     totalDeposits,
     totalCashouts,
     totalAgentCommissions,
-    netProfit
+    netProfit,
+    depositsByMethod,
+    commissionsByMethod
   }
 }

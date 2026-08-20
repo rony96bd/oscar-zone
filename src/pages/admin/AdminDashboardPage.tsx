@@ -131,7 +131,35 @@ export default function AdminDashboardPage() {
           <DollarSign className="h-8 w-8 text-neon-gold/50" />
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="p-4 rounded-xl bg-black/40 border border-border">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+              <Wallet className="h-4 w-4 text-primary" />
+              Total Deposits (Game Points)
+            </div>
+            <p className="text-2xl font-bold text-white mb-3">{formatCurrency(accounting?.totalDeposits || 0)}</p>
+            {accounting?.depositsByMethod && Object.entries(accounting.depositsByMethod).map(([method, amount]) => (
+              <div key={method} className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>{method}</span>
+                <span>{formatCurrency(amount)}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="p-4 rounded-xl bg-black/40 border border-border">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+              <Users className="h-4 w-4 text-orange-400" />
+              Agent Commissions
+            </div>
+            <p className="text-2xl font-bold text-white mb-3">{formatCurrency(accounting?.totalAgentCommissions || 0)}</p>
+            {accounting?.commissionsByMethod && Object.entries(accounting.commissionsByMethod).map(([method, amount]) => (
+              <div key={method} className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>{method}</span>
+                <span>{formatCurrency(amount)}</span>
+              </div>
+            ))}
+          </div>
+
           <div className="p-4 rounded-xl bg-black/40 border border-border">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
               <ArrowDownRight className="h-4 w-4 text-neon-green" />
@@ -139,15 +167,9 @@ export default function AdminDashboardPage() {
             </div>
             <p className="text-2xl font-bold text-white">{formatCurrency(accounting?.totalCashouts || 0)}</p>
           </div>
-          <div className="p-4 rounded-xl bg-black/40 border border-border">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-              <Users className="h-4 w-4 text-orange-400" />
-              Agent Commissions
-            </div>
-            <p className="text-2xl font-bold text-white">{formatCurrency(accounting?.totalAgentCommissions || 0)}</p>
-          </div>
+          
           <div className="p-4 rounded-xl bg-neon-gold/10 border border-neon-gold/30">
-            <div className="flex items-center gap-2 text-sm text-neon-gold mb-2">
+            <div className="flex items-center gap-2 text-sm text-neon-gold mb-2 font-bold">
               <TrendingUp className="h-4 w-4" />
               Net Profit / Loss
             </div>
