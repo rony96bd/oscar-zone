@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase'
-import type { AccountingCycle } from '@/types'
+﻿import { supabase } from '@/lib/supabase'
+import type { AccountingCycle, GamePointPurchase } from '@/types'
 
 export async function fetchActiveCycle(): Promise<AccountingCycle | null> {
   const { data, error } = await supabase
@@ -9,7 +9,7 @@ export async function fetchActiveCycle(): Promise<AccountingCycle | null> {
     .single()
   
   if (error) {
-    if (error.code === 'PGRST116') return null // No active cycle found
+    if (error.code === 'PGRST116') return null
     throw error
   }
   return data
@@ -30,12 +30,12 @@ export interface CloseCycleData {
   totalDeposits: number
   totalCashouts: number
   totalAgentCommissions: number
+  totalGamePointsCost: number
   netProfit: number
   closedBy: string
 }
 
 export async function closeAccountingCycle(cycleId: string, data: CloseCycleData): Promise<void> {
-  // 1. Close current cycle
   const { error: closeError } = await supabase
     .from('accounting_cycles')
     .update({
@@ -43,6 +43,7 @@ export async function closeAccountingCycle(cycleId: string, data: CloseCycleData
       total_deposits: data.totalDeposits,
       total_cashouts: data.totalCashouts,
       total_agent_commissions: data.totalAgentCommissions,
+      total_game_points_cost: data.totalGamePointsCost,
       net_profit: data.netProfit,
       status: 'closed',
       closed_by: data.closedBy
@@ -51,7 +52,6 @@ export async function closeAccountingCycle(cycleId: string, data: CloseCycleData
     
   if (closeError) throw closeError
 
-  // 2. Start a new cycle exactly from the end_date of the closed one
   const { error: newCycleError } = await supabase
     .from('accounting_cycles')
     .insert({
@@ -67,6 +67,7 @@ export interface AccountingStats {
   totalDeposits: number
   totalCashouts: number
   totalAgentCommissions: number
+  totalGamePointsCost: number
   netProfit: number
   depositsByMethod: Record<string, number>
   commissionsByMethod: Record<string, number>
@@ -80,13 +81,13 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
       totalDeposits: 0,
       totalCashouts: 0,
       totalAgentCommissions: 0,
+      totalGamePointsCost: 0,
       netProfit: 0,
       depositsByMethod: {},
       commissionsByMethod: {}
     }
   }
 
-  // Fetch all completed orders in this cycle
   const { data: orders, error: orderError } = await supabase
     .from('orders')
     .select('base_amount, payment_methods(name, agent_commission_rate)')
@@ -95,14 +96,21 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
     
   if (orderError) throw orderError;
 
-  // Fetch all approved cashouts in this cycle
   const { data: cashouts, error: cashoutError } = await supabase
     .from('cashout_requests')
     .select('amount')
     .eq('status', 'approved')
     .gte('created_at', activeCycle.start_date);
 
-  // Fetch all active payment methods to initialize the breakdown even if 0
+  if (cashoutError) throw cashoutError;
+
+  const { data: purchases, error: purchasesError } = await supabase
+    .from('game_point_purchases')
+    .select('amount')
+    .gte('created_at', activeCycle.start_date);
+
+  if (purchasesError) throw purchasesError;
+
   const { data: allMethods, error: methodsError } = await supabase
     .from('payment_methods')
     .select('name')
@@ -141,15 +149,37 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
   });
 
   const totalCashouts = (cashouts || []).reduce((sum, c) => sum + c.amount, 0);
-  const netProfit = totalDeposits - totalAgentCommissions - totalCashouts;
+  const totalGamePointsCost = (purchases || []).reduce((sum, p) => sum + Number(p.amount), 0);
+  
+  const netProfit = totalDeposits - totalAgentCommissions - totalCashouts - totalGamePointsCost;
 
   return {
     activeCycle,
     totalDeposits,
     totalCashouts,
     totalAgentCommissions,
+    totalGamePointsCost,
     netProfit,
     depositsByMethod,
     commissionsByMethod
   }
+}
+
+export async function fetchGamePointPurchases(): Promise<GamePointPurchase[]> {
+  const { data, error } = await supabase
+    .from('game_point_purchases')
+    .select('*, game:games(name), profile:profiles!created_by(full_name)')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createGamePointPurchase(purchase: Partial<GamePointPurchase>): Promise<GamePointPurchase> {
+  const { data, error } = await supabase
+    .from('game_point_purchases')
+    .insert(purchase)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 }

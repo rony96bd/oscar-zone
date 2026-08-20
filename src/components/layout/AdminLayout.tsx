@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, Gamepad2, Joystick,
   Gift, CreditCard, UserCheck, MessageCircle, Bell, Send,
   Image, Megaphone, BarChart3, Shield, ClipboardList,
-  Settings, LogOut, Menu, X, ChevronRight, Zap, Bot, ArrowDownToLine, DollarSign
+  Settings, LogOut, Menu, X, ChevronRight, Zap, Bot, ArrowDownToLine, DollarSign, Coins
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/authStore'
@@ -36,6 +36,7 @@ const navSections = [
     items: [
       { href: '/admin/games', label: 'Games', icon: Gamepad2 },
       { href: '/admin/customer-games', label: 'Player Accounts', icon: Joystick },
+      { href: '/admin/point-purchases', label: 'Load Game Points', icon: Coins },
       { href: '/admin/payment-methods', label: 'Payments', icon: CreditCard },
     ],
   },

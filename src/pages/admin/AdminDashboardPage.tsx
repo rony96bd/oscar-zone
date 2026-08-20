@@ -1,8 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAdminStats } from '@/services/admin'
 import { fetchActiveAccountingStats, closeAccountingCycle } from '@/services/accounting'
-import { ShoppingBag, Users, DollarSign, TrendingUp, Clock, Calendar, CheckCircle, Wallet, ArrowDownRight, ArrowUpRight } from 'lucide-react'
+import { ShoppingBag, Users, DollarSign, TrendingUp, Clock, Calendar, Wallet, ArrowDownRight } from 'lucide-react'
 import { formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel, cn } from '@/lib/utils'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -45,6 +45,7 @@ export default function AdminDashboardPage() {
         totalDeposits: accounting.totalDeposits,
         totalCashouts: accounting.totalCashouts,
         totalAgentCommissions: accounting.totalAgentCommissions,
+        totalGamePointsCost: accounting.totalGamePointsCost,
         netProfit: accounting.netProfit,
         closedBy: profile.id
       })
@@ -131,19 +132,24 @@ export default function AdminDashboardPage() {
           <DollarSign className="h-8 w-8 text-neon-gold/50" />
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-          {/* Dynamic Payment Method Boxes */}
-          {accounting?.depositsByMethod && Object.entries(accounting.depositsByMethod).map(([method, amount]) => (
-            <div key={method} className="p-4 rounded-xl bg-black/40 border border-border">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                <Wallet className="h-4 w-4 text-primary" />
-                Total {method}
-              </div>
-              <p className="text-2xl font-bold text-white">{formatCurrency(amount)}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          
+          {/* 1. Total Customers Deposit */}
+          <div className="p-4 rounded-xl bg-black/40 border border-border">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+              <Wallet className="h-4 w-4 text-primary" />
+              Total Customers Deposit
             </div>
-          ))}
+            <p className="text-2xl font-bold text-white mb-2">{formatCurrency(accounting?.totalDeposits || 0)}</p>
+            {accounting?.depositsByMethod && Object.entries(accounting.depositsByMethod).map(([method, amount]) => (
+              <div key={method} className="flex justify-between text-[11px] text-muted-foreground mt-0.5">
+                <span>Total {method}</span>
+                <span>{formatCurrency(amount)}</span>
+              </div>
+            ))}
+          </div>
 
-          {/* Total Cashouts */}
+          {/* 2. Total Cashouts */}
           <div className="p-4 rounded-xl bg-black/40 border border-border">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
               <ArrowDownRight className="h-4 w-4 text-neon-green" />
@@ -152,7 +158,7 @@ export default function AdminDashboardPage() {
             <p className="text-2xl font-bold text-white">{formatCurrency(accounting?.totalCashouts || 0)}</p>
           </div>
 
-          {/* Agent Commissions */}
+          {/* 3. Agent Commissions */}
           <div className="p-4 rounded-xl bg-black/40 border border-border">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
               <Users className="h-4 w-4 text-orange-400" />
@@ -167,16 +173,21 @@ export default function AdminDashboardPage() {
             ))}
           </div>
 
-          {/* Game Points */}
+          {/* 4. Game Points (Cost) */}
           <div className="p-4 rounded-xl bg-black/40 border border-border">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-              <ShoppingBag className="h-4 w-4 text-blue-400" />
-              Game Points
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <ShoppingBag className="h-4 w-4 text-blue-400" />
+                Game Points (Cost)
+              </div>
             </div>
-            <p className="text-2xl font-bold text-white">{formatCurrency(accounting?.totalDeposits || 0)}</p>
+            <p className="text-2xl font-bold text-white mb-2">{formatCurrency(accounting?.totalGamePointsCost || 0)}</p>
+            <Link to="/admin/point-purchases" className="text-[11px] text-primary hover:underline">
+              Load new points →
+            </Link>
           </div>
           
-          {/* Net Profit / Loss */}
+          {/* 5. Net Profit / Loss */}
           <div className="p-4 rounded-xl bg-neon-gold/10 border border-neon-gold/30">
             <div className="flex items-center gap-2 text-sm text-neon-gold mb-2 font-bold">
               <TrendingUp className="h-4 w-4" />

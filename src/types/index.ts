@@ -290,6 +290,7 @@ export interface AccountingCycle {
   total_deposits: number
   total_cashouts: number
   total_agent_commissions: number
+  total_game_points_cost: number
   net_profit: number
   status: 'active' | 'closed'
   created_at: string
@@ -297,4 +298,14 @@ export interface AccountingCycle {
   closed_by_profile?: {
     full_name: string | null
   }
+}
+
+export interface GamePointPurchase {
+  id: string
+  game_id: string
+  amount: number
+  created_at: string
+  created_by: string | null
+  game?: Game
+  profile?: Profile
 }
