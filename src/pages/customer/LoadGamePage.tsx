@@ -464,8 +464,14 @@ export default function LoadGamePage() {
                             {selectedMethod.tag && (
                               <div>
                                 <p className="text-xs text-muted-foreground mb-1">Send to</p>
-                                <div className="inline-flex items-center gap-2 bg-card border border-border px-4 py-2 rounded-lg">
+                                <div className="inline-flex items-center gap-2 bg-card border border-border px-4 py-2 rounded-lg mb-2">
                                   <span className="text-neon-green font-mono text-lg font-bold">{selectedMethod.tag}</span>
+                                </div>
+                                <div className="flex gap-2 items-start bg-orange-500/10 border border-orange-500/30 p-2 rounded-lg text-orange-400 max-w-sm">
+                                  <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                  <p className="text-[11px] leading-tight font-medium">
+                                    <strong>WARNING:</strong> Our payment tag changes frequently. Do not send money to any old or previously saved tag. Always check the active tag shown above.
+                                  </p>
                                 </div>
                               </div>
                             )}
