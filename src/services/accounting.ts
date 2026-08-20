@@ -102,12 +102,23 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
     .eq('status', 'approved')
     .gte('created_at', activeCycle.start_date);
 
-  if (cashoutError) throw cashoutError;
+  // Fetch all active payment methods to initialize the breakdown even if 0
+  const { data: allMethods, error: methodsError } = await supabase
+    .from('payment_methods')
+    .select('name')
+    .eq('is_active', true);
+    
+  if (methodsError) throw methodsError;
 
   let totalDeposits = 0;
   let totalAgentCommissions = 0;
   const depositsByMethod: Record<string, number> = {};
   const commissionsByMethod: Record<string, number> = {};
+  
+  (allMethods || []).forEach(m => {
+    depositsByMethod[m.name] = 0;
+    commissionsByMethod[m.name] = 0;
+  });
   
   (orders || []).forEach(order => {
     totalDeposits += order.base_amount;
