@@ -8,10 +8,11 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, redirectTo = '/login' }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuthStore()
+  const { isAuthenticated, isLoading, isAdmin } = useAuthStore()
 
   if (isLoading) return <PageLoader />
   if (!isAuthenticated) return <Navigate to={redirectTo} replace />
+  if (isAdmin()) return <Navigate to="/admin" replace />
 
   return <>{children}</>
 }

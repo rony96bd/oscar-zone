@@ -1,8 +1,8 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+﻿import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home, Gamepad2, Star, HelpCircle, Users, Phone,
   LayoutDashboard, Joystick, ShoppingBag, DollarSign,
-  Bell, MessageCircle, User, Settings, LogOut, Menu, X, Zap
+  Bell, MessageCircle, User, Settings, LogOut, Menu, X, Zap, Shield
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
@@ -40,10 +40,18 @@ const mobileNavLinks = [
   { href: '/profile', label: 'Profile', icon: User },
 ]
 
+// Identify paths that belong to the customer dashboard context
+const isDashboardPath = (path: string) => {
+  return [
+    '/dashboard', '/my-games', '/load', '/orders', 
+    '/earnings', '/notifications', '/chat', '/profile', '/settings'
+  ].some(p => path === p || path.startsWith(p + '/'))
+}
+
 export function CustomerLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const { profile, isAuthenticated, signOut } = useAuthStore()
+  const { profile, isAuthenticated, isAdmin, signOut } = useAuthStore()
   const { allowRegistration } = useSettingsStore()
   const location = useLocation()
   const navigate = useNavigate()
@@ -58,7 +66,16 @@ export function CustomerLayout() {
     setMobileMenuOpen(false)
   }, [location.pathname])
 
-  const navLinks = isAuthenticated ? authNavLinks : publicNavLinks
+  const handleLogout = async () => {
+    await signOut()
+    navigate('/')
+  }
+
+  const isDashboardView = isDashboardPath(location.pathname)
+
+  // Show public links on public pages, show auth links only when in dashboard context and not admin
+  const showAuthLinks = isAuthenticated && isDashboardView && !isAdmin()
+  const navLinks = showAuthLinks ? authNavLinks : publicNavLinks
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -73,11 +90,13 @@ export function CustomerLayout() {
       >
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           {/* Logo */}
-          <Logo iconSize="md" textClassName="text-lg tracking-wide" />
+          <Link to="/">
+            <Logo iconSize="md" textClassName="text-lg tracking-wide" />
+          </Link>
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-1">
-            {(isAuthenticated ? authNavLinks.slice(0, 4) : publicNavLinks).map((link) => {
+            {(showAuthLinks ? authNavLinks.slice(0, 5) : publicNavLinks).map((link) => {
               const isActive = location.pathname === link.href
               return (
                 <Link
@@ -101,7 +120,19 @@ export function CustomerLayout() {
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <>
-                <NotificationBell />
+                {!isAdmin() && <NotificationBell />}
+                {isAdmin() && !isDashboardView && (
+                   <Link to="/admin" className="hidden sm:flex btn-neon text-xs px-4 py-2 bg-purple-500/20 text-purple-400 border-purple-500/50 hover:bg-purple-500/30">
+                     <Shield className="h-3.5 w-3.5" />
+                     Admin Panel
+                   </Link>
+                )}
+                {!isAdmin() && !isDashboardView && (
+                   <Link to="/dashboard" className="hidden sm:flex btn-neon text-xs px-4 py-2">
+                     <LayoutDashboard className="h-3.5 w-3.5" />
+                     Dashboard
+                   </Link>
+                )}
                 <div className="relative group">
                   <button className="flex items-center gap-2 rounded-xl p-2 hover:bg-white/5 transition-colors">
                     <div className="h-8 w-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
@@ -115,16 +146,23 @@ export function CustomerLayout() {
                   </button>
                   {/* Dropdown */}
                   <div className="absolute right-0 top-full mt-2 w-48 glass-card py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-2xl">
-                    <Link to="/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
-                      <User className="h-4 w-4" /> Profile
-                    </Link>
-                    <Link to="/settings" className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
-                      <Settings className="h-4 w-4" /> Settings
-                    </Link>
-                    <div className="my-1 border-t border-border" />
+                    {!isAdmin() && (
+                      <Link to="/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
+                        <User className="h-4 w-4" /> Profile
+                      </Link>
+                    )}
+                    {isAdmin() ? (
+                      <Link to="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
+                        <Shield className="h-4 w-4" /> Admin Panel
+                      </Link>
+                    ) : (
+                      <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
+                        <LayoutDashboard className="h-4 w-4" /> Dashboard
+                      </Link>
+                    )}
                     <button
-                      onClick={() => { signOut(); navigate('/') }}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
                     >
                       <LogOut className="h-4 w-4" /> Sign Out
                     </button>
@@ -132,155 +170,146 @@ export function CustomerLayout() {
                 </div>
               </>
             ) : (
-              <>
-                <Link to="/login" className="btn-ghost-neon text-sm px-4 py-2">
-                  Sign In
+              <div className="hidden sm:flex items-center gap-2">
+                <Link to="/login" className="btn-ghost px-4 py-2 text-sm">
+                  Log In
                 </Link>
                 {allowRegistration && (
-                  <Link to="/register" className="btn-neon text-sm px-4 py-2">
-                    Get Started
+                  <Link to="/register" className="btn-neon px-4 py-2 text-sm">
+                    Sign Up
                   </Link>
                 )}
-              </>
+              </div>
             )}
-
+            
             {/* Mobile Menu Toggle */}
             <button
-              className="lg:hidden flex items-center justify-center h-10 w-10 rounded-xl bg-muted hover:bg-accent transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 text-muted-foreground hover:text-foreground"
+              onClick={() => setMobileMenuOpen(true)}
             >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              <Menu className="h-6 w-6" />
             </button>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden glass-card mx-4 mb-4 rounded-xl overflow-hidden animate-slide-up">
-            <nav className="py-2">
-              {navLinks.map((link) => {
-                const isActive = location.pathname === link.href
-                return (
-                  <Link
-                    key={link.href}
-                    to={link.href}
-                    className={cn(
-                      'flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors',
-                      isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    <link.icon className="h-4 w-4" />
-                    {link.label}
-                  </Link>
-                )
-              })}
-              {isAuthenticated && (
-                <button
-                  onClick={() => { signOut(); navigate('/') }}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-destructive"
-                >
-                  <LogOut className="h-4 w-4" /> Sign Out
-                </button>
-              )}
-            </nav>
-          </div>
-        )}
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 pt-16">
+      {/* Mobile Navigation Drawer */}
+      <div
+        className={cn(
+          'fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-300',
+          mobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        )}
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        <div
+          className={cn(
+            'absolute right-0 top-0 bottom-0 w-64 glass-card border-l border-white/10 p-6 flex flex-col transition-transform duration-300',
+            mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          )}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-8">
+            <span className="font-gaming font-bold text-lg text-white">Menu</span>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-2 text-muted-foreground hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          
+          <nav className="flex flex-col gap-2">
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.href
+              return (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className={cn(
+                    'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-primary/20 text-primary border border-primary/30'
+                      : 'text-muted-foreground hover:bg-white/5 hover:text-white'
+                  )}
+                >
+                  <link.icon className="h-5 w-5" />
+                  {link.label}
+                </Link>
+              )
+            })}
+          </nav>
+          
+          {!isAuthenticated && (
+            <div className="mt-auto space-y-3 pt-6 border-t border-white/10">
+              <Link to="/login" className="btn-ghost w-full justify-center">Log In</Link>
+              {allowRegistration && (
+                <Link to="/register" className="btn-neon w-full justify-center">Sign Up</Link>
+              )}
+            </div>
+          )}
+          {isAuthenticated && (
+             <div className="mt-auto pt-6 border-t border-white/10">
+               {!isAdmin() && !isDashboardView && (
+                 <Link to="/dashboard" className="btn-neon w-full justify-center mb-3">
+                   <LayoutDashboard className="h-4 w-4 mr-2" /> Dashboard
+                 </Link>
+               )}
+               {isAdmin() && !isDashboardView && (
+                 <Link to="/admin" className="btn-neon w-full justify-center mb-3 bg-purple-500/20 text-purple-400 border-purple-500/50">
+                   <Shield className="h-4 w-4 mr-2" /> Admin Panel
+                 </Link>
+               )}
+               <button onClick={handleLogout} className="btn-ghost text-destructive hover:bg-destructive/10 w-full justify-center">
+                 <LogOut className="h-4 w-4 mr-2" /> Sign Out
+               </button>
+             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <main className="flex-1 pt-16 relative z-10">
         <Outlet />
       </main>
-
-      {/* Mobile Bottom Nav - only when authenticated */}
-      {isAuthenticated && (
-        <nav className="mobile-nav lg:hidden">
-          <div className="flex">
+      
+      {/* Bottom Navigation App Bar (Mobile Only) - Only for authenticated customers on dashboard views */}
+      {showAuthLinks && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-game-darker/95 backdrop-blur-xl border-t border-game-border pb-safe">
+          <div className="flex items-center justify-around h-16 px-2">
             {mobileNavLinks.map((link) => {
               const isActive = location.pathname === link.href
               return (
                 <Link
                   key={link.href}
                   to={link.href}
-                  className={cn('mobile-nav-item', isActive && 'active')}
+                  className={cn(
+                    'flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors',
+                    link.primary ? '-mt-6 relative' : ''
+                  )}
                 >
                   {link.primary ? (
-                    <div className="flex flex-col items-center -mt-4">
-                      <div className="btn-neon w-14 h-14 rounded-full flex items-center justify-center p-0 shadow-neon-blue">
-                        <link.icon className="h-6 w-6" />
-                      </div>
-                      <span className="mt-1">{link.label}</span>
+                    <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center shadow-[0_0_15px_rgba(var(--primary),0.5)] border-4 border-game-darker">
+                      <link.icon className="h-5 w-5 text-primary-foreground" />
                     </div>
                   ) : (
                     <>
-                      <link.icon className="h-5 w-5" />
-                      <span>{link.label}</span>
+                      <link.icon className={cn(
+                        "h-5 w-5",
+                        isActive ? "text-primary" : "text-muted-foreground"
+                      )} />
+                      <span className={cn(
+                        "text-[10px] font-medium",
+                        isActive ? "text-primary" : "text-muted-foreground"
+                      )}>
+                        {link.label}
+                      </span>
                     </>
                   )}
                 </Link>
               )
             })}
           </div>
-        </nav>
-      )}
-
-      {/* Footer */}
-      {!isAuthenticated && (
-        <footer className="border-t border-game-border bg-game-darker py-12 mt-auto">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              <div className="col-span-2 md:col-span-1">
-                <div className="mb-4">
-                  <Logo iconSize="md" />
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Premium game loading service for US players.
-                  Fast, secure, and reliable.
-                </p>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-foreground mb-3">Games</h4>
-                <ul className="space-y-2">
-                  {['Juwa', 'Orion Stars', 'Firekirin', 'Milkyway', 'Game Vault'].map(g => (
-                    <li key={g}><Link to="/games" className="text-xs text-muted-foreground hover:text-primary transition-colors">{g}</Link></li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-foreground mb-3">Company</h4>
-                <ul className="space-y-2">
-                  {[
-                    { label: 'How It Works', href: '/how-it-works' },
-                    { label: 'Promotions', href: '/promotions' },
-                    { label: 'Referral Program', href: '/referral' },
-                    { label: 'FAQ', href: '/faq' },
-                  ].map(l => (
-                    <li key={l.href}><Link to={l.href} className="text-xs text-muted-foreground hover:text-primary transition-colors">{l.label}</Link></li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-foreground mb-3">Support</h4>
-                <ul className="space-y-2">
-                  {[
-                    { label: 'Contact Us', href: '/contact' },
-                    { label: 'Live Chat', href: '/chat' },
-                  ].map(l => (
-                    <li key={l.href}><Link to={l.href} className="text-xs text-muted-foreground hover:text-primary transition-colors">{l.label}</Link></li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <div className="mt-8 pt-6 border-t border-game-border flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-xs text-muted-foreground">
-                &copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved. US Players Only.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Must be 18+ to participate. Play responsibly.
-              </p>
-            </div>
-          </div>
-        </footer>
+        </div>
       )}
     </div>
   )
