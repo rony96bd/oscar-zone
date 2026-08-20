@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
-import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users, Phone } from 'lucide-react'
+import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users, Phone, Share2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useThemeStore, ThemeName } from '@/stores/themeStore'
@@ -29,7 +29,7 @@ const THEMES = [
 
 export default function AdminSettingsPage() {
   const { theme: currentTheme, fetchTheme, setTheme: setGlobalTheme } = useThemeStore()
-  const { siteLogoUrl, setSiteLogoUrl, fetchSettings, updateSupportSettings } = useSettingsStore()
+  const { siteLogoUrl, setSiteLogoUrl, fetchSettings, updateSupportSettings, updateMetaSettings, metaTitle, metaDescription } = useSettingsStore()
   
   const [selectedTheme, setSelectedTheme] = useState<ThemeName>(currentTheme)
   const [isSaving, setIsSaving] = useState(false)
@@ -50,6 +50,13 @@ export default function AdminSettingsPage() {
     supportFacebook
   })
   const [isSavingContact, setIsSavingContact] = useState(false)
+
+  // SEO / Meta Settings
+  const [metaData, setMetaData] = useState({
+    metaTitle,
+    metaDescription
+  })
+  const [isSavingMeta, setIsSavingMeta] = useState(false)
 
   // Keep local state in sync with global state initially
   useEffect(() => {
@@ -72,6 +79,13 @@ export default function AdminSettingsPage() {
       supportFacebook
     })
   }, [supportEmail, supportPhone, supportTelegram, supportFacebook])
+
+  useEffect(() => {
+    setMetaData({
+      metaTitle,
+      metaDescription
+    })
+  }, [metaTitle, metaDescription])
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -219,6 +233,31 @@ export default function AdminSettingsPage() {
     }
   }
 
+  const handleSaveMeta = async () => {
+    setIsSavingMeta(true)
+    try {
+      const updates = [
+        { key: 'meta_title', value: metaData.metaTitle, description: 'Site Meta Title (SEO/Social)' },
+        { key: 'meta_description', value: metaData.metaDescription, description: 'Site Meta Description (SEO/Social)' }
+      ]
+      
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert(updates, { onConflict: 'key' })
+        
+      if (error) throw error
+      
+      updateMetaSettings(metaData)
+      toast.success('SEO & Social Share settings updated.')
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Failed to update meta settings')
+    } finally {
+      setIsSavingMeta(false)
+    }
+  }
+
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -236,7 +275,7 @@ export default function AdminSettingsPage() {
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold text-white">Site Logo</h2>
-            <p className="text-sm text-muted-foreground">Upload a custom logo for the platform</p>
+            <p className="text-sm text-muted-foreground">Upload a custom logo for the platform. This will also be used as the social sharing image.</p>
           </div>
           {(logoFile || siteLogoUrl) && (
             <button
@@ -291,6 +330,54 @@ export default function AdminSettingsPage() {
                 {isUploading ? 'Uploading...' : 'Save New Logo'}
               </button>
             )}
+          </div>
+        </div>
+      </div>
+      
+      {/* SEO / Meta Settings */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+              <Share2 className="h-5 w-5 text-indigo-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">SEO & Social Sharing</h2>
+              <p className="text-sm text-muted-foreground">Configure how your site looks when shared on WhatsApp, Facebook, etc.</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSaveMeta}
+            disabled={isSavingMeta}
+            className="btn-neon px-6 py-2 text-sm"
+          >
+            {isSavingMeta ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save SEO Settings
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">Website Title</label>
+            <input 
+              type="text" 
+              value={metaData.metaTitle}
+              onChange={e => setMetaData({...metaData, metaTitle: e.target.value})}
+              className="game-input text-sm" 
+              placeholder="Oscar Zone - Premium Gaming Top-up"
+            />
+            <p className="text-xs text-muted-foreground mt-1">This is the main title shown on the browser tab and when shared.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">Website Description</label>
+            <textarea 
+              value={metaData.metaDescription}
+              onChange={e => setMetaData({...metaData, metaDescription: e.target.value})}
+              className="game-input text-sm resize-none"
+              rows={3}
+              placeholder="Load your favorite games instantly with Oscar Zone. Premium gaming top-up service."
+            />
+            <p className="text-xs text-muted-foreground mt-1">This description appears below the title when shared on social media and in search engine results.</p>
           </div>
         </div>
       </div>

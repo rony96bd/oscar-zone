@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+﻿import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 
 interface SettingsState {
@@ -8,11 +8,14 @@ interface SettingsState {
   supportPhone: string
   supportTelegram: string
   supportFacebook: string
+  metaTitle: string
+  metaDescription: string
   isLoading: boolean
   fetchSettings: () => Promise<void>
   setSiteLogoUrl: (url: string) => void
   setAllowRegistration: (allow: boolean) => void
   updateSupportSettings: (updates: Partial<SettingsState>) => void
+  updateMetaSettings: (updates: Partial<SettingsState>) => void
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -22,6 +25,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   supportPhone: '+1 (555) 000-0000',
   supportTelegram: 'https://t.me/oscarzone',
   supportFacebook: 'https://facebook.com/oscarzone',
+  metaTitle: 'Oscar Zone - Premium Gaming Top-up',
+  metaDescription: 'Load your favorite games instantly with Oscar Zone. Premium gaming top-up service.',
   isLoading: true,
 
   fetchSettings: async () => {
@@ -54,6 +59,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         const sPhone = data.find(d => d.key === 'support_phone')?.value
         const sTelegram = data.find(d => d.key === 'support_telegram')?.value
         const sFacebook = data.find(d => d.key === 'support_facebook')?.value
+        
+        const mTitle = data.find(d => d.key === 'meta_title')?.value
+        const mDesc = data.find(d => d.key === 'meta_description')?.value
+
+        const title = mTitle ? cleanValue(mTitle) : 'Oscar Zone - Premium Gaming Top-up'
+        const desc = mDesc ? cleanValue(mDesc) : 'Load your favorite games instantly with Oscar Zone. Premium gaming top-up service.'
 
         set({ 
           siteLogoUrl: url, 
@@ -62,8 +73,19 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           supportPhone: sPhone ? cleanValue(sPhone) : '+1 (555) 000-0000',
           supportTelegram: sTelegram ? cleanValue(sTelegram) : 'https://t.me/oscarzone',
           supportFacebook: sFacebook ? cleanValue(sFacebook) : 'https://facebook.com/oscarzone',
+          metaTitle: title,
+          metaDescription: desc,
           isLoading: false 
         })
+
+        // Update DOM meta tags
+        document.title = title
+        document.getElementById('og-title')?.setAttribute('content', title)
+        document.getElementById('og-desc')?.setAttribute('content', desc)
+        if (url) {
+          document.getElementById('og-image')?.setAttribute('content', url)
+        }
+
       } else {
         set({ isLoading: false })
       }
@@ -75,6 +97,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 
   setSiteLogoUrl: (url: string) => {
     set({ siteLogoUrl: url })
+    document.getElementById('og-image')?.setAttribute('content', url)
   },
   
   setAllowRegistration: (allow: boolean) => {
@@ -83,5 +106,15 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 
   updateSupportSettings: (updates: Partial<SettingsState>) => {
     set((state) => ({ ...state, ...updates }))
+  },
+  
+  updateMetaSettings: (updates: Partial<SettingsState>) => {
+    set((state) => {
+      const newState = { ...state, ...updates }
+      document.title = newState.metaTitle
+      document.getElementById('og-title')?.setAttribute('content', newState.metaTitle)
+      document.getElementById('og-desc')?.setAttribute('content', newState.metaDescription)
+      return newState
+    })
   }
 }))
