@@ -15,14 +15,16 @@ export function formatCurrency(amount: number): string {
 }
 
 export function formatDate(dateString: string): string {
+  if (!dateString) return '';
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(dateString))
+  }).format(new Date(dateString.replace(' ', 'T')))
 }
 
 export function formatDateTime(dateString: string): string {
+  if (!dateString) return '';
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -30,19 +32,21 @@ export function formatDateTime(dateString: string): string {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  }).format(new Date(dateString))
+  }).format(new Date(dateString.replace(' ', 'T')))
 }
 
 export function formatTime(dateString: string): string {
+  if (!dateString) return '';
   return new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  }).format(new Date(dateString))
+  }).format(new Date(dateString.replace(' ', 'T')))
 }
 
 export function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString)
+  if (!dateString) return '';
+  const date = new Date(dateString.replace(' ', 'T'))
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffSecs = Math.floor(diffMs / 1000)

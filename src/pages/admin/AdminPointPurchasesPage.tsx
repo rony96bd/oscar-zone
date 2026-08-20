@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchGamePointPurchases, createGamePointPurchase } from '@/services/accounting'
 import { fetchGames } from '@/services/games'
@@ -86,7 +86,7 @@ export default function AdminPointPurchasesPage() {
                   <td className="p-4 text-sm text-white">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      {new Date(purchase.created_at).toLocaleString()}
+                      {new Date(purchase.created_at.replace(' ', 'T')).toLocaleString()}
                     </div>
                   </td>
                   <td className="p-4 font-medium text-neon-gold">

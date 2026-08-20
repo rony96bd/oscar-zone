@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAdminStats } from '@/services/admin'
 import { fetchActiveAccountingStats, closeAccountingCycle } from '@/services/accounting'
@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
       if (!accounting || !accounting.activeCycle) throw new Error("No active cycle")
       if (!profile) throw new Error("No user profile")
       
-      const isoDate = new Date(closeDate).toISOString()
+      const isoDate = new Date(closeDate.replace(' ', 'T')).toISOString()
       if (isoDate <= accounting.activeCycle.start_date) {
         throw new Error("Close date must be after the start date")
       }
@@ -126,7 +126,7 @@ export default function AdminDashboardPage() {
           <div>
             <h2 className="font-gaming font-bold text-white text-lg">Active Settlement Cycle</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Started: {accounting?.activeCycle?.start_date ? new Date(accounting.activeCycle.start_date).toLocaleString() : 'N/A'}
+              Started: {accounting?.activeCycle?.start_date ? new Date(accounting.activeCycle.start_date.replace(' ', 'T')).toLocaleString() : 'N/A'}
             </p>
           </div>
           <DollarSign className="h-8 w-8 text-neon-gold/50" />
