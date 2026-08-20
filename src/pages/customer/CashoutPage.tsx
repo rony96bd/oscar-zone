@@ -116,30 +116,6 @@ export default function CashoutPage() {
     return 'bg-yellow-400/20 text-yellow-400'
   }
 
-  if (submitted) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-lg pb-24 lg:pb-8">
-        <div className="glass-card p-8 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 rounded-full bg-neon-green/20 flex items-center justify-center">
-              <CheckCircle className="h-8 w-8 text-neon-green" />
-            </div>
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">Request Submitted!</h2>
-          <p className="text-muted-foreground text-sm mb-1">Your cashout request has been received.</p>
-          <p className="text-xs text-primary font-mono mb-6">{submittedNumber}</p>
-          <p className="text-sm text-muted-foreground mb-6">
-            Our team will review and process your payment. You will be notified once approved.
-          </p>
-          <div className="flex gap-3 justify-center">
-            <button onClick={handleReset} className="btn-neon px-6 py-2">New Request</button>
-            <Link to="/dashboard" className="btn-ghost-neon px-6 py-2">Dashboard</Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="container mx-auto px-4 py-8 pb-24 lg:pb-8">
       <div className="mb-6">
@@ -154,7 +130,25 @@ export default function CashoutPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <form onSubmit={handleSubmit} className="glass-card p-6 space-y-6">
+          {submitted ? (
+            <div className="glass-card p-8 text-center h-full flex flex-col justify-center min-h-[400px]">
+              <div className="flex justify-center mb-4">
+                <div className="h-16 w-16 rounded-full bg-neon-green/20 flex items-center justify-center">
+                  <CheckCircle className="h-8 w-8 text-neon-green" />
+                </div>
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Request Submitted!</h2>
+              <p className="text-muted-foreground text-sm mb-1">Your cashout request has been received.</p>
+              <p className="text-xs text-primary font-mono mb-6">{submittedNumber}</p>
+              <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+                Our team will review and process your payment. You will be notified once approved.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={handleReset} className="btn-neon px-6 py-2">Make Another Request</button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="glass-card p-6 space-y-6">
             
             {/* 1. Select Game */}
             <div>
@@ -275,7 +269,8 @@ export default function CashoutPage() {
                 : <><ArrowDownToLine className="h-4 w-4" /> Submit Cashout Request</>
               }
             </button>
-          </form>
+            </form>
+          )}
         </div>
 
         <div>
