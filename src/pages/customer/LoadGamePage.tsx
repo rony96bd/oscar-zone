@@ -428,9 +428,16 @@ export default function LoadGamePage() {
                   {selectedMethod && (
                     <div className="mt-4 animate-fade-in">
                       <div className="p-4 rounded-xl border border-neon-green/30 bg-neon-green/5">
-                        <h4 className="font-semibold text-white mb-4">
+                        <h4 className="font-semibold text-white mb-3">
                           Send payment via {selectedMethod.name}
                         </h4>
+                        
+                        <div className="flex gap-2 items-start bg-orange-500/10 border border-orange-500/30 p-2 rounded-lg text-orange-400 mb-4">
+                          <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          <p className="text-[11px] leading-tight font-medium">
+                            <strong>WARNING:</strong> Our payment account / tag changes frequently. Do not send money to any old or previously saved accounts. Always check the active account details below before sending money.
+                          </p>
+                        </div>
 
                         {/* Row: QR left | Tag+Instructions right */}
                         <div className="flex flex-col sm:flex-row gap-4 items-start">
@@ -466,12 +473,6 @@ export default function LoadGamePage() {
                                 <p className="text-xs text-muted-foreground mb-1">Send to</p>
                                 <div className="inline-flex items-center gap-2 bg-card border border-border px-4 py-2 rounded-lg mb-2">
                                   <span className="text-neon-green font-mono text-lg font-bold">{selectedMethod.tag}</span>
-                                </div>
-                                <div className="flex gap-2 items-start bg-orange-500/10 border border-orange-500/30 p-2 rounded-lg text-orange-400 max-w-sm">
-                                  <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                                  <p className="text-[11px] leading-tight font-medium">
-                                    <strong>WARNING:</strong> Our payment tag changes frequently. Do not send money to any old or previously saved tag. Always check the active tag shown above.
-                                  </p>
                                 </div>
                               </div>
                             )}
