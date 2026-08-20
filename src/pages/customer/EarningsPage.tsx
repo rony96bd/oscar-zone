@@ -9,42 +9,7 @@ import { useState, useEffect, useRef } from 'react'
 import { formatCurrency, generateReferralUrl, copyToClipboard, formatRelativeTime } from '@/lib/utils'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-
-// QR Code generator using Canvas (no external library)
-function QRCodeCanvas({ value, size = 160 }: { value: string; size?: number }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    if (!canvasRef.current || !value) return
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')!
-    // Simple visual placeholder with the URL
-    ctx.fillStyle = '#040a14'
-    ctx.fillRect(0, 0, size, size)
-    ctx.fillStyle = '#00d4ff'
-    ctx.font = `${size * 0.065}px monospace`
-    ctx.textAlign = 'center'
-    // Draw QR-like pattern border
-    const cell = size / 20
-    const drawRect = (x: number, y: number, w: number, h: number) => {
-      ctx.fillRect(x * cell, y * cell, w * cell, h * cell)
-    }
-    // Corner squares
-    ;[[0,0],[14,0],[0,14]].forEach(([cx, cy]) => {
-      drawRect(cx, cy, 6, 6)
-      ctx.fillStyle = '#040a14'
-      drawRect(cx + 1, cy + 1, 4, 4)
-      ctx.fillStyle = '#00d4ff'
-      drawRect(cx + 2, cy + 2, 2, 2)
-    })
-    ctx.fillStyle = '#00d4ff'
-    // Center text
-    const lines = ['SCAN', 'ME']
-    lines.forEach((line, i) => ctx.fillText(line, size / 2, size / 2 + (i - 0.5) * size * 0.1))
-  }, [value, size])
-
-  return <canvas ref={canvasRef} width={size} height={size} className="rounded-lg" />
-}
+import { QRCodeSVG } from 'qrcode.react'
 
 export default function EarningsPage() {
   const { profile } = useAuthStore()
@@ -224,9 +189,18 @@ export default function EarningsPage() {
             </div>
           </div>
           {/* QR Code */}
-          <div className="flex-shrink-0 flex flex-col items-center gap-2">
-            <QRCodeCanvas value={referralUrl} size={108} />
-            <p className="text-[10px] text-muted-foreground flex items-center gap-1"><QrCode className="h-3 w-3" /> QR Code</p>
+          <div className="flex-shrink-0 flex flex-col items-center gap-2 bg-white p-3 rounded-xl border border-white/20">
+            <QRCodeSVG 
+              value={referralUrl} 
+              size={120} 
+              level="H"
+              includeMargin={false}
+              fgColor="#000000"
+              bgColor="#ffffff"
+            />
+            <div className="text-center mt-1">
+              <p className="text-[11px] font-bold text-black uppercase tracking-wider">@{profile?.username || 'User'}</p>
+            </div>
           </div>
         </div>
       </div>
