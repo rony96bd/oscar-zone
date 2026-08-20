@@ -302,7 +302,7 @@ export default function LoadGamePage() {
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">2</span>
-                      Game Username / Your Name
+                      Game Username
                     </label>
                     {isAuthenticated ? (
                       <select 
