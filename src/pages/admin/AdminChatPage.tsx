@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/authStore'
 import { fetchConversations, fetchMessages, sendMessage, closeConversation, uploadChatAttachment, deleteMessage, deleteConversation, clearConversationMessages } from '@/services/chat'
 import { notifyNewMessage, requestNotificationPermission } from '@/hooks/useChatNotification'
-import { MessageCircle, Send, X, User, Bell, Loader2, Trash2, Eraser } from 'lucide-react'
+import { MessageCircle, Send, X, User, Bell, Loader2, Trash2, Eraser, ChevronLeft } from 'lucide-react'
 import { cn, formatTime } from '@/lib/utils'
 import { useChatStore } from '@/stores/chatStore'
 
@@ -161,7 +161,7 @@ export default function AdminChatPage() {
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-4" onClick={handleFirstInteraction}>
       {/* Conversations List */}
-      <div className="w-80 glass-card flex flex-col overflow-hidden">
+      <div className={cn("glass-card flex-col overflow-hidden w-full lg:w-80", activeConv ? "hidden lg:flex" : "flex")}>
         <div className="p-4 border-b border-border flex justify-between items-center bg-black/20">
           <h2 className="font-gaming font-bold text-white flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-neon-green" />
@@ -182,64 +182,74 @@ export default function AdminChatPage() {
               <p className="text-sm">No active chats</p>
             </div>
           ) : (
-            (conversations as any[]).map((conv: any) => (
-              <button
-                key={conv.id}
-                onClick={async () => {
-                  setActiveConvId(conv.id)
-                  try {
-                    const { markConversationAsRead } = await import('@/services/chat')
-                    await markConversationAsRead(conv.id, 'admin')
-                  } catch (e) {
-                    console.error(e)
-                  }
-                }}
-                className={cn(
-                  'w-full flex flex-col p-4 border-b border-border text-left transition-colors relative',
-                  activeConvId === conv.id ? 'bg-neon-green/10' : 'hover:bg-white/5'
-                )}
-              >
-                <div className="flex justify-between items-start mb-1">
-                  <span className="font-semibold text-white text-sm truncate pr-2">
-                    {conv.guest_name || conv.customer?.full_name || 'Guest'}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                    {formatTime(conv.last_message_at || conv.created_at)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-end">
-                  <span className="text-xs text-muted-foreground truncate pr-4">
-                    {conv.last_message || conv.subject}
-                  </span>
-                  {conv.unread_count_agent > 0 && (
-                    <span className="flex-shrink-0 h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-neon-green text-black text-[10px] font-bold">
-                      {conv.unread_count_agent}
-                    </span>
+            <div className="divide-y divide-border/50">
+              {(conversations as any[]).map((conv: any) => (
+                <button
+                  key={conv.id}
+                  onClick={async () => {
+                    setActiveConvId(conv.id)
+                    try {
+                      const { markConversationAsRead } = await import('@/services/chat')
+                      await markConversationAsRead(conv.id, 'admin')
+                    } catch (err) {
+                      console.error(err)
+                    }
+                  }}
+                  className={cn(
+                    'w-full flex flex-col p-4 border-b border-border text-left transition-colors relative',
+                    activeConvId === conv.id ? 'bg-neon-green/10' : 'hover:bg-white/5'
                   )}
-                </div>
-              </button>
-            ))
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="font-semibold text-white text-sm truncate pr-2">
+                      {conv.guest_name || conv.customer?.full_name || 'Guest'}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                      {formatTime(conv.last_message_at || conv.created_at)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-end">
+                    <span className="text-xs text-muted-foreground truncate pr-4">
+                      {conv.last_message || conv.subject}
+                    </span>
+                    {conv.unread_count_agent > 0 && (
+                      <span className="flex-shrink-0 h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-neon-green text-black text-[10px] font-bold">
+                        {conv.unread_count_agent}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>
 
       {/* Chat Area */}
       {activeConv ? (
-        <div className="flex-1 glass-card flex flex-col overflow-hidden">
+        <div className={cn("flex-1 glass-card flex-col overflow-hidden", activeConv ? "flex" : "hidden lg:flex")}>
           <div className="flex items-center justify-between p-4 border-b border-border">
-            <div>
-              <p className="font-semibold text-white text-sm">
-                {activeConv.guest_name || activeConv.customer?.full_name || 'Guest'}
-                {activeConv.guest_name && (
-                  <span className="ml-2 text-xs font-normal text-muted-foreground bg-white/10 px-1.5 py-0.5 rounded">Guest</span>
-                )}
-                {activeConv.guest_contact && (
-                  <span className="ml-2 text-xs font-normal text-neon-green">
-                    ({activeConv.guest_contact})
-                  </span>
-                )}
-              </p>
-              <p className="text-xs text-muted-foreground">{activeConv.subject}</p>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setActiveConvId(null)}
+                className="lg:hidden p-2 -ml-2 text-muted-foreground hover:text-white"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <div>
+                <p className="font-semibold text-white text-sm">
+                  {activeConv.guest_name || activeConv.customer?.full_name || 'Guest'}
+                  {activeConv.guest_name && (
+                    <span className="ml-2 text-xs font-normal text-muted-foreground bg-white/10 px-1.5 py-0.5 rounded">Guest</span>
+                  )}
+                  {activeConv.guest_contact && (
+                    <span className="ml-2 text-xs font-normal text-neon-green">
+                      ({activeConv.guest_contact})
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground">{activeConv.subject}</p>
+              </div>
             </div>
             <div className="flex gap-2">
               <button 
