@@ -65,6 +65,7 @@ const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'))
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
 const AdminAuditLogsPage = lazy(() => import('@/pages/admin/AdminAuditLogsPage'))
 const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage'))
+const AdminAccountingPage = lazy(() => import('@/pages/admin/AdminAccountingPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -182,6 +183,7 @@ function AppContent() {
           <Route path="reports" element={<AdminReportsPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+          <Route path="accounting" element={<AdminAccountingPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>
 

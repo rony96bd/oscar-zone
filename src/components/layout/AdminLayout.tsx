@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, Gamepad2, Joystick,
   Gift, CreditCard, UserCheck, MessageCircle, Bell, Send,
   Image, Megaphone, BarChart3, Shield, ClipboardList,
-  Settings, LogOut, Menu, X, ChevronRight, Zap, Bot, ArrowDownToLine
+  Settings, LogOut, Menu, X, ChevronRight, Zap, Bot, ArrowDownToLine, DollarSign
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/authStore'
@@ -54,6 +54,7 @@ const navSections = [
       { href: '/admin/notifications', label: 'Notifications', icon: Bell },
       { href: '/admin/telegram', label: 'Telegram', icon: Bot },
       { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
+      { href: '/admin/accounting', label: 'Accounting', icon: DollarSign },
       { href: '/admin/users', label: 'Admin Users', icon: Shield },
       { href: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList },
       { href: '/admin/settings', label: 'Settings', icon: Settings },

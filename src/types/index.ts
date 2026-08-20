@@ -78,6 +78,7 @@ export interface PaymentMethod {
   instructions: string | null
   minimum_amount: number
   maximum_amount: number
+  agent_commission_rate: number
   is_active: boolean
   sort_order: number
   created_at: string
@@ -280,4 +281,20 @@ export interface ReferralStats {
   pending_earnings: number
   current_level: number
   current_commission_pct: number
+}
+
+export interface AccountingCycle {
+  id: string
+  start_date: string
+  end_date: string | null
+  total_deposits: number
+  total_cashouts: number
+  total_agent_commissions: number
+  net_profit: number
+  status: 'active' | 'closed'
+  created_at: string
+  closed_by: string | null
+  closed_by_profile?: {
+    full_name: string | null
+  }
 }

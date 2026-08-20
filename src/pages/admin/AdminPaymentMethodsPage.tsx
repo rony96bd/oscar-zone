@@ -21,6 +21,7 @@ const EMPTY_METHOD: Partial<PaymentMethod> = {
   instructions: '',
   minimum_amount: 10,
   maximum_amount: 1000,
+  agent_commission_rate: 0,
   is_active: true,
   sort_order: 99,
 }
@@ -237,7 +238,7 @@ function PaymentMethodForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Min Amount ($)</label>
           <input type="number" className="game-input" value={form.minimum_amount ?? 10} onChange={e => set('minimum_amount', Number(e.target.value))} />
@@ -245,6 +246,10 @@ function PaymentMethodForm({
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Max Amount ($)</label>
           <input type="number" className="game-input" value={form.maximum_amount ?? 1000} onChange={e => set('maximum_amount', Number(e.target.value))} />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Agent Cut (%)</label>
+          <input type="number" className="game-input" value={form.agent_commission_rate ?? 0} onChange={e => set('agent_commission_rate', Number(e.target.value))} />
         </div>
       </div>
 
