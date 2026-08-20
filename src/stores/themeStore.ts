@@ -11,7 +11,7 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>((set) => ({
-  theme: 'theme-cyberpunk', // Default
+  theme: 'theme-casino', // Default — matches index.html
   isLoading: true,
   
   setTheme: (theme) => {
@@ -32,12 +32,13 @@ export const useThemeStore = create<ThemeState>((set) => ({
         document.documentElement.className = data.value
       } else {
         set({ isLoading: false })
-        document.documentElement.className = 'theme-cyberpunk' // Fallback
+        document.documentElement.className = 'theme-casino' // Fallback
       }
     } catch (err) {
       console.error('Failed to fetch theme:', err)
       set({ isLoading: false })
-      document.documentElement.className = 'theme-cyberpunk'
+      document.documentElement.className = 'theme-casino'
     }
   }
 }))
+
