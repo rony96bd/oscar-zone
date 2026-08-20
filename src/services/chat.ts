@@ -8,7 +8,7 @@ export async function fetchConversations(
   if (role === 'admin') {
     const { data, error } = await supabase
       .from('chat_conversations')
-      .select('*')
+      .select('*, customer:profiles!customer_id(*)')
       .order('last_message_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
     if (error) { console.error('fetchConversations admin error:', error); throw error }
@@ -17,7 +17,7 @@ export async function fetchConversations(
 
   const { data, error } = await supabase
     .from('chat_conversations')
-    .select('*')
+    .select('*, customer:profiles!customer_id(*)')
     .eq('customer_id', userId)
     .order('last_message_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
