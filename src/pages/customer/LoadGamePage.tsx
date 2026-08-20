@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Gamepad2, Zap, Image as ImageIcon, CheckCircle, Loader2, ZoomIn, X as XIcon, AlertTriangle, Info } from 'lucide-react'
+import { ChevronLeft, Gamepad2, Zap, Image as ImageIcon, CheckCircle, Loader2, ZoomIn, X as XIcon, AlertTriangle, Info, Copy } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fetchGames, fetchCustomerGames } from '@/services/games'
 import { calculateBonusPreview } from '@/services/orders'
@@ -471,9 +471,18 @@ export default function LoadGamePage() {
                             {selectedMethod.tag && (
                               <div>
                                 <p className="text-xs text-muted-foreground mb-1">Send to</p>
-                                <div className="inline-flex items-center gap-2 bg-card border border-border px-4 py-2 rounded-lg mb-2">
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(selectedMethod.tag || '')
+                                    toast.success('Payment tag copied to clipboard')
+                                  }}
+                                  className="inline-flex items-center gap-3 bg-card hover:bg-card/80 border border-border px-4 py-2 rounded-lg mb-2 cursor-pointer transition-colors group"
+                                  title="Click to copy"
+                                >
                                   <span className="text-neon-green font-mono text-lg font-bold">{selectedMethod.tag}</span>
-                                </div>
+                                  <Copy className="h-4 w-4 text-muted-foreground group-hover:text-white transition-colors" />
+                                </button>
                               </div>
                             )}
 
