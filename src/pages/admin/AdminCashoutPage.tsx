@@ -16,6 +16,8 @@ export default function AdminCashoutPage() {
   const [qrUrls, setQrUrls] = useState<Record<string, string>>({})
   const qc = useQueryClient()
 
+  const [previewQrUrl, setPreviewQrUrl] = useState<string | null>(null)
+
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ['admin-cashout-requests', filter],
     queryFn: () => fetchAllCashoutRequests(filter),
@@ -140,10 +142,10 @@ export default function AdminCashoutPage() {
                   </div>
                   <div className="flex gap-2">
                     {req.qr_code_path && qrUrls[req.id] && (
-                      <a href={qrUrls[req.id]} target="_blank" rel="noopener noreferrer"
+                      <button onClick={() => setPreviewQrUrl(qrUrls[req.id])}
                         className="flex-shrink-0 flex items-center gap-1 text-xs text-blue-400 border border-blue-400/30 px-3 py-1.5 rounded-lg hover:bg-blue-400/10 transition-colors">
                         <ImageIcon className="h-3 w-3" /> View QR
-                      </a>
+                      </button>
                     )}
                     {req.status === 'pending' && (
                       <button onClick={() => setExpandedId(expandedId === req.id ? null : req.id)}
@@ -183,6 +185,18 @@ export default function AdminCashoutPage() {
           </div>
         )}
       </div>
+
+      {/* QR Code Preview Modal */}
+      {previewQrUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setPreviewQrUrl(null)}>
+          <div className="relative max-w-2xl w-full max-h-[90vh] flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setPreviewQrUrl(null)} className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white bg-black/50 rounded-full transition-colors">
+              <XCircle className="h-8 w-8" />
+            </button>
+            <img src={previewQrUrl} alt="QR Code" className="max-w-full max-h-[85vh] object-contain rounded-xl border border-white/20 shadow-2xl" />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
