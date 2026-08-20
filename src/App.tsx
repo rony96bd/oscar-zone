@@ -38,6 +38,7 @@ const LoadGamePage = lazy(() => import('@/pages/customer/LoadGamePage'))
 const OrdersPage = lazy(() => import('@/pages/customer/OrdersPage'))
 const OrderDetailPage = lazy(() => import('@/pages/customer/OrderDetailPage'))
 const EarningsPage = lazy(() => import('@/pages/customer/EarningsPage'))
+const CashoutPage = lazy(() => import('@/pages/customer/CashoutPage'))
 const NotificationsPage = lazy(() => import('@/pages/customer/NotificationsPage'))
 const ChatPage = lazy(() => import('@/pages/customer/ChatPage'))
 const ProfilePage = lazy(() => import('@/pages/customer/ProfilePage'))
@@ -46,6 +47,7 @@ const SettingsPage = lazy(() => import('@/pages/customer/SettingsPage'))
 // Admin Pages
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
 const AdminOrdersPage = lazy(() => import('@/pages/admin/AdminOrdersPage'))
+const AdminCashoutPage = lazy(() => import('@/pages/admin/AdminCashoutPage'))
 const AdminOrderDetailPage = lazy(() => import('@/pages/admin/AdminOrderDetailPage'))
 const AdminCustomersPage = lazy(() => import('@/pages/admin/AdminCustomersPage'))
 const AdminCustomerDetailPage = lazy(() => import('@/pages/admin/AdminCustomerDetailPage'))
@@ -142,6 +144,9 @@ function AppContent() {
           <Route path="/earnings" element={
             <ProtectedRoute><EarningsPage /></ProtectedRoute>
           } />
+          <Route path="/cashout" element={
+            <ProtectedRoute><CashoutPage /></ProtectedRoute>
+          } />
           <Route path="/notifications" element={
             <ProtectedRoute><NotificationsPage /></ProtectedRoute>
           } />
@@ -161,6 +166,7 @@ function AppContent() {
           <Route index element={<AdminDashboardPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="orders/:id" element={<AdminOrderDetailPage />} />
+          <Route path="cashout" element={<AdminCashoutPage />} />
           <Route path="customers" element={<AdminCustomersPage />} />
           <Route path="customers/:id" element={<AdminCustomerDetailPage />} />
           <Route path="games" element={<AdminGamesPage />} />

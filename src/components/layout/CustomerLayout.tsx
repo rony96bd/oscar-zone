@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home, Gamepad2, Star, HelpCircle, Users, Phone,
   LayoutDashboard, Joystick, ShoppingBag, DollarSign,
-  Bell, MessageCircle, User, Settings, LogOut, Menu, X, Zap, Shield
+  Bell, MessageCircle, User, Settings, LogOut, Menu, X, Zap, Shield, ArrowDownToLine
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
@@ -25,6 +25,7 @@ const authNavLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/my-games', label: 'My Games', icon: Joystick },
   { href: '/load', label: 'Load Game', icon: Zap },
+  { href: '/cashout', label: 'Cashout', icon: ArrowDownToLine },
   { href: '/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/earnings', label: 'Earnings', icon: DollarSign },
   { href: '/notifications', label: 'Notifications', icon: Bell },
@@ -36,14 +37,14 @@ const mobileNavLinks = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { href: '/my-games', label: 'Games', icon: Joystick },
   { href: '/load', label: 'Load', icon: Zap, primary: true },
-  { href: '/orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/cashout', label: 'Cashout', icon: ArrowDownToLine },
   { href: '/profile', label: 'Profile', icon: User },
 ]
 
 // Identify paths that belong to the customer dashboard context
 const isDashboardPath = (path: string) => {
   return [
-    '/dashboard', '/my-games', '/load', '/orders', 
+    '/dashboard', '/my-games', '/load', '/cashout', '/orders', 
     '/earnings', '/notifications', '/chat', '/profile', '/settings'
   ].some(p => path === p || path.startsWith(p + '/'))
 }
