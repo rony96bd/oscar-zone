@@ -172,7 +172,7 @@ export function CustomerLayout() {
               </>
             ) : (
               <div className="flex items-center gap-2">
-                <Link to="/login" className="btn-ghost px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20">
+                <Link to="/login" className="btn-neon px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm">
                   Sign In
                 </Link>
                 {allowRegistration && (
@@ -242,7 +242,7 @@ export function CustomerLayout() {
           
           {!isAuthenticated && (
             <div className="mt-auto space-y-3 pt-6 border-t border-white/10">
-              <Link to="/login" className="btn-ghost w-full justify-center">Log In</Link>
+              <Link to="/login" className="btn-neon w-full justify-center">Log In</Link>
               {allowRegistration && (
                 <Link to="/register" className="btn-neon w-full justify-center">Sign Up</Link>
               )}
