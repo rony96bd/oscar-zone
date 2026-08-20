@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     const adminClient = createClient(supabaseUrl, serviceKey)
 
     const body = await req.json()
-    const { request_number, customer_name, game_name, game_username, amount, payment_method_name, payment_detail } = body
+    const { request_number, customer_name, game_name, game_username, amount, payment_method_name, payment_detail, qr_code_path } = body
 
     const message = [
       '\ud83d\udcb8 *NEW CASHOUT REQUEST*',
@@ -49,6 +49,16 @@ Deno.serve(async (req) => {
       '\ud83d\udccc Send To: ' + payment_detail,
       '\ud83d\udd50 Time: ' + formatTime(),
     ].join('\n')
+
+    let photoUrl = null
+    if (qr_code_path) {
+      const { data } = await adminClient.storage
+        .from('payment-screenshots')
+        .createSignedUrl(qr_code_path, 60 * 60)
+      if (data?.signedUrl) {
+        photoUrl = data.signedUrl
+      }
+    }
 
     const { data: destinations } = await adminClient
       .from('telegram_destinations')
@@ -64,18 +74,36 @@ Deno.serve(async (req) => {
     let sent = 0
     for (const dest of destinations) {
       try {
-        const resp = await fetch(
-          'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: dest.chat_id,
-              text: message,
-              parse_mode: 'Markdown',
-            }),
-          }
-        )
+        let resp
+        if (photoUrl) {
+          resp = await fetch(
+            'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendPhoto',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: dest.chat_id,
+                photo: photoUrl,
+                caption: message,
+                parse_mode: 'Markdown',
+              }),
+            }
+          )
+        } else {
+          resp = await fetch(
+            'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: dest.chat_id,
+                text: message,
+                parse_mode: 'Markdown',
+              }),
+            }
+          )
+        }
+        
         const data = await resp.json()
         if (data.ok) sent++
         else console.error('Telegram error:', data)

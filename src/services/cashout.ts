@@ -1,4 +1,4 @@
-﻿import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export interface CashoutRequest {
   id: string
@@ -9,6 +9,7 @@ export interface CashoutRequest {
   amount: number
   payment_method_name: string
   payment_detail: string
+  qr_code_path: string | null
   status: 'pending' | 'approved' | 'rejected'
   admin_note: string | null
   created_at: string
@@ -22,6 +23,7 @@ export interface CreateCashoutPayload {
   amount: number
   payment_method_name: string
   payment_detail: string
+  qr_code_path?: string
 }
 
 export async function createCashoutRequest(payload: CreateCashoutPayload): Promise<CashoutRequest> {

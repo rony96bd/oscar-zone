@@ -5,21 +5,32 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { fetchPaymentMethods } from '@/services/payments'
 import { createCashoutRequest, fetchMyCashoutRequests } from '@/services/cashout'
+import { fetchCustomerGames } from '@/services/games'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { cn, formatCurrency, formatRelativeTime } from '@/lib/utils'
-import type { PaymentMethod } from '@/types'
+import { ScreenshotUpload } from '@/components/customer/ScreenshotUpload'
+import type { PaymentMethod, CustomerGame } from '@/types'
 
 export default function CashoutPage() {
   const { profile } = useAuthStore()
   const qc = useQueryClient()
+  
   const [submitted, setSubmitted] = useState(false)
   const [submittedNumber, setSubmittedNumber] = useState('')
-  const [gameName, setGameName] = useState('')
-  const [gameUsername, setGameUsername] = useState('')
+  
+  const [selectedGameId, setSelectedGameId] = useState('')
   const [amount, setAmount] = useState('')
   const [selectedMethod, setSelectedMethod] = useState('')
   const [paymentDetail, setPaymentDetail] = useState('')
+  const [qrCodePath, setQrCodePath] = useState<string | null>(null)
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null)
+
+  const { data: myGames = [] } = useQuery({
+    queryKey: ['my-games', profile?.id],
+    queryFn: () => fetchCustomerGames(profile!.id),
+    enabled: !!profile?.id
+  })
 
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['payment-methods'],
@@ -35,13 +46,19 @@ export default function CashoutPage() {
     mutationFn: async () => {
       const selectedPM = (paymentMethods as PaymentMethod[]).find((m) => m.id === selectedMethod)
       if (!selectedPM) throw new Error('Please select a payment method')
+      
+      const selectedGame = (myGames as CustomerGame[]).find(g => g.id === selectedGameId)
+      if (!selectedGame) throw new Error('Please select a game')
+
       const request = await createCashoutRequest({
-        game_name: gameName,
-        game_username: gameUsername,
+        game_name: selectedGame.game?.name || 'Unknown',
+        game_username: selectedGame.username,
         amount: parseFloat(amount),
         payment_method_name: selectedPM.name,
         payment_detail: paymentDetail,
+        qr_code_path: qrCodePath || undefined
       })
+      
       try {
         await supabase.functions.invoke('send-cashout-telegram', {
           body: {
@@ -52,11 +69,13 @@ export default function CashoutPage() {
             amount: request.amount,
             payment_method_name: request.payment_method_name,
             payment_detail: request.payment_detail,
+            qr_code_path: request.qr_code_path
           },
         })
       } catch (err) {
         console.warn('Telegram notify failed:', err)
       }
+      
       return request
     },
     onSuccess: (data) => {
@@ -69,17 +88,19 @@ export default function CashoutPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!selectedGameId) { toast.error('Please select a game'); return }
     if (!selectedMethod) { toast.error('Please select a payment method'); return }
     submitMutation.mutate()
   }
 
   const handleReset = () => {
     setSubmitted(false)
-    setGameName('')
-    setGameUsername('')
+    setSelectedGameId('')
     setAmount('')
     setSelectedMethod('')
     setPaymentDetail('')
+    setQrCodePath(null)
+    setQrCodeUrl(null)
     setSubmittedNumber('')
   }
 
@@ -133,34 +154,65 @@ export default function CashoutPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5">
+          <form onSubmit={handleSubmit} className="glass-card p-6 space-y-6">
+            
+            {/* 1. Select Game */}
             <div>
               <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <Gamepad2 className="h-4 w-4 text-primary" /> Game Information
+                <Gamepad2 className="h-4 w-4 text-primary" /> 1. Select Game Account
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Game Name</label>
-                  <input type="text" value={gameName} onChange={(e) => setGameName(e.target.value)}
-                    placeholder="e.g., Fire Kirin" className="game-input w-full" required />
+              
+              {(myGames as CustomerGame[]).length === 0 ? (
+                <div className="p-4 rounded-xl border border-dashed border-white/20 text-center">
+                  <p className="text-sm text-muted-foreground mb-2">You don't have any active game accounts.</p>
+                  <Link to="/load" className="text-primary text-sm font-medium hover:underline">
+                    Load a game to get started
+                  </Link>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Game Username</label>
-                  <input type="text" value={gameUsername} onChange={(e) => setGameUsername(e.target.value)}
-                    placeholder="Your in-game username" className="game-input w-full" required />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(myGames as CustomerGame[]).map((cg) => (
+                    <button
+                      key={cg.id}
+                      type="button"
+                      onClick={() => setSelectedGameId(cg.id)}
+                      className={cn(
+                        "flex items-center gap-3 p-3 rounded-xl border transition-all text-left",
+                        selectedGameId === cg.id
+                          ? "border-primary bg-primary/10 shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)]"
+                          : "border-border hover:border-primary/50 bg-white/5"
+                      )}
+                    >
+                      {cg.game?.logo_url ? (
+                        <img src={cg.game.logo_url} alt={cg.game.name} className="h-10 w-10 rounded-lg object-cover" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-lg bg-white/5 flex items-center justify-center">
+                          <Gamepad2 className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-white truncate">{cg.game?.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{cg.username}</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Cashout Amount ($)</label>
-              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00" min="1" step="0.01" className="game-input w-full" required />
-            </div>
-
+            {/* 2. Amount */}
             <div>
               <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-primary" /> Receive Payment Via
+                <ArrowDownToLine className="h-4 w-4 text-primary" /> 2. Cashout Amount
+              </h3>
+              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount (e.g. 50)" min="1" step="0.01" className="game-input w-full" required />
+            </div>
+
+            {/* 3. Payment Method */}
+            <div>
+              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-primary" /> 3. Receive Payment Via
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {(paymentMethods as PaymentMethod[]).map((method) => (
@@ -181,21 +233,43 @@ export default function CashoutPage() {
               </div>
             </div>
 
+            {/* 4. Payment Details */}
             {selectedMethod && (
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                  Your {(paymentMethods as PaymentMethod[]).find((m) => m.id === selectedMethod)?.name} Number / Tag / ID
-                </label>
-                <input type="text" value={paymentDetail} onChange={(e) => setPaymentDetail(e.target.value)}
-                  placeholder="Enter your account number, tag, or ID" className="game-input w-full" required />
-                <p className="text-xs text-yellow-400 mt-1.5">
-                  Double-check your details. Payment will be sent to this account.
-                </p>
+              <div className="space-y-4 pt-4 border-t border-white/10">
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                    Your {(paymentMethods as PaymentMethod[]).find((m) => m.id === selectedMethod)?.name} Number / Tag / ID
+                  </label>
+                  <input type="text" value={paymentDetail} onChange={(e) => setPaymentDetail(e.target.value)}
+                    placeholder="Enter your account number, tag, or ID" className="game-input w-full" required />
+                  <p className="text-xs text-yellow-400 mt-1.5">
+                    Double-check your details. Payment will be sent to this account.
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                    Your QR Code (Optional)
+                  </label>
+                  <ScreenshotUpload 
+                    onUpload={(key, url) => {
+                      setQrCodePath(key)
+                      setQrCodeUrl(url)
+                    }}
+                    onClear={() => {
+                      setQrCodePath(null)
+                      setQrCodeUrl(null)
+                    }}
+                    uploaded={!!qrCodePath}
+                    orderId={`csh_${Date.now()}`}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Upload your payment QR code for faster processing.</p>
+                </div>
               </div>
             )}
 
-            <button type="submit" disabled={submitMutation.isPending}
-              className="btn-neon w-full py-3 flex items-center justify-center gap-2">
+            <button type="submit" disabled={submitMutation.isPending || !selectedGameId || !selectedMethod}
+              className="btn-neon w-full py-3 flex items-center justify-center gap-2 mt-6">
               {submitMutation.isPending
                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting...</>
                 : <><ArrowDownToLine className="h-4 w-4" /> Submit Cashout Request</>

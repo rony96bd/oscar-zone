@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowDownToLine, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowDownToLine, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react'
 import { fetchAllCashoutRequests, updateCashoutStatus } from '@/services/cashout'
 import { sendNotificationToUser } from '@/services/notifications'
+import { getScreenshotUrl } from '@/services/payments'
 import { formatCurrency, formatRelativeTime, cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -12,12 +13,25 @@ export default function AdminCashoutPage() {
   const [filter, setFilter] = useState<FilterStatus>('pending')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [noteMap, setNoteMap] = useState<Record<string, string>>({})
+  const [qrUrls, setQrUrls] = useState<Record<string, string>>({})
   const qc = useQueryClient()
 
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ['admin-cashout-requests', filter],
     queryFn: () => fetchAllCashoutRequests(filter),
   })
+
+  // Preload QR URLs
+  useEffect(() => {
+    requests.forEach(async (req: any) => {
+      if (req.qr_code_path && !qrUrls[req.id]) {
+        const url = await getScreenshotUrl(req.qr_code_path)
+        if (url) {
+          setQrUrls(prev => ({ ...prev, [req.id]: url }))
+        }
+      }
+    })
+  }, [requests, qrUrls])
 
   const statusMutation = useMutation({
     mutationFn: async ({ id, status, userId, requestNumber }: { id: string; status: 'approved' | 'rejected'; userId: string; requestNumber: string }) => {
@@ -124,12 +138,20 @@ export default function AdminCashoutPage() {
                       </p>
                     )}
                   </div>
-                  {req.status === 'pending' && (
-                    <button onClick={() => setExpandedId(expandedId === req.id ? null : req.id)}
-                      className="flex-shrink-0 flex items-center gap-1 text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary/10 transition-colors">
-                      Action {expandedId === req.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                    </button>
-                  )}
+                  <div className="flex gap-2">
+                    {req.qr_code_path && qrUrls[req.id] && (
+                      <a href={qrUrls[req.id]} target="_blank" rel="noopener noreferrer"
+                        className="flex-shrink-0 flex items-center gap-1 text-xs text-blue-400 border border-blue-400/30 px-3 py-1.5 rounded-lg hover:bg-blue-400/10 transition-colors">
+                        <ImageIcon className="h-3 w-3" /> View QR
+                      </a>
+                    )}
+                    {req.status === 'pending' && (
+                      <button onClick={() => setExpandedId(expandedId === req.id ? null : req.id)}
+                        className="flex-shrink-0 flex items-center gap-1 text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary/10 transition-colors">
+                        Action {expandedId === req.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {expandedId === req.id && req.status === 'pending' && (
