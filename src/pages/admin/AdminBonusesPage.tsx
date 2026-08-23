@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchAllPromotions, createPromotion, updatePromotion } from '@/services/promotions'
-import { Plus, Gift, Edit, ToggleLeft, ToggleRight, Users, Pin } from 'lucide-react'
+import { fetchAllPromotions, createPromotion, updatePromotion, deletePromotion } from '@/services/promotions'
+import { Plus, Gift, Edit, ToggleLeft, ToggleRight, Users, Pin, Trash } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { formatDate } from '@/lib/utils'
@@ -25,6 +25,15 @@ export default function AdminBonusesPage() {
     mutationFn: ({ id, updates }: { id: string; updates: any }) =>
       updatePromotion(id, updates),
     onSuccess: () => { toast.success('Updated'); qc.invalidateQueries({ queryKey: ['admin-promotions'] }) },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deletePromotion(id),
+    onSuccess: () => {
+      toast.success('Promotion deleted')
+      qc.invalidateQueries({ queryKey: ['admin-promotions'] })
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to delete promotion'),
   })
 
   const saveMutation = useMutation({
@@ -114,6 +123,17 @@ export default function AdminBonusesPage() {
                     className="p-2 rounded-lg hover:bg-white/5 text-muted-foreground hover:text-white transition-colors"
                   >
                     <Edit className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this promotion?')) {
+                        deleteMutation.mutate(promo.id)
+                      }
+                    }}
+                    className="p-2 rounded-lg hover:bg-red-500/20 text-muted-foreground hover:text-red-400 transition-colors"
+                    title="Delete Promotion"
+                  >
+                    <Trash className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => updatePropMutation.mutate({ id: promo.id, updates: { is_active: !promo.is_active } })}
