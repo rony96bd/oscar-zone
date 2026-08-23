@@ -1,4 +1,4 @@
-﻿import { useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { fetchCustomerGames, fetchGames } from '@/services/games'
@@ -101,8 +101,12 @@ export default function MyGamesPage() {
           {customerGames.map(cg => (
             <SavedGameCard 
               key={cg.id} 
-              game={cg} 
-              onLoad={() => navigate(/load?game=&username=)}
+              gameName={cg.game?.name || 'Unknown Game'}
+              gameSlug={cg.game?.slug || ''}
+              username={cg.username}
+              logoUrl={cg.game?.logo_url}
+              downloadUrl={cg.game?.download_url}
+              onLoad={() => navigate(`/load?game=${cg.game_id}&username=${cg.username}`)}
             />
           ))}
         </div>

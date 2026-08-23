@@ -1,5 +1,5 @@
 export type UserRole = 'customer' | 'admin' | 'super_admin' | 'support_agent'
-export type AccountStatus = 'active' | 'suspended' | 'restricted'
+export type AccountStatus = 'active' | 'suspended' | 'restricted' | 'pending'
 export type OrderStatus =
   | 'pending_payment_review'
   | 'payment_verified'

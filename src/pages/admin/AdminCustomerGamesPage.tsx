@@ -29,7 +29,7 @@ export default function AdminCustomerGamesPage() {
   })
 
   const handleApproveRequest = async (req: any) => {
-    const username = window.prompt(Enter the generated Game ID (Username) for  on :)
+    const username = window.prompt(`Enter the generated Game ID (Username) for ${req.profile?.full_name} on ${req.game?.name}:`)
     if (!username) return
 
     try {
@@ -88,7 +88,7 @@ export default function AdminCustomerGamesPage() {
       <div className="flex bg-black/40 p-1 rounded-lg w-fit border border-border">
         <button
           onClick={() => setTab('requests')}
-          className={lex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors  + (tab === 'requests' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-white')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'requests' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-white'}`}
         >
           <Clock className="h-4 w-4" />
           Pending Requests
@@ -100,7 +100,7 @@ export default function AdminCustomerGamesPage() {
         </button>
         <button
           onClick={() => setTab('all')}
-          className={lex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors  + (tab === 'all' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-white')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'all' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-white'}`}
         >
           <Joystick className="h-4 w-4" />
           All Accounts
@@ -120,7 +120,7 @@ export default function AdminCustomerGamesPage() {
                   <UserPlus className="h-5 w-5 text-orange-400 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-white text-sm">{req.profile?.full_name} <span className="font-normal text-muted-foreground ml-2">{req.profile?.phone || req.profile?.email}</span></p>
-                    <p className="text-xs text-orange-400 mt-0.5">Requested: {req.game?.name} ? {formatRelativeTime(req.created_at)}</p>
+                    <p className="text-xs text-orange-400 mt-0.5">Requested: {req.game?.name} · {formatRelativeTime(req.created_at)}</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -145,10 +145,10 @@ export default function AdminCustomerGamesPage() {
                 <div key={cg.id} className="glass-card p-4 flex items-center gap-4">
                   <Joystick className="h-5 w-5 text-primary flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white text-sm">{cg.game?.name} ?" <span className="font-mono text-primary">{cg.username}</span></p>
+                    <p className="font-semibold text-white text-sm">{cg.game?.name} · <span className="font-mono text-primary">{cg.username}</span></p>
                     <p className="text-xs text-muted-foreground">{cg.profile?.full_name} · {formatRelativeTime(cg.created_at)}</p>
                   </div>
-                  <span className={	ext-xs px-2 py-0.5 rounded-full border  + (cg.status === 'active' ? 'bg-neon-green/20 text-neon-green border-neon-green/30' : 'bg-muted text-muted-foreground border-border')}>{cg.status}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full border ${cg.status === 'active' ? 'bg-neon-green/20 text-neon-green border-neon-green/30' : 'bg-muted text-muted-foreground border-border'}`}>{cg.status}</span>
                 </div>
               ))}
             </div>
