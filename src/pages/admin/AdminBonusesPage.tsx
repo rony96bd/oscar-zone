@@ -77,7 +77,7 @@ export default function AdminBonusesPage() {
         <div className="space-y-3">
           {(promotions as any[]).map((promo: any) => (
             <div key={promo.id} className="glass-card p-5">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neon-gold/20 border border-neon-gold/30 flex-shrink-0">
                     <Gift className="h-5 w-5 text-neon-gold" />
@@ -103,7 +103,7 @@ export default function AdminBonusesPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                   <button
                     onClick={() => openManageUsers(promo)}
                     className="p-2 rounded-lg hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors flex items-center gap-2 text-xs font-medium"
