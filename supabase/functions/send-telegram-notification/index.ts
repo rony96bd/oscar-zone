@@ -1,4 +1,4 @@
-﻿import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
         `🎮 *GAME ID REQUEST*`,
         ``,
         `👤 Customer: ${body.customer_name}`,
+        `🆔 Portal Username: \`${body.username}\``,
         `🎲 Game: ${body.game_name}`,
         `⏰ Time: ${formatTime()}`,
         ``,

@@ -61,6 +61,7 @@ export default function MyGamesPage() {
         body: {
           event_type: 'game_id_request',
           customer_name: profile.full_name,
+          username: profile.username,
           game_name: selectedGame?.name
         }
       }).catch(console.error)
