@@ -112,7 +112,18 @@ export default function AdminBonusesPage() {
                     <Users className="h-4 w-4" /> Users
                   </button>
                   <button
-                    onClick={() => updatePropMutation.mutate({ id: promo.id, updates: { is_pinned: !promo.is_pinned } })}
+                    onClick={() => {
+                      if (promo.is_pinned) {
+                        // Unpin
+                        updatePropMutation.mutate({ id: promo.id, updates: { is_pinned: false, pin_text: null } })
+                      } else {
+                        // Pin with custom text
+                        const customText = window.prompt('Enter custom text to show at the end of the badge (optional):', '')
+                        if (customText !== null) {
+                          updatePropMutation.mutate({ id: promo.id, updates: { is_pinned: true, pin_text: customText } })
+                        }
+                      }
+                    }}
                     className={`p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-medium ${promo.is_pinned ? 'bg-neon-gold/20 text-neon-gold' : 'hover:bg-white/5 text-muted-foreground hover:text-white'}`}
                     title={promo.is_pinned ? "Unpin from Homepage" : "Pin to Homepage"}
                   >

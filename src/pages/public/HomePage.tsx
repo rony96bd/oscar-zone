@@ -64,7 +64,7 @@ export default function HomePage() {
                 <div key={promo.id} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-neon-gold/40 bg-neon-gold/10">
                   <Star className="h-4 w-4 text-neon-gold" fill="currentColor" />
                   <span className="text-sm font-semibold text-neon-gold">
-                    {promo.bonus_percentage}% Bonus - {promo.name}!
+                    {promo.bonus_percentage}% Bonus - {promo.name}! {promo.pin_text ? ` ${promo.pin_text}` : ''}
                   </span>
                 </div>
               ))}

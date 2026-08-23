@@ -108,6 +108,7 @@ export interface Promotion {
   priority: number
   is_active: boolean
   is_pinned: boolean
+  pin_text: string | null
   created_at: string
   updated_at: string
 }
