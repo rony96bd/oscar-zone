@@ -1,4 +1,4 @@
-﻿import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import type { AccountingCycle, GamePointPurchase } from '@/types'
 
 export async function fetchActiveCycle(): Promise<AccountingCycle | null> {
@@ -75,6 +75,22 @@ export interface AccountingStats {
 
 export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
   const activeCycle = await fetchActiveCycle();
+
+  const { data: allMethods, error: methodsError } = await supabase
+    .from('payment_methods')
+    .select('name')
+    .eq('is_active', true);
+    
+  if (methodsError) throw methodsError;
+
+  const depositsByMethod: Record<string, number> = {};
+  const commissionsByMethod: Record<string, number> = {};
+  
+  (allMethods || []).forEach(m => {
+    depositsByMethod[m.name] = 0;
+    commissionsByMethod[m.name] = 0;
+  });
+
   if (!activeCycle) {
     return {
       activeCycle: null,
@@ -83,14 +99,14 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
       totalAgentCommissions: 0,
       totalGamePointsCost: 0,
       netProfit: 0,
-      depositsByMethod: {},
-      commissionsByMethod: {}
+      depositsByMethod,
+      commissionsByMethod
     }
   }
 
   const { data: orders, error: orderError } = await supabase
     .from('orders')
-    .select('base_amount, payment_methods(name, agent_commission_rate)')
+    .select('base_amount, payment_method:payment_methods(name, agent_commission_rate)')
     .eq('status', 'completed')
     .gte('created_at', activeCycle.start_date);
     
@@ -104,41 +120,27 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
 
   if (cashoutError) throw cashoutError;
 
-  const { data: purchases, error: purchasesError } = await supabase
+  const { data: purchases, error: purchaseError } = await supabase
     .from('game_point_purchases')
     .select('amount')
     .gte('created_at', activeCycle.start_date);
 
-  if (purchasesError) throw purchasesError;
-
-  const { data: allMethods, error: methodsError } = await supabase
-    .from('payment_methods')
-    .select('name')
-    .eq('is_active', true);
-    
-  if (methodsError) throw methodsError;
+  if (purchaseError) throw purchaseError;
 
   let totalDeposits = 0;
   let totalAgentCommissions = 0;
-  const depositsByMethod: Record<string, number> = {};
-  const commissionsByMethod: Record<string, number> = {};
-  
-  (allMethods || []).forEach(m => {
-    depositsByMethod[m.name] = 0;
-    commissionsByMethod[m.name] = 0;
-  });
   
   (orders || []).forEach(order => {
     totalDeposits += order.base_amount;
     let rate = 0;
     let methodName = 'Unknown';
-    if (order.payment_methods) {
-      if (Array.isArray(order.payment_methods)) {
-        rate = order.payment_methods[0]?.agent_commission_rate || 0;
-        methodName = order.payment_methods[0]?.name || 'Unknown';
+    if (order.payment_method) {
+      if (Array.isArray(order.payment_method)) {
+        rate = order.payment_method[0]?.agent_commission_rate || 0;
+        methodName = order.payment_method[0]?.name || 'Unknown';
       } else {
-        rate = (order.payment_methods as any).agent_commission_rate || 0;
-        methodName = (order.payment_methods as any).name || 'Unknown';
+        rate = (order.payment_method as any).agent_commission_rate || 0;
+        methodName = (order.payment_method as any).name || 'Unknown';
       }
     }
     const commission = (order.base_amount * rate) / 100;
