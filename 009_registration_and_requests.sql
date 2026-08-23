@@ -72,3 +72,6 @@ CREATE POLICY "Admins can update game id requests"
   USING (
     EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role IN ('admin', 'super_admin'))
   );
+
+ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_account_status_check;
+ALTER TABLE profiles ADD CONSTRAINT profiles_account_status_check CHECK (account_status IN ('active', 'suspended', 'restricted', 'pending'));

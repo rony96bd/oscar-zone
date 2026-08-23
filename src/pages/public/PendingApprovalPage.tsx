@@ -1,4 +1,4 @@
-﻿import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/authStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { LogOut, Send, MessageCircle, Phone, Mail } from 'lucide-react'
 import { useEffect } from 'react'
@@ -63,12 +63,12 @@ export default function PendingApprovalPage() {
               </div>
             </a>
           )}
-          {settings.supportPhone && (
-            <a href={`tel:${settings.supportPhone}`} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-border transition-colors">
-              <Phone className="h-5 w-5 text-gray-400" />
+          {settings.supportEmail && (
+            <a href={`mailto:${settings.supportEmail}`} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-border transition-colors">
+              <Mail className="h-5 w-5 text-gray-400" />
               <div>
-                <div className="text-sm font-medium text-white">{settings.supportPhone}</div>
-                <div className="text-xs text-muted-foreground">Call or WhatsApp</div>
+                <div className="text-sm font-medium text-white">{settings.supportEmail}</div>
+                <div className="text-xs text-muted-foreground">Email Support</div>
               </div>
             </a>
           )}
