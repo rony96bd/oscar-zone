@@ -14,6 +14,14 @@ export function ProtectedRoute({ children, redirectTo = '/login' }: ProtectedRou
   if (!isAuthenticated) return <Navigate to={redirectTo} replace />
   if (isAdmin()) return <Navigate to="/admin" replace />
 
+  const { profile } = useAuthStore.getState()
+  if (profile && (profile.account_status === 'pending' || profile.account_status === 'suspended' || profile.account_status === 'restricted')) {
+    // Only redirect if they are not already on the pending page
+    if (window.location.pathname !== '/pending') {
+      return <Navigate to="/pending" replace />
+    }
+  }
+
   return <>{children}</>
 }
 

@@ -106,9 +106,22 @@ export default function RegisterPage() {
       })
       if (error) throw error
       
-      toast.success('Account created successfully!')
-      // Redirect to dashboard, supabase will automatically log them in
-      navigate('/dashboard')
+      // Notify admin via Telegram
+      try {
+        await supabase.functions.invoke('send-telegram-notification', {
+          body: {
+            event_type: 'signup',
+            customer_name: data.full_name,
+            username: data.username,
+            telegram: data.telegram
+          }
+        });
+      } catch (e) {
+        console.error('Failed to send telegram notification', e);
+      }
+
+      toast.success('Registration successful! Please contact support for approval.')
+      navigate('/pending')
     } catch (err: any) {
       toast.error(err.message || 'Failed to create account')
     } finally {

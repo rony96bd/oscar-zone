@@ -228,8 +228,8 @@ export default function DashboardPage() {
           <div className="space-y-3">{[1, 2].map(i => <div key={i} className="h-20 skeleton rounded-xl" />)}</div>
         ) : games.length === 0 ? (
           <div className="game-card p-6 text-center">
-            <p className="text-muted-foreground text-sm mb-3">No games assigned yet. Contact support.</p>
-            <Link to="/contact" className="btn-ghost-neon px-4 py-2 text-sm">Contact Support</Link>
+            <p className="text-muted-foreground text-sm mb-3">No games assigned yet.</p>
+            <Link to="/my-games" className="btn-ghost-neon px-4 py-2 text-sm">Request Game ID</Link>
           </div>
         ) : (
           <div className="space-y-3">

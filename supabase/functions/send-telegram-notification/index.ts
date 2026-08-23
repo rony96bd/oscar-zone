@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+﻿import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
 
   try {
     if (!TELEGRAM_BOT_TOKEN) {
-      console.log('TELEGRAM_BOT_TOKEN not configured — skipping')
+      console.log('TELEGRAM_BOT_TOKEN not configured ?" skipping')
       return new Response(JSON.stringify({ skipped: true, reason: 'no_bot_token' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json()
     const isTest = body.test === true
+    const eventType = body.event_type || 'order' // default to order for backward compatibility
 
     // Fetch active destinations
     let query = adminClient.from('telegram_destinations').select('*').eq('is_active', true)
@@ -51,31 +52,53 @@ Deno.serve(async (req) => {
 
     let message: string
     if (isTest) {
-      message = `✅ *OscarZone Telegram Connected*\n\nThis is a test notification.\nTime: ${formatTime()}`
+      message = o. *OscarZone Telegram Connected*\n\nThis is a test notification.\nTime: 
+    } else if (eventType === 'signup') {
+      message = [
+        dYZ *NEW USER REGISTRATION*,
+        `,
+        dY  Name: ,
+        dY' Username: \${body.username}\`,
+        dY+ Telegram: ,
+        dY ? Time: ,
+        `,
+        _User is pending approval._
+      ].join('\n')
+    } else if (eventType === 'game_id_request') {
+      message = [
+        dY? *GAME ID REQUEST*,
+        `,
+        dY  Customer: ,
+        dYZr Game: ,
+        dY ? Time: ,
+        `,
+        _Please create a Game ID and assign it from the Admin Panel._
+      ].join('\n')
     } else {
+      // Default: order
       const {
         order_number, game_name, username, base_amount, final_credit,
         regular_bonus_pct, promo_bonus_pct, promo_name, payment_name,
-        customer_name, is_guest, payment_screenshot_path
+        customer_name, is_guest
       } = body
 
       const promoPart = promo_bonus_pct > 0
-        ? `\n📣 *Promo (${promo_name || 'Active Promo'}):* +${promo_bonus_pct}%`
+        ? \ndY" *Promo ():* +%
         : ''
 
       message = [
-        `🔥 *NEW LOAD ORDER*`,
-        ``,
-        `📋 Order: \`${order_number}\``,
-        `👤 Customer: ${customer_name}${is_guest ? ' _(guest)_' : ''}`,
-        `🎮 Game: ${game_name}`,
-        `🎯 Username: \`${username}\``,
-        `💵 Amount: ${formatCurrency(base_amount)}`,
-        `🎁 Regular Bonus: +${regular_bonus_pct}%`,
+        dY" *NEW LOAD ORDER*,
+        `,
+        dY"< Order: \${order_number}\`,
+        dY  Customer: ,
+        dYZr Game: ,
+        dYZ_ Username: \${username}\`,
+        dY' Amount: ,
+        dYZ? Regular Bonus: +%,
         promoPart,
-        `💰 Game Credit: *${formatCurrency(final_credit)}*`,
-        `💳 Payment: ${payment_name}`,
-        `🕐 Time: ${formatTime()}`,
+        dY' Game Credit: **,
+        dY'3 Payment: ,
+        dY ? Time: ,
       ].filter(Boolean).join('\n')
     }
 
@@ -96,7 +119,7 @@ Deno.serve(async (req) => {
         let resp
         if (photoUrl && !isTest) {
           resp = await fetch(
-            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+            https://api.telegram.org/bot/sendPhoto,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -110,7 +133,7 @@ Deno.serve(async (req) => {
           )
         } else {
           resp = await fetch(
-            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+            https://api.telegram.org/bot/sendMessage,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

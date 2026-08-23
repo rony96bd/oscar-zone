@@ -84,7 +84,7 @@ export default function AdminCustomerDetailPage() {
       <div className="glass-card p-6">
         <h2 className="font-semibold text-white mb-4">Account Status</h2>
         <div className="flex gap-2 mb-6">
-          {['active', 'suspended', 'restricted'].map(status => (
+          {['pending', 'active', 'suspended', 'restricted'].map(status => (
             <button
               key={status}
               onClick={() => statusMutation.mutate(status)}
