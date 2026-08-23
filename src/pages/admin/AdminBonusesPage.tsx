@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAllPromotions, createPromotion, updatePromotion } from '@/services/promotions'
-import { Plus, Gift, Edit, ToggleLeft, ToggleRight, Users } from 'lucide-react'
+import { Plus, Gift, Edit, ToggleLeft, ToggleRight, Users, Pin } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { formatDate } from '@/lib/utils'
@@ -21,9 +21,9 @@ export default function AdminBonusesPage() {
     queryFn: fetchAllPromotions,
   })
 
-  const toggleMutation = useMutation({
-    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
-      updatePromotion(id, { is_active }),
+  const updatePropMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: any }) =>
+      updatePromotion(id, updates),
     onSuccess: () => { toast.success('Updated'); qc.invalidateQueries({ queryKey: ['admin-promotions'] }) },
   })
 
@@ -103,13 +103,20 @@ export default function AdminBonusesPage() {
                     <Users className="h-4 w-4" /> Users
                   </button>
                   <button
+                    onClick={() => updatePropMutation.mutate({ id: promo.id, updates: { is_pinned: !promo.is_pinned } })}
+                    className={`p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-medium ${promo.is_pinned ? 'bg-neon-gold/20 text-neon-gold' : 'hover:bg-white/5 text-muted-foreground hover:text-white'}`}
+                    title={promo.is_pinned ? "Unpin from Homepage" : "Pin to Homepage"}
+                  >
+                    <Pin className="h-4 w-4" /> Pin
+                  </button>
+                  <button
                     onClick={() => openEdit(promo)}
                     className="p-2 rounded-lg hover:bg-white/5 text-muted-foreground hover:text-white transition-colors"
                   >
                     <Edit className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => toggleMutation.mutate({ id: promo.id, is_active: !promo.is_active })}
+                    onClick={() => updatePropMutation.mutate({ id: promo.id, updates: { is_active: !promo.is_active } })}
                     className="flex-shrink-0 ml-2"
                   >
                     {promo.is_active

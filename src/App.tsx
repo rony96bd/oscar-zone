@@ -85,7 +85,17 @@ class GlobalErrorBoundary extends React.Component<{children: React.ReactNode}, {
   }
 
   static getDerivedStateFromError(error: Error) {
+    if (error.name === 'ChunkLoadError' || error.message?.includes('Failed to fetch dynamically imported module') || error.message?.includes('Importing a module script failed')) {
+      // Force reload to get the latest chunks
+      window.location.reload();
+    }
     return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error) {
+    if (error.name === 'ChunkLoadError' || error.message?.includes('Failed to fetch dynamically imported module') || error.message?.includes('Importing a module script failed')) {
+      window.location.reload();
+    }
   }
 
   render() {

@@ -107,6 +107,7 @@ export interface Promotion {
   is_vip_only: boolean
   priority: number
   is_active: boolean
+  is_pinned: boolean
   created_at: string
   updated_at: string
 }

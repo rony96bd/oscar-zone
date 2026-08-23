@@ -27,6 +27,7 @@ export default function HomePage() {
     queryFn: fetchActivePromotions,
   })
 
+  const pinnedPromos = promotions.filter(p => p.is_pinned)
   const activePromo = promotions.find(p => p.type !== 'regular')
 
   const handleLoadGame = (game: any) => {
@@ -56,13 +57,17 @@ export default function HomePage() {
         </div>
 
         <div className="relative text-center max-w-4xl mx-auto">
-          {/* Promo badge */}
-          {activePromo && (
-            <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full border border-neon-gold/40 bg-neon-gold/10">
-              <Star className="h-4 w-4 text-neon-gold" fill="currentColor" />
-              <span className="text-sm font-semibold text-neon-gold">
-                {activePromo.bonus_percentage}% Bonus — {activePromo.name}!
-              </span>
+          {/* Promo badges */}
+          {pinnedPromos.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-3 mb-6">
+              {pinnedPromos.map((promo: any) => (
+                <div key={promo.id} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-neon-gold/40 bg-neon-gold/10">
+                  <Star className="h-4 w-4 text-neon-gold" fill="currentColor" />
+                  <span className="text-sm font-semibold text-neon-gold">
+                    {promo.bonus_percentage}% Bonus - {promo.name}!
+                  </span>
+                </div>
+              ))}
             </div>
           )}
 
