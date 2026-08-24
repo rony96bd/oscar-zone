@@ -1,7 +1,7 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchCustomerDetail, updateCustomerStatus, assignCustomerGame, updateCustomerProfile } from '@/services/admin'
+import { fetchCustomerDetail, updateCustomerStatus, assignCustomerGame, updateCustomerProfile, deleteCustomer } from '@/services/admin'
 import { fetchGames } from '@/services/games'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase'
 export default function AdminCustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const [newPassword, setNewPassword] = useState('')
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [editData, setEditData] = useState({ full_name: '', username: '' })
@@ -46,6 +47,15 @@ export default function AdminCustomerDetailPage() {
       qc.invalidateQueries({ queryKey: ['admin-customer', id] })
     },
     onError: (err: any) => toast.error(err.message || 'Failed to update profile')
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteCustomer(id!),
+    onSuccess: () => {
+      toast.success('Customer and all related data deleted successfully')
+      navigate('/admin/customers')
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to delete customer')
   })
 
   const passwordMutation = useMutation({
@@ -270,6 +280,25 @@ export default function AdminCustomerDetailPage() {
           </div>
           <p className="text-[10px] text-muted-foreground">This username will be selectable by the customer when loading funds, and verified for guests.</p>
         </form>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="glass-card p-6 border-red-500/30 bg-red-500/5">
+        <h2 className="font-semibold text-red-500 mb-4 flex items-center gap-2">Danger Zone</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Deleting a customer will permanently remove their account, all related transactions, orders, cashout requests, and linked games. This action cannot be undone.
+        </p>
+        <button
+          onClick={() => {
+            if (window.confirm('Are you absolutely sure you want to delete this customer? This action is irreversible.')) {
+              deleteMutation.mutate()
+            }
+          }}
+          disabled={deleteMutation.isPending}
+          className="btn-ghost text-red-500 border border-red-500/30 hover:bg-red-500/20 px-4 py-2"
+        >
+          {deleteMutation.isPending ? 'Deleting...' : 'Delete Customer'}
+        </button>
       </div>
     </div>
   )

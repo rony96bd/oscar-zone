@@ -121,3 +121,11 @@ export async function updateCustomerProfile(customerId: string, data: { full_nam
     .eq('id', customerId)
   if (error) throw error
 }
+
+export async function deleteCustomer(customerId: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+    body: { userId: customerId }
+  })
+  if (error) throw error
+  if (data?.error) throw new Error(data.error)
+}
