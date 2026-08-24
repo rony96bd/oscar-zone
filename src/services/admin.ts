@@ -113,3 +113,11 @@ export async function assignCustomerGame(customerId: string, gameId: string, use
     .insert({ customer_id: customerId, game_id: gameId, username, status: 'active' })
   if (error) throw error
 }
+
+export async function updateCustomerProfile(customerId: string, data: { full_name?: string; username?: string }): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update(data)
+    .eq('id', customerId)
+  if (error) throw error
+}

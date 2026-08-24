@@ -1,11 +1,11 @@
 import { useParams, Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchCustomerDetail, updateCustomerStatus, assignCustomerGame } from '@/services/admin'
+import { fetchCustomerDetail, updateCustomerStatus, assignCustomerGame, updateCustomerProfile } from '@/services/admin'
 import { fetchGames } from '@/services/games'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
-import { Shield, ShoppingBag, Star, Lock } from 'lucide-react'
+import { Shield, ShoppingBag, Star, Lock, Edit2, X, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 
@@ -13,12 +13,20 @@ export default function AdminCustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const qc = useQueryClient()
   const [newPassword, setNewPassword] = useState('')
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [editData, setEditData] = useState({ full_name: '', username: '' })
 
   const { data: customer, isLoading } = useQuery({
     queryKey: ['admin-customer', id],
     queryFn: () => fetchCustomerDetail(id!),
     enabled: !!id,
   })
+
+  useEffect(() => {
+    if (customer) {
+      setEditData({ full_name: customer.full_name || '', username: customer.username || '' })
+    }
+  }, [customer])
 
   const { data: games } = useQuery({
     queryKey: ['games-active'],
@@ -28,6 +36,16 @@ export default function AdminCustomerDetailPage() {
   const statusMutation = useMutation({
     mutationFn: (status: string) => updateCustomerStatus(id!, status),
     onSuccess: () => { toast.success('Status updated'); qc.invalidateQueries({ queryKey: ['admin-customer', id] }) },
+  })
+  
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: { full_name: string; username: string }) => updateCustomerProfile(id!, data),
+    onSuccess: () => {
+      toast.success('Profile updated successfully')
+      setIsEditingProfile(false)
+      qc.invalidateQueries({ queryKey: ['admin-customer', id] })
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to update profile')
   })
 
   const passwordMutation = useMutation({
@@ -70,13 +88,55 @@ export default function AdminCustomerDetailPage() {
         <div className="h-16 w-16 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center">
           <span className="text-2xl font-gaming font-bold text-primary">{(c.full_name || c.username)?.charAt(0)?.toUpperCase() || '?'}</span>
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-gaming font-bold text-white">{c.full_name || c.username || 'No Name'}</h1>
-            {c.is_vip && <span className="text-neon-gold text-sm">★ VIP</span>}
-          </div>
-          <p className="text-muted-foreground text-sm">@{c.username}</p>
-          {c.telegram && <p className="text-xs text-muted-foreground">Telegram: {c.telegram}</p>}
+        <div className="flex-1">
+          {isEditingProfile ? (
+            <div className="space-y-2 max-w-sm">
+              <input
+                type="text"
+                className="game-input text-sm py-1 px-2 w-full"
+                placeholder="Full Name"
+                value={editData.full_name}
+                onChange={(e) => setEditData({ ...editData, full_name: e.target.value })}
+              />
+              <input
+                type="text"
+                className="game-input text-sm py-1 px-2 w-full"
+                placeholder="Username"
+                value={editData.username}
+                onChange={(e) => setEditData({ ...editData, username: e.target.value })}
+              />
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => updateProfileMutation.mutate(editData)}
+                  disabled={updateProfileMutation.isPending}
+                  className="btn-neon px-3 py-1 text-xs"
+                >
+                  <Check className="h-3 w-3 mr-1" /> Save
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditingProfile(false)
+                    setEditData({ full_name: c.full_name || '', username: c.username || '' })
+                  }}
+                  className="btn-ghost-neon px-3 py-1 text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" /> Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-gaming font-bold text-white">{c.full_name || c.username || 'No Name'}</h1>
+                {c.is_vip && <span className="text-neon-gold text-sm">★ VIP</span>}
+                <button onClick={() => setIsEditingProfile(true)} className="p-1 text-muted-foreground hover:text-primary transition-colors">
+                  <Edit2 className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-muted-foreground text-sm">@{c.username}</p>
+              {c.telegram && <p className="text-xs text-muted-foreground">Telegram: {c.telegram}</p>}
+            </>
+          )}
         </div>
       </div>
 
