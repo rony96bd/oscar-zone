@@ -311,3 +311,14 @@ export interface GamePointPurchase {
   game?: Game
   profile?: Profile
 }
+
+export interface FreePlayRequest {
+  id: string
+  user_id: string
+  game_id: string
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+  updated_at: string
+  profile?: Profile
+  game?: Game
+}

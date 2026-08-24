@@ -55,6 +55,7 @@ const AdminCustomerDetailPage = lazy(() => import('@/pages/admin/AdminCustomerDe
 const AdminGamesPage = lazy(() => import('@/pages/admin/AdminGamesPage'))
 const AdminCustomerGamesPage = lazy(() => import('@/pages/admin/AdminCustomerGamesPage'))
 const AdminBonusesPage = lazy(() => import('@/pages/admin/AdminBonusesPage'))
+const AdminFreePlaysPage = lazy(() => import('@/pages/admin/AdminFreePlaysPage'))
 const AdminPaymentMethodsPage = lazy(() => import('@/pages/admin/AdminPaymentMethodsPage'))
 const AdminReferralsPage = lazy(() => import('@/pages/admin/AdminReferralsPage'))
 const AdminChatPage = lazy(() => import('@/pages/admin/AdminChatPage'))
@@ -188,6 +189,7 @@ function AppContent() {
           <Route path="games" element={<AdminGamesPage />} />
           <Route path="customer-games" element={<AdminCustomerGamesPage />} />
           <Route path="bonuses" element={<AdminBonusesPage />} />
+          <Route path="free-plays" element={<AdminFreePlaysPage />} />
           <Route path="payment-methods" element={<AdminPaymentMethodsPage />} />
           <Route path="referrals" element={<AdminReferralsPage />} />
           <Route path="chat" element={<AdminChatPage />} />

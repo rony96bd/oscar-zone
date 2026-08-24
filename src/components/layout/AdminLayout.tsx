@@ -44,6 +44,7 @@ const navSections = [
     label: 'Marketing',
     items: [
       { href: '/admin/bonuses', label: 'Bonuses & Promos', icon: Gift },
+      { href: '/admin/free-plays', label: 'Free Plays', icon: Gift },
       { href: '/admin/referrals', label: 'Referrals', icon: UserCheck },
       { href: '/admin/banners', label: 'Banners', icon: Image },
       { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
