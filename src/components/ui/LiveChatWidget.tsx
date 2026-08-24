@@ -231,9 +231,23 @@ export function LiveChatWidget() {
   const displayName = isAuthenticated && profile
     ? profile.full_name || profile.username || 'You'
     : name || 'You'
+    
+  // Check if we are in a context where mobile bottom nav is shown
+  const isDashboardPath = [
+    '/dashboard', '/my-games', '/load', '/cashout', '/orders', 
+    '/earnings', '/notifications', '/chat', '/profile', '/settings'
+  ].some(p => location.pathname === p || location.pathname.startsWith(p + '/'))
+  
+  const isAdminRole = profile?.role === 'admin' || profile?.role === 'super_admin'
+  const showBottomNav = isAuthenticated && isDashboardPath && !isAdminRole
 
   const widgetContent = (
-    <div className="fixed bottom-6 right-6" style={{ zIndex: 2147483647 }}>
+    <div 
+      className={cn(
+        "fixed right-6 transition-all duration-300 z-[2147483647]",
+        showBottomNav ? "bottom-24 lg:bottom-6" : "bottom-6"
+      )}
+    >
       {/* Contact Options */}
       {!isOpen && showOptions && (
         <div className="absolute bottom-20 right-0 mb-2 flex flex-col gap-3 items-end animate-fade-in">
