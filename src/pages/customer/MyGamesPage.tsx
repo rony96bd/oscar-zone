@@ -77,7 +77,7 @@ export default function MyGamesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-8 pb-24 lg:pb-8 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
         <div>
           <h1 className="text-2xl font-gaming font-bold text-gradient-white">My Games</h1>
