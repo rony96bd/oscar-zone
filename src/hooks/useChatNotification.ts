@@ -3,13 +3,68 @@
  * Handles browser push notification + sound for chat messages.
  */
 
-// Request browser notification permission
+import { supabase } from '@/lib/supabase'
+
+const PUBLIC_VAPID_KEY = 'BH-7x7Eicf0gzqisySTLZqCYGo6KSllYg-WxyGX3FkkQ8tkF11Kbj7RlA65xjb4Eyew6C7Ce-TTxE7PiXQbuIbs'
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4)
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/')
+
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i)
+  }
+  return outputArray
+}
+
+// Request browser notification permission and subscribe to Web Push
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!('Notification' in window)) return false
-  if (Notification.permission === 'granted') return true
+  if (Notification.permission === 'granted') {
+    await subscribeToWebPush()
+    return true
+  }
   if (Notification.permission === 'denied') return false
   const result = await Notification.requestPermission()
-  return result === 'granted'
+  if (result === 'granted') {
+    await subscribeToWebPush()
+    return true
+  }
+  return false
+}
+
+async function subscribeToWebPush() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || !('serviceWorker' in navigator) || !('PushManager' in window)) return
+
+    const registration = await navigator.serviceWorker.ready
+    let subscription = await registration.pushManager.getSubscription()
+    
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+      })
+    }
+
+    // Save to database
+    await supabase.from('push_subscriptions').upsert(
+      { 
+        user_id: user.id, 
+        endpoint: subscription.endpoint,
+        subscription: JSON.parse(JSON.stringify(subscription)) 
+      },
+      { onConflict: 'endpoint' }
+    )
+  } catch (err) {
+    console.error('Failed to subscribe to Web Push', err)
+  }
 }
 
 // Play a soft notification beep

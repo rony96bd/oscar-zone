@@ -135,6 +135,27 @@ export async function sendMessage(
     console.error('Failed to update conversation unread counts:', updateError)
   }
 
+  // If admin sends a message, trigger push notification to the customer
+  if (senderRole === 'admin' && conv) {
+    // We need the customer_id to send the notification
+    const { data: convData } = await supabase
+      .from('chat_conversations')
+      .select('customer_id')
+      .eq('id', conversationId)
+      .single()
+      
+    if (convData?.customer_id) {
+      supabase.functions.invoke('send-web-push', {
+        body: {
+          userId: convData.customer_id,
+          title: 'New Reply from Support',
+          body: content.length > 50 ? content.slice(0, 50) + '...' : content,
+          url: '/chat'
+        }
+      }).catch(err => console.error('Failed to send push notification', err))
+    }
+  }
+
   return data
 }
 
