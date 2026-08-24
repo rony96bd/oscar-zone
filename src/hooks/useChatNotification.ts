@@ -54,7 +54,7 @@ async function subscribeToWebPush() {
     }
 
     // Save to database
-    await supabase.from('push_subscriptions').upsert(
+    const { error } = await supabase.from('push_subscriptions').upsert(
       { 
         user_id: user.id, 
         endpoint: subscription.endpoint,
@@ -62,6 +62,11 @@ async function subscribeToWebPush() {
       },
       { onConflict: 'endpoint' }
     )
+    if (error) {
+      console.error('Failed to save push subscription to DB:', error)
+    } else {
+      console.log('Web Push Subscription saved successfully')
+    }
   } catch (err) {
     console.error('Failed to subscribe to Web Push', err)
   }

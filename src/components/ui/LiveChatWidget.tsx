@@ -42,8 +42,8 @@ export function LiveChatWidget() {
   useEffect(() => {
     if (isAdminPage) return
 
-    // Auto-request notification permission for everyone
-    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    // Auto-request notification permission and ensure subscription for everyone
+    if (typeof Notification !== 'undefined' && Notification.permission !== 'denied') {
       requestNotificationPermission()
     }
 
@@ -280,7 +280,7 @@ export function LiveChatWidget() {
               setShowOptions(false)
               setIsOpen(true)
               setHasUnread(false)
-              if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+              if (typeof Notification !== 'undefined') {
                 requestNotificationPermission()
               }
               if (conversation) {
