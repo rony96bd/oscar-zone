@@ -154,6 +154,33 @@ export async function sendMessage(
         }
       }).catch(err => console.error('Failed to send push notification', err))
     }
+  } else if ((senderRole === 'customer' || senderRole === 'guest') && !isInternalNote) {
+    // Notify admin via Telegram
+    const { data: convData } = await supabase
+      .from('chat_conversations')
+      .select('guest_name, customer_id, customer:profiles(full_name, username)')
+      .eq('id', conversationId)
+      .single()
+
+    let customerName = 'Unknown'
+    if (isGuest) {
+      customerName = convData?.guest_name || 'Guest'
+    } else if (convData?.customer) {
+      // @ts-ignore
+      customerName = convData.customer.full_name || convData.customer.username || 'Customer'
+    }
+
+    const originUrl = typeof window !== 'undefined' ? window.location.origin : ''
+
+    supabase.functions.invoke('notify-telegram', {
+      body: {
+        customerName,
+        message: content,
+        isGuest,
+        conversationId,
+        originUrl
+      }
+    }).catch(err => console.error('Failed to send telegram notification', err))
   }
 
   return data
