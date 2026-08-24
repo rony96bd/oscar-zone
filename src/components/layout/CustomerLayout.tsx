@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home, Gamepad2, Star, HelpCircle, Users, Phone,
   LayoutDashboard, Joystick, ShoppingBag, DollarSign,
-  Bell, MessageCircle, User, Settings, LogOut, Menu, X, Zap, Shield, ArrowDownToLine
+  Bell, MessageCircle, User, Settings, LogOut, Menu, X, Zap, Shield, ArrowDownToLine, Gift
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
@@ -28,6 +28,7 @@ const authNavLinks = [
   { href: '/cashout', label: 'Cashout', icon: ArrowDownToLine },
   { href: '/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/earnings', label: 'Earnings', icon: DollarSign },
+  { href: '/free-play', label: 'Free Play', icon: Gift },
   { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/chat', label: 'Support', icon: MessageCircle },
   { href: '/profile', label: 'Profile', icon: User },

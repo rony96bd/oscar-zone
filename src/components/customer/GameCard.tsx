@@ -162,11 +162,9 @@ interface SavedGameCardProps {
   onLoad: () => void
   logoUrl?: string | null
   downloadUrl?: string | null
-  onRequestFreePlay?: () => void
-  freePlayEligible?: boolean
 }
 
-export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, downloadUrl, onRequestFreePlay, freePlayEligible }: SavedGameCardProps) {
+export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, downloadUrl }: SavedGameCardProps) {
   const theme = GAME_THEMES[gameSlug] || {
     gradient: 'from-primary/20 to-primary/5',
     glow: 'rgba(0,212,255,0.4)',
@@ -192,7 +190,7 @@ export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, d
               {initials}
             </div>
           )}
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
+          <div className="flex-1 min-w-0">
             <p className="font-semibold text-white text-sm truncate">{gameName}</p>
             <p className="text-xs font-mono mt-0.5 truncate" style={{ color: theme.accent }}>
               {username}
@@ -200,16 +198,6 @@ export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, d
           </div>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          {onRequestFreePlay && (
-            <button
-              onClick={onRequestFreePlay}
-              disabled={!freePlayEligible}
-              className={`flex-shrink-0 flex items-center justify-center px-3 h-9 rounded-lg border text-xs font-medium transition-colors ${freePlayEligible ? 'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:bg-white/10' : 'bg-transparent border-transparent text-muted-foreground/30 cursor-not-allowed'}`}
-              title={freePlayEligible ? 'Request Free Play' : 'Deposit at least $10 to unlock Free Play'}
-            >
-              Free Play
-            </button>
-          )}
           {downloadUrl && (
             <a
               href={downloadUrl}

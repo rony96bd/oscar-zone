@@ -1,10 +1,9 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { fetchCustomerGames, fetchGames } from '@/services/games'
-import { checkFreePlayEligibility, requestFreePlay } from '@/services/freePlays'
 import { SavedGameCard } from '@/components/customer/GameCard'
-import { Plus, Joystick, AlertCircle } from 'lucide-react'
+import { Plus, Joystick } from 'lucide-react'
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -12,13 +11,9 @@ import { toast } from 'sonner'
 export default function MyGamesPage() {
   const { profile } = useAuthStore()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [selectedGameId, setSelectedGameId] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showFreePlayModal, setShowFreePlayModal] = useState(false)
-  const [freePlayGameId, setFreePlayGameId] = useState<string | null>(null)
-  const [isRequestingFreePlay, setIsRequestingFreePlay] = useState(false)
 
   const { data: customerGames = [], isLoading: gamesLoading } = useQuery({
     queryKey: ['customer-games', profile?.id],
@@ -30,27 +25,6 @@ export default function MyGamesPage() {
     queryKey: ['games'],
     queryFn: fetchGames,
   })
-
-  const { data: eligibility } = useQuery({
-    queryKey: ['free-play-eligibility', profile?.id],
-    queryFn: () => checkFreePlayEligibility(profile!.id),
-    enabled: !!profile?.id,
-  })
-
-  const handleFreePlayRequest = async () => {
-    if (!profile || !freePlayGameId) return;
-    setIsRequestingFreePlay(true);
-    try {
-      await requestFreePlay(profile.id, freePlayGameId);
-      toast.success('Free Play requested! An admin will review it shortly.');
-      setShowFreePlayModal(false);
-      queryClient.invalidateQueries({ queryKey: ['free-play-eligibility'] });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to request Free Play.');
-    } finally {
-      setIsRequestingFreePlay(false);
-    }
-  }
 
   const handleRequestID = async () => {
     if (!selectedGameId || !profile) return
@@ -134,11 +108,6 @@ export default function MyGamesPage() {
               logoUrl={cg.game?.logo_url}
               downloadUrl={cg.game?.download_url}
               onLoad={() => navigate(`/load?game=${cg.game_id}&username=${cg.username}`)}
-              freePlayEligible={eligibility?.eligible}
-              onRequestFreePlay={() => {
-                setFreePlayGameId(cg.game_id);
-                setShowFreePlayModal(true);
-              }}
             />
           ))}
         </div>
@@ -180,32 +149,6 @@ export default function MyGamesPage() {
                   {isSubmitting ? 'Sending...' : 'Send Request'}
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showFreePlayModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="glass-card w-full max-w-sm p-6 relative">
-            <h2 className="text-xl font-gaming font-bold text-white mb-4">Request Free Play</h2>
-            <p className="text-sm text-muted-foreground mb-6">Are you sure you want to request Free Play for this game? You currently have <span className="text-primary font-bold">{eligibility?.remainingCount || 0}</span> free play request(s) available.</p>
-            
-            <div className="flex items-center gap-3 justify-end mt-4">
-              <button 
-                onClick={() => setShowFreePlayModal(false)}
-                className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-sm transition-colors"
-                disabled={isRequestingFreePlay}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleFreePlayRequest}
-                className="btn-neon px-6 py-2 text-sm"
-                disabled={isRequestingFreePlay}
-              >
-                {isRequestingFreePlay ? 'Requesting...' : 'Confirm'}
-              </button>
             </div>
           </div>
         </div>

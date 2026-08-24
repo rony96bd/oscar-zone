@@ -39,6 +39,7 @@ const LoadGamePage = lazy(() => import('@/pages/customer/LoadGamePage'))
 const OrdersPage = lazy(() => import('@/pages/customer/OrdersPage'))
 const OrderDetailPage = lazy(() => import('@/pages/customer/OrderDetailPage'))
 const EarningsPage = lazy(() => import('@/pages/customer/EarningsPage'))
+const FreePlayPage = lazy(() => import('@/pages/customer/FreePlayPage'))
 const CashoutPage = lazy(() => import('@/pages/customer/CashoutPage'))
 const NotificationsPage = lazy(() => import('@/pages/customer/NotificationsPage'))
 const ChatPage = lazy(() => import('@/pages/customer/ChatPage'))
@@ -160,6 +161,9 @@ function AppContent() {
           } />
           <Route path="/earnings" element={
             <ProtectedRoute><EarningsPage /></ProtectedRoute>
+          } />
+          <Route path="/free-play" element={
+            <ProtectedRoute><FreePlayPage /></ProtectedRoute>
           } />
           <Route path="/cashout" element={
             <ProtectedRoute><CashoutPage /></ProtectedRoute>
