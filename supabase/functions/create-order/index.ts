@@ -265,6 +265,42 @@ Deno.serve(async (req) => {
       console.error('Telegram notification failed (non-fatal):', tgErr)
     }
 
+    // ── Cleanup Old Screenshots ──────────────────────────────────
+    if (userId) {
+      try {
+        // Fetch orders for this user, sorted by newest first
+        const { data: userOrders } = await adminClient
+          .from('orders')
+          .select('id, payment_screenshot_key')
+          .eq('user_id', userId)
+          .not('payment_screenshot_key', 'is', null)
+          .order('created_at', { ascending: false })
+
+        if (userOrders && userOrders.length > 3) {
+          // The first 3 are the newest (index 0, 1, 2)
+          // We want to delete screenshots for index 3 and beyond
+          const ordersToCleanup = userOrders.slice(3)
+          
+          for (const oldOrder of ordersToCleanup) {
+            if (oldOrder.payment_screenshot_key) {
+              // Delete from storage
+              await adminClient.storage
+                .from('payment-screenshots')
+                .remove([oldOrder.payment_screenshot_key])
+              
+              // Remove reference from DB so we don't try to load it
+              await adminClient
+                .from('orders')
+                .update({ payment_screenshot_key: null })
+                .eq('id', oldOrder.id)
+            }
+          }
+        }
+      } catch (cleanupErr) {
+        console.error('Failed to cleanup old screenshots:', cleanupErr)
+      }
+    }
+
     return new Response(JSON.stringify({ success: true, order }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

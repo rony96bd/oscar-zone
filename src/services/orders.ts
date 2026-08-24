@@ -44,7 +44,7 @@ export async function fetchCustomerOrders(customerId: string, page = 0): Promise
     .select('*, game:games(*), payment_method:payment_methods(*), bonus_snapshot:order_bonus_snapshots(*)')
     .eq('user_id', customerId)
     .order('created_at', { ascending: false })
-    .range(page * ORDERS_PAGE_SIZE, (page + 1) * ORDERS_PAGE_SIZE - 1)
+    .limit(3)
   if (error) throw error
   return data || []
 }
