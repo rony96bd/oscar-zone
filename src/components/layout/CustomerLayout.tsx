@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home, Gamepad2, Star, HelpCircle, Users, Phone,
   LayoutDashboard, Joystick, ShoppingBag, DollarSign,
-  Bell, MessageCircle, User, Settings, LogOut, Menu, X, Zap, Shield, ArrowDownToLine, Gift
+  Bell, MessageCircle, User, Settings, LogOut, Menu, X, Zap, Shield, ArrowDownToLine, Gift, MoreHorizontal
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
@@ -116,6 +116,27 @@ export function CustomerLayout() {
                 </Link>
               )
             })}
+            
+            {showAuthLinks && (
+              <div className="relative group">
+                <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200">
+                  <MoreHorizontal className="h-4 w-4" />
+                  More
+                </button>
+                <div className="absolute top-full right-0 mt-1 w-48 glass-card py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-2xl">
+                  {authNavLinks.slice(5, 9).map((link) => (
+                    <Link
+                      key={link.href}
+                      to={link.href}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5"
+                    >
+                      <link.icon className="h-4 w-4" />
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </nav>
 
           {/* Right side */}
@@ -149,13 +170,9 @@ export function CustomerLayout() {
                   {/* Dropdown */}
                   <div className="absolute right-0 top-full mt-2 w-48 glass-card py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-2xl">
                     {!isAdmin() && (
-                      <>
-                        {authNavLinks.slice(5).map(link => (
-                          <Link key={link.href} to={link.href} className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
-                            <link.icon className="h-4 w-4" /> {link.label}
-                          </Link>
-                        ))}
-                      </>
+                      <Link to="/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
+                        <User className="h-4 w-4" /> Profile
+                      </Link>
                     )}
                     {isAdmin() ? (
                       <Link to="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5">
