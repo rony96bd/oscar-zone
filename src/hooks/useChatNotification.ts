@@ -33,18 +33,30 @@ export function playNotificationSound() {
 }
 
 // Show a browser push notification
-export function showBrowserNotification(title: string, body: string, icon?: string) {
+export async function showBrowserNotification(title: string, body: string, icon?: string) {
   if (!('Notification' in window)) return
   if (Notification.permission !== 'granted') return
+  
+  const options = {
+    body,
+    icon: icon || '/pwa-192x192.png',
+    badge: '/favicon.svg',
+    tag: 'chat-message',
+  }
+
   try {
-    new Notification(title, {
-      body,
-      icon: icon || '/favicon.svg',
-      badge: '/favicon.svg',
-      tag: 'chat-message',
-    })
-  } catch {
-    // Silently fail
+    // Mobile browsers often require notifications to be spawned from a Service Worker
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready
+      if (registration) {
+        await registration.showNotification(title, options)
+        return
+      }
+    }
+    // Fallback for desktop browsers
+    new Notification(title, options)
+  } catch (err) {
+    console.error('Notification error:', err)
   }
 }
 
