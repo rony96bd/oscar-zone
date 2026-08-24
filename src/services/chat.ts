@@ -156,11 +156,15 @@ export async function sendMessage(
     }
   } else if ((senderRole === 'customer' || senderRole === 'guest') && !isInternalNote) {
     // Notify admin via Telegram
-    const { data: convData } = await supabase
+    const { data: convData, error: convError } = await supabase
       .from('chat_conversations')
-      .select('guest_name, customer_id, customer:profiles(full_name, username)')
+      .select('guest_name, customer_id, customer:profiles!customer_id(full_name, username)')
       .eq('id', conversationId)
       .single()
+      
+    if (convError) {
+      console.error('Failed to fetch conversation for telegram notification:', convError)
+    }
 
     let customerName = 'Unknown'
     if (isGuest) {
