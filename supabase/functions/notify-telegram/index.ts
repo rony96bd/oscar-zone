@@ -12,8 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')
-    const CHAT_ID = Deno.env.get('TELEGRAM_CHAT_ID')
+    const BOT_TOKEN = Deno.env.get('SUPPORT_BOT_TOKEN')
+    const CHAT_ID = Deno.env.get('SUPPORT_CHAT_ID')
 
     if (!BOT_TOKEN || !CHAT_ID) {
       throw new Error('Telegram credentials are not configured in environment variables.')
