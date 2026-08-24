@@ -178,30 +178,32 @@ export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, d
         className="absolute inset-0 bg-gradient-to-br opacity-30 pointer-events-none"
         style={{ backgroundImage: `linear-gradient(135deg, ${theme.accent}20, transparent)` }}
       />
-      <div className="relative flex items-center gap-4 w-full">
-        {logoUrl ? (
-          <img src={logoUrl} alt={gameName} className="h-12 w-12 rounded-xl object-cover" />
-        ) : (
-          <div
-            className="h-12 w-12 rounded-xl flex items-center justify-center font-bold text-sm text-white"
-            style={{ background: `linear-gradient(135deg, ${theme.accent}40, ${theme.accent}20)`, border: `1px solid ${theme.accent}40` }}
-          >
-            {initials}
+      <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 w-full">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {logoUrl ? (
+            <img src={logoUrl} alt={gameName} className="h-12 w-12 rounded-xl object-cover shrink-0" />
+          ) : (
+            <div
+              className="h-12 w-12 rounded-xl flex items-center justify-center font-bold text-sm text-white shrink-0"
+              style={{ background: `linear-gradient(135deg, ${theme.accent}40, ${theme.accent}20)`, border: `1px solid ${theme.accent}40` }}
+            >
+              {initials}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-white text-sm truncate">{gameName}</p>
+            <p className="text-xs font-mono mt-0.5 truncate" style={{ color: theme.accent }}>
+              {username}
+            </p>
           </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-white text-sm">{gameName}</p>
-          <p className="text-xs font-mono mt-0.5" style={{ color: theme.accent }}>
-            {username}
-          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {downloadUrl && (
             <a
               href={downloadUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-lg bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
+              className="flex-shrink-0 flex items-center justify-center h-9 w-9 rounded-lg bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
               title={`Download ${gameName}`}
             >
               <Download className="h-4 w-4" />
@@ -209,7 +211,7 @@ export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, d
           )}
           <button
             onClick={onLoad}
-            className="flex-shrink-0 flex items-center gap-1.5 px-4 h-8 rounded-lg text-xs font-bold"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-6 h-9 rounded-lg text-xs font-bold"
             style={{
               background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent}80)`,
               color: '#080c14',
