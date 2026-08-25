@@ -18,16 +18,14 @@ export default function AdminDashboardPage() {
     return d.toISOString().slice(0, 16);
   })
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: fetchAdminStats,
-    refetchInterval: 30000,
   })
 
-  const { data: accounting, isLoading: accLoading } = useQuery({
+  const { data: accounting, isLoading: accLoading, error: accError } = useQuery({
     queryKey: ['active-accounting'],
     queryFn: fetchActiveAccountingStats,
-    refetchInterval: 30000,
   })
 
   const closeMutation = useMutation({
@@ -78,12 +76,27 @@ export default function AdminDashboardPage() {
     <div className="space-y-6 relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-gaming font-bold text-white">Admin Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Real-time overview of your gaming portal</p>
+          <h1 className="text-2xl font-gaming font-bold text-white">Dashboard Overview</h1>
+          <p className="text-muted-foreground text-sm">Welcome back, {profile?.full_name}</p>
         </div>
         <div className="flex gap-2">
-          <Link to="/admin/accounting" className="btn-secondary px-4 py-2">
-            History
+          {statsError && (
+            <span className="text-xs text-red-500 bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20">
+              Stats Error: {(statsError as any).message}
+            </span>
+          )}
+          {accError && (
+            <span className="text-xs text-red-500 bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20">
+              Accounting Error: {(accError as any).message}
+            </span>
+          )}
+          {(!accounting || !accounting.activeCycle) && !accError && (
+            <span className="text-xs text-red-500 bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20">
+              No Active Cycle (Check RLS Policies for accounting_cycles table)
+            </span>
+          )}
+          <Link to="/admin/accounting" className="btn-ghost-neon px-4 py-2 flex items-center gap-2">
+            <ArrowDownRight className="h-4 w-4" />
           </Link>
           <button 
             onClick={() => setShowCloseModal(true)}

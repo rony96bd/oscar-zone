@@ -31,6 +31,11 @@ export async function fetchAdminStats(): Promise<AdminStats> {
       .limit(10),
   ])
 
+  if (revenueRes.error) {
+    console.error('revenueRes Error:', revenueRes.error)
+    throw revenueRes.error
+  }
+
   const todayRevenue = (revenueRes.data || []).reduce((sum, o) => sum + o.base_amount, 0)
 
   return {
