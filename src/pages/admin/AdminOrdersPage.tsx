@@ -10,12 +10,9 @@ import { CreateOrderModal } from '@/components/admin/CreateOrderModal'
 
 const STATUS_OPTIONS: { label: string; value: string }[] = [
   { label: 'All Orders', value: '' },
-  { label: 'Pending Review', value: 'pending_payment_review' },
-  { label: 'Payment Verified', value: 'payment_verified' },
-  { label: 'Processing', value: 'processing' },
-  { label: 'Completed', value: 'completed' },
-  { label: 'Rejected', value: 'rejected' },
-  { label: 'Cancelled', value: 'cancelled' },
+  { label: 'Pending', value: 'pending_payment_review' },
+  { label: 'Approve', value: 'completed' },
+  { label: 'Reject', value: 'rejected' },
 ]
 
 export default function AdminOrdersPage() {
