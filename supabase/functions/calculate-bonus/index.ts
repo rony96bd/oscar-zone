@@ -35,15 +35,20 @@ serve(async (req) => {
 
     const effectiveUserId = customer_id || userId
 
-    // Get default bonus
-    const { data: setting } = await supabase
-      .from('system_settings')
-      .select('value')
-      .eq('key', 'default_bonus_percentage')
-      .single()
-    const defaultBonusPct = parseFloat(setting?.value || '10')
+    // Fetch all active promotions
+    const now = new Date()
+    const { data: promotions } = await supabase
+      .from('promotions')
+      .select('*')
+      .eq('is_active', true)
+      .order('priority', { ascending: false })
 
-    let regularBonusPct = defaultBonusPct
+    // Find the regular bonus if any
+    const regularPromo = (promotions || []).find(p => p.type === 'regular')
+    
+    // Default to 10 if no regular promotion is found in DB
+    let regularBonusPct = regularPromo ? regularPromo.bonus_percentage : 10
+
     if (effectiveUserId) {
       const { data: profile } = await supabase
         .from('profiles')
@@ -57,20 +62,12 @@ serve(async (req) => {
 
     const regularBonusAmount = Math.round(amount * regularBonusPct / 100 * 100) / 100
 
-    // Find promotion
-    const now = new Date()
-    const { data: promotions } = await supabase
-      .from('promotions')
-      .select('*')
-      .eq('is_active', true)
-      .neq('type', 'regular')
-      .order('priority', { ascending: false })
-
     let bestPromo = null
     let promoBonusPct = 0
     let promoBonusAmount = 0
 
     for (const promo of (promotions || [])) {
+      if (promo.type === 'regular') continue
       if (amount < promo.minimum_amount) continue
       if (promo.maximum_amount && amount > promo.maximum_amount) continue
       if (promo.start_date && new Date(promo.start_date) > now) continue
