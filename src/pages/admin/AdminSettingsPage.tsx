@@ -1,10 +1,11 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users, Phone, Share2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useThemeStore, ThemeName } from '@/stores/themeStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { cn } from '@/lib/utils'
+import { ChangePassword } from '@/components/auth/ChangePassword'
 
 const THEMES = [
   {
@@ -332,6 +333,8 @@ export default function AdminSettingsPage() {
             )}
           </div>
         </div>
+
+        <ChangePassword />
       </div>
       
       {/* SEO / Meta Settings */}

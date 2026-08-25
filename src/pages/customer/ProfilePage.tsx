@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { updateProfile } from '@/services/profiles'
 import { toast } from 'sonner'
 import { Save, Loader2, Copy, CheckCircle2 } from 'lucide-react'
+import { ChangePassword } from '@/components/auth/ChangePassword'
 
 export default function ProfilePage() {
   const { profile, refreshProfile } = useAuthStore()
@@ -92,6 +93,7 @@ export default function ProfilePage() {
           </div>
           </div>
         </div>
+        <ChangePassword />
       </div>
     </div>
   )
