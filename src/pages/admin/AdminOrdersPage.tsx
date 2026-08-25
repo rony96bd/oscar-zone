@@ -45,9 +45,7 @@ export default function AdminOrdersPage() {
   })
 
   const QUICK_ACTIONS: { label: string; status: OrderStatus; icon: any; color: string }[] = [
-    { label: 'Verify', status: 'payment_verified', icon: CheckCircle, color: 'text-primary' },
-    { label: 'Process', status: 'processing', icon: Clock, color: 'text-neon-gold' },
-    { label: 'Complete', status: 'completed', icon: CheckCircle, color: 'text-neon-green' },
+    { label: 'Approve', status: 'completed', icon: CheckCircle, color: 'text-neon-green' },
     { label: 'Reject', status: 'rejected', icon: XCircle, color: 'text-destructive' },
   ]
 
@@ -114,9 +112,7 @@ export default function AdminOrdersPage() {
                 <div className="flex gap-1 flex-wrap">
                   {QUICK_ACTIONS.filter(a => {
                     const allowed: Record<string, string[]> = {
-                      pending_payment_review: ['payment_verified', 'rejected'],
-                      payment_verified: ['processing', 'rejected'],
-                      processing: ['completed', 'rejected'],
+                      pending_payment_review: ['completed', 'rejected'],
                     }
                     return allowed[order.status]?.includes(a.status)
                   }).map(({ label, status: s, icon: Icon, color }) => (
