@@ -1,4 +1,4 @@
-import { useState } from 'react'
+ï»¿import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { KeyRound, Loader2, Eye, EyeOff } from 'lucide-react'
@@ -23,10 +23,6 @@ export function ChangePassword() {
     setIsLoading(true)
     
     try {
-      // First verify current password by trying to re-authenticate (optional, but good for security)
-      // Since supabase doesn't have a direct 'update password with current password verification' endpoint,
-      // we'll just attempt to update it. If the session is stale, it will fail.
-      
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       })
@@ -59,7 +55,7 @@ export function ChangePassword() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             className="game-input w-full pr-10"
-            placeholder="••••••••"
+            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
             required
             minLength={6}
           />
@@ -78,7 +74,7 @@ export function ChangePassword() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="game-input w-full"
-            placeholder="••••••••"
+            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
             required
             minLength={6}
           />
