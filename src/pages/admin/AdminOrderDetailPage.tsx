@@ -49,7 +49,13 @@ export default function AdminOrderDetailPage() {
   const statusMutation = useMutation({
     mutationFn: ({ status, note }: { status: OrderStatus; note?: string }) =>
       updateOrderStatus(id!, status, note),
-    onSuccess: () => { toast.success('Status updated'); qc.invalidateQueries({ queryKey: ['order', id] }) },
+    onSuccess: () => { 
+      toast.success('Status updated'); 
+      qc.invalidateQueries({ queryKey: ['order', id] }) 
+      qc.invalidateQueries({ queryKey: ['admin-orders'] })
+      qc.invalidateQueries({ queryKey: ['admin-stats'] })
+      qc.invalidateQueries({ queryKey: ['active-accounting'] })
+    },
     onError: () => toast.error('Failed to update status'),
   })
 

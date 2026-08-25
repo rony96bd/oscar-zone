@@ -22,7 +22,7 @@ export async function fetchAdminStats(): Promise<AdminStats> {
     supabase
       .from('orders')
       .select('base_amount')
-      .gte('created_at', todayStr)
+      .gte('updated_at', todayStr)
       .eq('status', 'completed'),
     supabase
       .from('orders')

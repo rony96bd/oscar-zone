@@ -108,7 +108,7 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
     .from('orders')
     .select('base_amount, payment_method:payment_methods(name, agent_commission_rate)')
     .eq('status', 'completed')
-    .gte('created_at', activeCycle.start_date);
+    .gte('updated_at', activeCycle.start_date);
     
   if (orderError) throw orderError;
 
@@ -116,7 +116,7 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
     .from('cashout_requests')
     .select('amount')
     .eq('status', 'approved')
-    .gte('created_at', activeCycle.start_date);
+    .gte('updated_at', activeCycle.start_date);
 
   if (cashoutError) throw cashoutError;
 

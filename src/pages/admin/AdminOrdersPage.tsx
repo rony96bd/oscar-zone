@@ -40,6 +40,8 @@ export default function AdminOrdersPage() {
     onSuccess: () => {
       toast.success('Order status updated')
       qc.invalidateQueries({ queryKey: ['admin-orders'] })
+      qc.invalidateQueries({ queryKey: ['admin-stats'] })
+      qc.invalidateQueries({ queryKey: ['active-accounting'] })
     },
     onError: () => toast.error('Failed to update status'),
   })
