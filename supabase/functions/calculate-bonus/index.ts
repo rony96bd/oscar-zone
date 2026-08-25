@@ -117,7 +117,7 @@ serve(async (req) => {
     }
 
     const totalBonus = Math.round((regularBonusAmount + promoBonusAmount) * 100) / 100
-    const finalCredit = Math.round((amount + totalBonus) * 100) / 100
+    const finalCredit = Math.round(amount + totalBonus)
 
     return new Response(
       JSON.stringify({

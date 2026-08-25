@@ -209,15 +209,21 @@ export default function LoadGamePage() {
             Your load order for <strong className="text-white">{selectedGame?.name}</strong> has been submitted. Our team is verifying your payment and will process it shortly.
           </p>
           
-          <div className="bg-game-darker rounded-xl p-4 border border-border text-left mb-6">
-            <div className="flex justify-between mb-2">
+          <div className="bg-game-darker rounded-xl p-4 border border-border text-left mb-6 space-y-2">
+            <div className="flex justify-between">
               <span className="text-muted-foreground text-sm">Account:</span>
               <span className="text-white font-medium">{username}</span>
             </div>
-            <div className="flex justify-between mb-2">
+            <div className="flex justify-between">
               <span className="text-muted-foreground text-sm">Amount:</span>
-              <span className="text-neon-green font-medium">{formatCurrency(Number(amount))}</span>
+              <span className="text-white font-medium">{formatCurrency(Number(amount))}</span>
             </div>
+            {bonusData && (
+              <div className="flex justify-between border-t border-border pt-2 mt-2">
+                <span className="text-muted-foreground text-sm">Game Credit:</span>
+                <span className="text-neon-green font-bold">{Math.round(bonusData.final_credit || Number(amount))}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -367,6 +373,7 @@ export default function LoadGamePage() {
                         required
                         min={selectedGame?.minimum_amount || 1}
                         max={selectedGame?.maximum_amount || 1000}
+                        step="0.01"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                         placeholder="0.00"
@@ -382,7 +389,7 @@ export default function LoadGamePage() {
                         ) : (
                           <div className="text-right">
                             <span className="text-lg font-bold text-primary tracking-wide">
-                              {formatCurrency(bonusData?.final_credit || parseFloat(amount))}
+                              {Math.round(bonusData?.final_credit || parseFloat(amount))}
                             </span>
                             {(bonusData?.total_bonus || 0) > 0 && (
                               <p className="text-[10px] text-neon-green">

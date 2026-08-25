@@ -69,7 +69,7 @@ export default function OrdersPage() {
                 <p className="text-xs text-muted-foreground">{order.order_number} • {order.username} • {formatRelativeTime(order.created_at)}</p>
               </div>
               <div className="text-sm sm:text-right">
-                <div className="font-bold text-white">{formatCurrency(order.final_game_credit)}</div>
+                <div className="font-bold text-white">{Math.round(order.final_game_credit)}</div>
                 <div className="text-xs text-muted-foreground">Paid: {formatCurrency(order.base_amount)}</div>
               </div>
             </Link>

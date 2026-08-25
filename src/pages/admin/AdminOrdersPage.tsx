@@ -106,7 +106,7 @@ export default function AdminOrdersPage() {
 
                 {/* Amount */}
                 <div className="text-right lg:min-w-[100px]">
-                  <p className="font-bold text-white">{formatCurrency(order.final_game_credit)}</p>
+                  <p className="font-bold text-white">{Math.round(order.final_game_credit)}</p>
                   <p className="text-xs text-muted-foreground">${order.base_amount} paid</p>
                 </div>
 

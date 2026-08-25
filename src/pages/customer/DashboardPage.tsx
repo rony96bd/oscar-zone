@@ -277,7 +277,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-muted-foreground">{order.order_number} • {formatRelativeTime(order.created_at)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-white text-sm">{formatCurrency(order.final_game_credit)}</p>
+                  <p className="font-semibold text-white text-sm">{Math.round(order.final_game_credit)}</p>
                   <span className={getOrderStatusClass(order.status)}>{getOrderStatusLabel(order.status)}</span>
                 </div>
               </Link>

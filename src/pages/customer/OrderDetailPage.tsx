@@ -67,7 +67,7 @@ export default function OrderDetailPage() {
           {(order as any).promo_bonus_pct > 0 && (
             <div className="bonus-line"><span className="text-muted-foreground">Promo Bonus ({(order as any).promo_bonus_pct}%)</span><span className="text-neon-gold font-semibold">+{formatCurrency((order as any).promo_bonus_amount)}</span></div>
           )}
-          <div className="bonus-total"><span>Total Game Credit</span><span className="text-xl text-gradient-green">{formatCurrency((order as any).final_game_credit)}</span></div>
+          <div className="bonus-total"><span>Total Game Credit</span><span className="text-xl text-gradient-green">{Math.round((order as any).final_game_credit)}</span></div>
         </div>
       </div>
     </div>
