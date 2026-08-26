@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+﻿import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchOrderById, updateOrderStatus, migrateGuestOrderToUser } from '@/services/orders'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
@@ -127,7 +127,7 @@ export default function AdminOrderDetailPage() {
         <div className="bonus-line"><span className="text-muted-foreground">Paid</span><span>{formatCurrency(o.base_amount)}</span></div>
         {o.regular_bonus_pct > 0 && <div className="bonus-line"><span className="text-muted-foreground">Regular Bonus ({o.regular_bonus_pct}%)</span><span className="text-neon-green">+{formatCurrency(o.regular_bonus_amount)}</span></div>}
         {o.promo_bonus_pct > 0 && <div className="bonus-line"><span className="text-muted-foreground">Promo Bonus ({o.promo_bonus_pct}%)</span><span className="text-neon-gold">+{formatCurrency(o.promo_bonus_amount)}</span></div>}
-        <div className="bonus-total"><span>Total Credit</span><span className="text-xl text-gradient-green">{Math.round(o.final_game_credit)}</span></div>
+        <div className="bonus-total"><span>Total Credit</span><span className="text-xl text-gradient-green">{Math.ceil(o.final_game_credit)}</span></div>
       </div>
 
       {/* Status Actions */}

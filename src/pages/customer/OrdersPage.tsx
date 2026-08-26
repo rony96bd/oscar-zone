@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
@@ -69,7 +69,7 @@ export default function OrdersPage() {
                 <p className="text-xs text-muted-foreground">{order.order_number} • {order.username} • {formatRelativeTime(order.created_at)}</p>
               </div>
               <div className="text-sm sm:text-right">
-                <div className="font-bold text-white">{Math.round(order.final_game_credit)}</div>
+                <div className="font-bold text-white">{Math.ceil(order.final_game_credit)}</div>
                 <div className="text-xs text-muted-foreground">Paid: {formatCurrency(order.base_amount)}</div>
               </div>
             </Link>

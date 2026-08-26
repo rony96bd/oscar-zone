@@ -216,7 +216,7 @@ export async function calculateBonusPreview(
   }
 
   const totalBonus = Math.round((regularBonusAmount + promoBonusAmount) * 100) / 100
-  const finalCredit = Math.round(amount + totalBonus)
+  const finalCredit = Math.ceil(amount + totalBonus)
 
   return {
     regular_bonus_pct: regularBonusPct,

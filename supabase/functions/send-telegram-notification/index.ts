@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
         `💵 Amount: ${formatCurrency(base_amount)}`,
         `🎯 Regular Bonus: +${regular_bonus_pct}%`,
         promoPart,
-        `💎 Game Credit: *${Math.round(final_credit)}*`,
+        `💎 Game Credit: *${Math.ceil(final_credit)}*`,
         `💳 Payment: ${payment_name}`,
         `⏰ Time: ${formatTime()}`,
       ].filter(Boolean).join('\n')

@@ -221,7 +221,7 @@ export default function LoadGamePage() {
             {bonusData && (
               <div className="flex justify-between border-t border-border pt-2 mt-2">
                 <span className="text-muted-foreground text-sm">Game Credit:</span>
-                <span className="text-neon-green font-bold">{Math.round(bonusData.final_credit || Number(amount))}</span>
+                <span className="text-neon-green font-bold">{Math.ceil(bonusData.final_credit || Number(amount))}</span>
               </div>
             )}
           </div>
@@ -389,7 +389,7 @@ export default function LoadGamePage() {
                         ) : (
                           <div className="text-right">
                             <span className="text-lg font-bold text-primary tracking-wide">
-                              {Math.round(bonusData?.final_credit || parseFloat(amount))}
+                              {Math.ceil(bonusData?.final_credit || parseFloat(amount))}
                             </span>
                             {(bonusData?.total_bonus || 0) > 0 && (
                               <p className="text-[10px] text-neon-green">

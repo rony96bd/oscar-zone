@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchOrders, updateOrderStatus, migrateGuestOrderToUser } from '@/services/orders'
@@ -106,7 +106,7 @@ export default function AdminOrdersPage() {
 
                 {/* Amount */}
                 <div className="text-right lg:min-w-[100px]">
-                  <p className="font-bold text-white">{Math.round(order.final_game_credit)}</p>
+                  <p className="font-bold text-white">{Math.ceil(order.final_game_credit)}</p>
                   <p className="text-xs text-muted-foreground">${order.base_amount} paid</p>
                 </div>
 
