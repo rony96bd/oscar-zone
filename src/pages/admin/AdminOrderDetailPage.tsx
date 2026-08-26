@@ -1,4 +1,4 @@
-﻿import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchOrderById, updateOrderStatus, migrateGuestOrderToUser } from '@/services/orders'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
@@ -110,7 +110,6 @@ export default function AdminOrderDetailPage() {
               { label: 'Guest Username', value: o.username },
             ] : [
               { label: 'Customer', value: o.profile?.full_name },
-              { label: 'Customer Email', value: o.profile?.email },
             ]),
           ].map(({ label, value }) => (
             <div key={label}>
