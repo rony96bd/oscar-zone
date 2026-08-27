@@ -73,7 +73,27 @@ export default function LoadGamePage() {
         .select('*')
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
-      if (data) setPaymentMethods(data)
+      
+      if (data) {
+        // Group methods by name
+        const grouped = data.reduce((acc: Record<string, typeof data>, method) => {
+          const name = method.name.trim()
+          if (!acc[name]) acc[name] = []
+          acc[name].push(method)
+          return acc
+        }, {})
+
+        // Select one random method per group
+        const rotatedMethods = Object.values(grouped).map(methods => {
+          const randomIndex = Math.floor(Math.random() * methods.length)
+          return methods[randomIndex]
+        })
+
+        // Maintain the original sort order (using the selected method's sort_order)
+        rotatedMethods.sort((a, b) => a.sort_order - b.sort_order)
+        
+        setPaymentMethods(rotatedMethods)
+      }
     }
     loadMethods()
   }, [])
