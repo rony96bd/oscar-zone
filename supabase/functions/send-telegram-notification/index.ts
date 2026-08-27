@@ -68,11 +68,21 @@ Deno.serve(async (req) => {
         `🎮 *GAME ID REQUEST*`,
         ``,
         `👤 Customer: ${body.customer_name}`,
-        `🆔 Portal Username: \`${body.username}\``,
-        `🎲 Game: ${body.game_name}`,
-        `⏰ Time: ${formatTime()}`,
+        `👾 Portal Username: \`${body.username}\``,
+        `🎮 Game: ${body.game_name}`,
+        `🕘 Time: ${formatTime()}`,
         ``,
         `_Please create a Game ID and assign it from the Admin Panel._`
+      ].join('\n')
+    } else if (eventType === 'free_play_request') {
+      message = [
+        `🎁 *FREE PLAY REQUEST*`,
+        ``,
+        `👤 Customer: ${body.customer_name}`,
+        `🎮 Game: ${body.game_name}`,
+        `🕘 Time: ${formatTime()}`,
+        ``,
+        `_Please approve or reject this request from the Admin Panel._`
       ].join('\n')
     } else {
       const {

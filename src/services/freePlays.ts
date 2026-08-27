@@ -48,16 +48,13 @@ export async function requestFreePlay(userId: string, gameId: string): Promise<F
   try {
     const { data: profile } = await supabase.from('profiles').select('full_name, username').eq('id', userId).single();
     const { data: game } = await supabase.from('games').select('name').eq('id', gameId).single();
-    
+        
     if (profile && game) {
       await supabase.functions.invoke('send-telegram-notification', {
         body: {
-          type: 'new_order',
-          orderNumber: 'FREE-PLAY',
-          customerName: profile.full_name || 'Unknown',
-          gameName: game.name || 'Unknown',
-          amount: 0,
-          paymentMethod: 'N/A'
+          event_type: 'free_play_request',
+          customer_name: profile.full_name || 'Unknown',
+          game_name: game.name || 'Unknown'
         }
       });
     }
