@@ -1,4 +1,4 @@
-﻿import { useQuery } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { Link, useNavigate } from "react-router-dom"
 import {
   Zap, ShoppingBag, Users, TrendingUp,
@@ -16,6 +16,7 @@ import { formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatus
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { BannerCarousel } from "@/components/ui/BannerCarousel"
 
 export default function DashboardPage() {
   const { profile } = useAuthStore()
@@ -114,7 +115,7 @@ export default function DashboardPage() {
 
       {/* === PROMO BANNER === */}
       {activePromo && (
-        <div className="relative overflow-hidden rounded-xl p-4 mb-6 border border-neon-gold/30 bg-neon-gold/10">
+        <div className="relative overflow-hidden rounded-xl p-4 mb-4 border border-neon-gold/30 bg-neon-gold/10">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-neon-gold uppercase tracking-wide">Limited Offer</p>
@@ -127,6 +128,11 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* === BANNER CAROUSEL === */}
+      <div className="mb-6">
+        <BannerCarousel type="announcement" autoPlayInterval={5000} />
+      </div>
 
       {/* === REFERRAL LEVEL CARD === */}
       <div className={cn("relative overflow-hidden rounded-2xl p-5 mb-6 border", lc.border, lc.bg)}>

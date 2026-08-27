@@ -11,6 +11,7 @@ import { APP_NAME, APP_TAGLINE, APP_DESCRIPTION } from '@/lib/constants'
 import { useNavigate as useNav } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { BannerCarousel } from '@/components/ui/BannerCarousel'
 
 export default function HomePage() {
   const { isAuthenticated } = useAuthStore()
@@ -122,6 +123,13 @@ export default function HomePage() {
             <div className="w-px h-8 bg-gradient-to-b from-primary to-transparent" />
             <div className="h-1.5 w-1.5 rounded-full bg-primary" />
           </div>
+        </div>
+      </section>
+
+      {/* ===== BANNER CAROUSEL ===== */}
+      <section className="px-4 py-6">
+        <div className="container mx-auto max-w-5xl">
+          <BannerCarousel type="homepage" className="shadow-2xl" />
         </div>
       </section>
 

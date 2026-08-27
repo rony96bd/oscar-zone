@@ -18,6 +18,21 @@ export type PromotionType =
   | 'game_specific'
   | 'customer_specific'
 
+export type BannerType = 'homepage' | 'promotion' | 'game' | 'referral' | 'announcement'
+
+export interface Banner {
+  id: string
+  title: string
+  image_url: string
+  link_url: string | null
+  type: BannerType
+  sort_order: number
+  is_active: boolean
+  start_date: string | null
+  end_date: string | null
+  created_at: string
+}
+
 export interface Profile {
   id: string
   email?: string
