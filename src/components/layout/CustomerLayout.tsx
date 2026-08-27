@@ -11,6 +11,7 @@ import { NotificationBell } from '@/components/shared/NotificationBell'
 import { Logo } from '@/components/ui/Logo'
 import { APP_NAME } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import { GlobalAnnouncements } from '@/components/ui/GlobalAnnouncements'
 
 const publicNavLinks = [
   { href: '/', label: 'Home', icon: Home },
@@ -90,6 +91,7 @@ export function CustomerLayout() {
             : 'bg-transparent'
         )}
       >
+        <GlobalAnnouncements />
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           {/* Logo */}
           <Link to="/">

@@ -33,6 +33,18 @@ export interface Banner {
   created_at: string
 }
 
+export interface Announcement {
+  id: string
+  title: string
+  message: string
+  banner_url: string | null
+  priority: number
+  is_active: boolean
+  start_date: string | null
+  end_date: string | null
+  created_at: string
+}
+
 export interface Profile {
   id: string
   email?: string
