@@ -396,11 +396,18 @@ export default function CashoutPage() {
                   </table>
                 </div>
                 {cashoutTerms && (
-                  <div className="mt-4 p-3 rounded-xl bg-white/5 border border-border">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Terms & Conditions</p>
-                    {cashoutTerms.split('\n').filter(Boolean).map((line: string, i: number) => (
-                      <p key={i} className="text-[10px] text-muted-foreground leading-relaxed">{line}</p>
-                    ))}
+                  <div className="mt-4 p-3.5 rounded-xl bg-white/5 border border-border">
+                    <p className="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Info className="h-3.5 w-3.5 text-primary" /> Terms & Conditions
+                    </p>
+                    <ul className="space-y-2">
+                      {String(cashoutTerms).split(/\\n|\n/).filter(line => line.trim()).map((line: string, i: number) => (
+                        <li key={i} className="text-[11px] text-muted-foreground leading-relaxed flex items-start gap-2">
+                          <span className="text-primary/70 mt-0.5">•</span>
+                          <span className="flex-1">{line.replace(/^[•\-\s]+/, '')}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </>

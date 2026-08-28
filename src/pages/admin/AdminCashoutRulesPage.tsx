@@ -281,8 +281,11 @@ export default function AdminCashoutRulesPage() {
           <textarea value={terms} onChange={e => setTerms(e.target.value)} className="game-input w-full min-h-[140px] text-sm resize-y" placeholder="Enter terms & conditions. One condition per line (start with • or -)." />
         ) : savedTerms ? (
           <div className="space-y-1">
-            {String(savedTerms).split("\n").filter(Boolean).map((line: string, i: number) => (
-              <p key={i} className="text-sm text-muted-foreground">{line}</p>
+            {String(savedTerms).split(/\\n|\n/).filter(line => line.trim()).map((line: string, i: number) => (
+              <p key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                <span>{line.replace(/^[•\-\s]+/, '')}</span>
+              </p>
             ))}
           </div>
         ) : (
