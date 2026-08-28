@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowDownToLine, Gamepad2, Wallet, CheckCircle, Loader2, Clock, XCircle, ChevronLeft } from 'lucide-react'
+import { ArrowDownToLine, Gamepad2, Wallet, CheckCircle, Loader2, Clock, XCircle, ChevronLeft, AlertTriangle, Info, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { fetchPaymentMethods } from '@/services/payments'
 import { createCashoutRequest, fetchMyCashoutRequests } from '@/services/cashout'
 import { fetchCustomerGames } from '@/services/games'
+import { fetchActiveCashoutRules, fetchCashoutTerms, findApplicableRule, calculateCashoutLimits } from '@/services/cashoutRules'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { cn, formatCurrency, formatRelativeTime } from '@/lib/utils'
@@ -41,6 +42,34 @@ export default function CashoutPage() {
     queryKey: ['my-cashout-requests'],
     queryFn: fetchMyCashoutRequests,
   })
+
+  const { data: cashoutRules = [] } = useQuery({
+    queryKey: ['cashout-rules'],
+    queryFn: fetchActiveCashoutRules,
+  })
+
+  const { data: cashoutTerms = '' } = useQuery({
+    queryKey: ['cashout-terms'],
+    queryFn: fetchCashoutTerms,
+  })
+
+  // Calculate total deposits from approved/completed orders
+  const { data: totalDeposit = 0 } = useQuery({
+    queryKey: ['my-total-deposit', profile?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('base_amount')
+        .eq('user_id', profile!.id)
+        .in('status', ['completed', 'payment_verified', 'processing'])
+      return (data || []).reduce((sum: number, o: any) => sum + Number(o.base_amount), 0)
+    },
+    enabled: !!profile?.id
+  })
+
+  // Determine applicable rule and limits
+  const applicableRule = useMemo(() => findApplicableRule(totalDeposit, cashoutRules as any), [totalDeposit, cashoutRules])
+  const cashoutLimits = useMemo(() => applicableRule ? calculateCashoutLimits(applicableRule as any, totalDeposit) : null, [applicableRule, totalDeposit])
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -90,6 +119,22 @@ export default function CashoutPage() {
     e.preventDefault()
     if (!selectedGameId) { toast.error('Please select a game'); return }
     if (!selectedMethod) { toast.error('Please select a payment method'); return }
+    
+    const parsedAmount = parseFloat(amount)
+    if (!parsedAmount || parsedAmount <= 0) { toast.error('Please enter a valid amount'); return }
+
+    // Validate against cashout rules
+    if (cashoutLimits) {
+      if (parsedAmount < cashoutLimits.min) {
+        toast.error(`Minimum cashout amount is ${formatCurrency(cashoutLimits.min)} based on your total deposits.`)
+        return
+      }
+      if (parsedAmount > cashoutLimits.max) {
+        toast.error(`Maximum cashout amount is ${formatCurrency(cashoutLimits.max)} based on your total deposits.`)
+        return
+      }
+    }
+
     submitMutation.mutate()
   }
 
@@ -199,8 +244,34 @@ export default function CashoutPage() {
               <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <ArrowDownToLine className="h-4 w-4 text-primary" /> 2. Cashout Amount
               </h3>
+
+              {/* Limits info box */}
+              {cashoutLimits ? (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/30 mb-3">
+                  <Info className="h-4 w-4 text-primary flex-shrink-0" />
+                  <p className="text-xs text-muted-foreground">
+                    Based on your <span className="text-white font-semibold">{formatCurrency(totalDeposit)}</span> total deposits — 
+                    Min: <span className="text-neon-green font-bold">{formatCurrency(cashoutLimits.min)}</span> · 
+                    Max: <span className="text-neon-gold font-bold">{formatCurrency(cashoutLimits.max)}</span>
+                  </p>
+                </div>
+              ) : totalDeposit > 0 ? (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 mb-3">
+                  <AlertTriangle className="h-4 w-4 text-yellow-400 flex-shrink-0" />
+                  <p className="text-xs text-yellow-400">No cashout rule found for your deposit amount of {formatCurrency(totalDeposit)}. Contact support.</p>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-border mb-3">
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <p className="text-xs text-muted-foreground">You have no completed deposits. Load a game first to be eligible for cashout.</p>
+                </div>
+              )}
+
               <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter amount (e.g. 50)" min="1" step="0.01" className="game-input w-full" required />
+                placeholder={cashoutLimits ? `Min: $${cashoutLimits.min} · Max: $${cashoutLimits.max}` : 'Enter amount'}
+                min={cashoutLimits?.min ?? 1}
+                max={cashoutLimits?.max}
+                step="0.01" className="game-input w-full" required />
             </div>
 
             {/* 3. Payment Method */}
@@ -274,6 +345,62 @@ export default function CashoutPage() {
         </div>
 
         <div>
+          {/* Cashout Policy Panel */}
+          <div className="glass-card p-5 mb-5">
+            <h3 className="font-semibold text-white text-sm mb-4 flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-neon-green" /> Cashout Policy
+            </h3>
+            {cashoutRules.length > 0 ? (
+              <>
+                <div className="overflow-x-auto rounded-xl border border-border">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-white/5 text-muted-foreground">
+                        <th className="text-left py-2 px-3 font-semibold">Loaded</th>
+                        <th className="text-center py-2 px-3 font-semibold">Min</th>
+                        <th className="text-center py-2 px-3 font-semibold">Max</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {(cashoutRules as any[]).map((rule: any) => {
+                        const isApplicable = totalDeposit >= rule.deposit_min && totalDeposit <= rule.deposit_max
+                        return (
+                          <tr key={rule.id} className={cn(
+                            "transition-colors",
+                            isApplicable ? "bg-neon-green/10 text-white" : "text-muted-foreground hover:bg-white/5"
+                          )}>
+                            <td className="py-2 px-3 font-medium">
+                              {isApplicable && <span className="inline-block h-1.5 w-1.5 rounded-full bg-neon-green mr-1.5 align-middle" />}
+                              ${rule.deposit_min} - ${rule.deposit_max}
+                            </td>
+                            <td className="py-2 px-3 text-center text-neon-green font-semibold">
+                              {rule.min_type === 'fixed'
+                                ? `$${rule.min_fixed}`
+                                : `Dep × ${rule.min_multiplier}`}
+                            </td>
+                            <td className="py-2 px-3 text-center text-neon-gold font-semibold">
+                              Dep × {rule.max_multiplier}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {cashoutTerms && (
+                  <div className="mt-4 p-3 rounded-xl bg-white/5 border border-border">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Terms & Conditions</p>
+                    {cashoutTerms.split('\n').filter(Boolean).map((line: string, i: number) => (
+                      <p key={i} className="text-[10px] text-muted-foreground leading-relaxed">{line}</p>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-4">No policy rules set yet.</p>
+            )}
+          </div>
+
           <div className="glass-card p-5">
             <h3 className="font-semibold text-white text-sm mb-4">Previous Requests</h3>
             {myRequests.length === 0 ? (

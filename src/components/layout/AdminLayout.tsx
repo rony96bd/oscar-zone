@@ -3,7 +3,7 @@ import { Logo } from '@/components/ui/Logo'
 import {
   LayoutDashboard, ShoppingBag, Users, Gamepad2, Joystick,
   Gift, CreditCard, UserCheck, MessageCircle, Bell, Send,
-  Image, Megaphone, BarChart3, Shield, ClipboardList,
+  Image, Megaphone, BarChart3, Shield, ClipboardList, ShieldCheck,
   Settings, LogOut, Menu, X, ChevronRight, Zap, Bot, ArrowDownToLine, DollarSign, Coins
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
@@ -27,6 +27,7 @@ const navSections = [
     items: [
       { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
       { href: '/admin/cashout', label: 'Cashout', icon: ArrowDownToLine },
+      { href: '/admin/cashout-rules', label: 'Cashout Rules', icon: ShieldCheck },
       { href: '/admin/customers', label: 'Customers', icon: Users },
       { href: '/admin/chat', label: 'Live Chat', icon: MessageCircle },
     ],

@@ -50,6 +50,7 @@ const SettingsPage = lazy(() => import('@/pages/customer/SettingsPage'))
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
 const AdminOrdersPage = lazy(() => import('@/pages/admin/AdminOrdersPage'))
 const AdminCashoutPage = lazy(() => import('@/pages/admin/AdminCashoutPage'))
+const AdminCashoutRulesPage = lazy(() => import('@/pages/admin/AdminCashoutRulesPage'))
 const AdminOrderDetailPage = lazy(() => import('@/pages/admin/AdminOrderDetailPage'))
 const AdminCustomersPage = lazy(() => import('@/pages/admin/AdminCustomersPage'))
 const AdminCustomerDetailPage = lazy(() => import('@/pages/admin/AdminCustomerDetailPage'))
@@ -188,6 +189,7 @@ function AppContent() {
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="orders/:id" element={<AdminOrderDetailPage />} />
           <Route path="cashout" element={<AdminCashoutPage />} />
+          <Route path="cashout-rules" element={<AdminCashoutRulesPage />} />
           <Route path="customers" element={<AdminCustomersPage />} />
           <Route path="customers/:id" element={<AdminCustomerDetailPage />} />
           <Route path="games" element={<AdminGamesPage />} />
