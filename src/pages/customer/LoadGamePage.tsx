@@ -185,6 +185,12 @@ export default function LoadGamePage() {
       return toast.error(`Maximum load amount for this game is ${formatCurrency(selectedGame.maximum_amount)}`)
     }
     if (!selectedMethod) return toast.error('Please select a payment method')
+    if (Number(amount) < selectedMethod.minimum_amount) {
+      return toast.error(`Minimum amount for ${selectedMethod.name} is ${formatCurrency(selectedMethod.minimum_amount)}`)
+    }
+    if (Number(amount) > selectedMethod.maximum_amount) {
+      return toast.error(`Maximum amount for ${selectedMethod.name} is ${formatCurrency(selectedMethod.maximum_amount)}`)
+    }
     if (!screenshotKey) return toast.error('Please upload your payment screenshot')
     if (!turnstileToken) return toast.error('Please complete the security check')
 
@@ -391,8 +397,6 @@ export default function LoadGamePage() {
                       <input
                         type="number"
                         required
-                        min={selectedGame?.minimum_amount || 1}
-                        max={selectedGame?.maximum_amount || 1000}
                         step="0.01"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
