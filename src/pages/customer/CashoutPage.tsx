@@ -53,23 +53,31 @@ export default function CashoutPage() {
     queryFn: fetchCashoutTerms,
   })
 
-  // Calculate total deposits from approved/completed orders
-  const { data: totalDeposit = 0 } = useQuery({
-    queryKey: ['my-total-deposit', profile?.id],
+  // Get the last deposit from approved/completed orders (scoped to selected game if any)
+  const { data: lastDepositAmount = 0 } = useQuery({
+    queryKey: ['my-last-deposit', profile?.id, selectedGameId],
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('orders')
         .select('base_amount')
         .eq('user_id', profile!.id)
         .in('status', ['completed', 'payment_verified', 'processing'])
-      return (data || []).reduce((sum: number, o: any) => sum + Number(o.base_amount), 0)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        
+      if (selectedGameId) {
+        query = query.eq('customer_game_id', selectedGameId)
+      }
+      
+      const { data } = await query.maybeSingle()
+      return data ? Number(data.base_amount) : 0
     },
     enabled: !!profile?.id
   })
 
   // Determine applicable rule and limits
-  const applicableRule = useMemo(() => findApplicableRule(totalDeposit, cashoutRules as any), [totalDeposit, cashoutRules])
-  const cashoutLimits = useMemo(() => applicableRule ? calculateCashoutLimits(applicableRule as any, totalDeposit) : null, [applicableRule, totalDeposit])
+  const applicableRule = useMemo(() => findApplicableRule(lastDepositAmount, cashoutRules as any), [lastDepositAmount, cashoutRules])
+  const cashoutLimits = useMemo(() => applicableRule ? calculateCashoutLimits(applicableRule as any, lastDepositAmount) : null, [applicableRule, lastDepositAmount])
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -126,11 +134,11 @@ export default function CashoutPage() {
     // Validate against cashout rules
     if (cashoutLimits) {
       if (parsedAmount < cashoutLimits.min) {
-        toast.error(`Minimum cashout amount is ${formatCurrency(cashoutLimits.min)} based on your total deposits.`)
+        toast.error(`Minimum cashout amount is ${formatCurrency(cashoutLimits.min)} based on your last deposit.`)
         return
       }
       if (parsedAmount > cashoutLimits.max) {
-        toast.error(`Maximum cashout amount is ${formatCurrency(cashoutLimits.max)} based on your total deposits.`)
+        toast.error(`Maximum cashout amount is ${formatCurrency(cashoutLimits.max)} based on your last deposit.`)
         return
       }
     }
@@ -250,20 +258,20 @@ export default function CashoutPage() {
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/30 mb-3">
                   <Info className="h-4 w-4 text-primary flex-shrink-0" />
                   <p className="text-xs text-muted-foreground">
-                    Based on your <span className="text-white font-semibold">{formatCurrency(totalDeposit)}</span> total deposits — 
+                    Based on your <span className="text-white font-semibold">{formatCurrency(lastDepositAmount)}</span> last deposit — 
                     Min: <span className="text-neon-green font-bold">{formatCurrency(cashoutLimits.min)}</span> · 
                     Max: <span className="text-neon-gold font-bold">{formatCurrency(cashoutLimits.max)}</span>
                   </p>
                 </div>
-              ) : totalDeposit > 0 ? (
+              ) : lastDepositAmount > 0 ? (
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 mb-3">
                   <AlertTriangle className="h-4 w-4 text-yellow-400 flex-shrink-0" />
-                  <p className="text-xs text-yellow-400">No cashout rule found for your deposit amount of {formatCurrency(totalDeposit)}. Contact support.</p>
+                  <p className="text-xs text-yellow-400">No cashout rule found for your deposit amount of {formatCurrency(lastDepositAmount)}. Contact support.</p>
                 </div>
               ) : (
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-border mb-3">
                   <AlertTriangle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <p className="text-xs text-muted-foreground">You have no completed deposits. Load a game first to be eligible for cashout.</p>
+                  <p className="text-xs text-muted-foreground">No recent deposit found. Load the game first to be eligible for cashout.</p>
                 </div>
               )}
 
@@ -363,7 +371,7 @@ export default function CashoutPage() {
                     </thead>
                     <tbody className="divide-y divide-border">
                       {(cashoutRules as any[]).map((rule: any) => {
-                        const isApplicable = totalDeposit >= rule.deposit_min && totalDeposit <= rule.deposit_max
+                        const isApplicable = lastDepositAmount >= rule.deposit_min && lastDepositAmount <= rule.deposit_max
                         return (
                           <tr key={rule.id} className={cn(
                             "transition-colors",
