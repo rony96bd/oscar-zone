@@ -107,6 +107,7 @@ export default function MyGamesPage() {
               username={cg.username}
               logoUrl={cg.game?.logo_url}
               downloadUrl={cg.game?.download_url}
+              playNowUrl={cg.game?.play_now_url}
               onLoad={() => navigate(`/load?game=${cg.game_id}&username=${cg.username}`)}
             />
           ))}
