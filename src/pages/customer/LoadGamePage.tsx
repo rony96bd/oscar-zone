@@ -195,6 +195,9 @@ export default function LoadGamePage() {
     if (selectedMethod.is_agent && !screenshotKey) {
       return toast.error('Please upload your payment screenshot (Required for Agent methods)')
     }
+    if (!selectedMethod.is_agent && !customerPaymentTag.trim()) {
+      return toast.error('Please enter your payment tag or name')
+    }
     if (!turnstileToken) return toast.error('Please complete the security check')
 
     setIsSubmitting(true)
@@ -595,7 +598,7 @@ export default function LoadGamePage() {
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-3 flex items-center gap-2">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">5</span>
-                    Your Payment Tag / Name (Optional)
+                    Your Payment Tag / Name {selectedMethod?.is_agent ? '(Optional)' : ''}
                   </label>
                   <input
                     type="text"
@@ -604,7 +607,11 @@ export default function LoadGamePage() {
                     value={customerPaymentTag}
                     onChange={(e) => setCustomerPaymentTag(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground mt-1.5 ml-1">Helps us verify your payment faster.</p>
+                  {!selectedMethod?.is_agent ? (
+                    <p className="text-xs text-neon-gold mt-1.5 ml-1">* Payment Tag is required for this payment method.</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-1.5 ml-1">Helps us verify your payment faster.</p>
+                  )}
                 </div>
 
                 {/* 6. Screenshot */}
@@ -647,6 +654,7 @@ export default function LoadGamePage() {
                       !amount || 
                       !selectedMethod || 
                       (selectedMethod?.is_agent && !screenshotKey) || 
+                      (!selectedMethod?.is_agent && !customerPaymentTag.trim()) ||
                       !turnstileToken
                     }
                     className="btn-neon w-full py-4 text-lg"
