@@ -197,11 +197,13 @@ export default function LoadGamePage() {
     setIsSubmitting(true)
 
     try {
-      // Temporarily we do the logic using the edge function
+      const cg = customerGames?.find(cg => cg.game_id === selectedGame.id && cg.username === username)
+      
       const { error } = await supabase.functions.invoke('create-order', {
         body: {
           game_id: selectedGame.id,
           username: username,
+          customer_game_id: cg?.id || null,
           base_amount: Number(amount),
           payment_method_id: selectedMethod.id,
           payment_screenshot_path: screenshotKey,

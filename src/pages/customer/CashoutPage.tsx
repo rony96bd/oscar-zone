@@ -66,7 +66,12 @@ export default function CashoutPage() {
         .limit(1)
         
       if (selectedGameId) {
-        query = query.eq('customer_game_id', selectedGameId)
+        const gameAccount = (myGames as any[]).find(g => g.id === selectedGameId)
+        if (gameAccount) {
+          query = query.eq('game_id', gameAccount.game_id).eq('username', gameAccount.username)
+        } else {
+          query = query.eq('customer_game_id', selectedGameId)
+        }
       }
       
       const { data } = await query.maybeSingle()
