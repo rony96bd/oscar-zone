@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link, useNavigate } from "react-router-dom"
 import {
-  Zap, ShoppingBag, Users, TrendingUp,
+  Zap, ShoppingBag, Users, TrendingUp, ArrowDownToLine, MessageCircle, Gamepad2,
   ChevronRight, CheckCircle, Trophy, Copy, Share2, ArrowRight
 } from "lucide-react"
 import { useAuthStore } from "@/stores/authStore"
@@ -198,28 +198,24 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* === QUICK STATS GRID === */}
+      {/* === QUICK ACTIONS GRID === */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="stat-card">
-          <ShoppingBag className="h-5 w-5 text-primary mb-2" />
-          <div className="stat-value">{(recentOrders as any[]).length}</div>
-          <div className="stat-label">Orders</div>
-        </div>
-        <div className="stat-card">
-          <CheckCircle className="h-5 w-5 text-neon-green mb-2" />
-          <div className="stat-value">{(recentOrders as any[]).filter((o: any) => o.status === "completed").length}</div>
-          <div className="stat-label">Completed</div>
-        </div>
-        <div className="stat-card">
-          <Users className="h-5 w-5 text-neon-gold mb-2" />
-          <div className="stat-value">{referralStats?.qualified_referrals || 0}</div>
-          <div className="stat-label">Referrals</div>
-        </div>
-        <div className="stat-card">
-          <TrendingUp className="h-5 w-5 text-purple-400 mb-2" />
-          <div className="stat-value">{formatCurrency(referralStats?.total_earnings || 0)}</div>
-          <div className="stat-label">Earned</div>
-        </div>
+        <Link to="/my-games" className="stat-card hover:bg-white/5 transition-colors group cursor-pointer border border-border hover:border-primary/50">
+          <Zap className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform duration-300" />
+          <div className="stat-label mt-1 text-sm font-bold text-white group-hover:text-primary transition-colors">Load Game</div>
+        </Link>
+        <Link to="/cashout" className="stat-card hover:bg-white/5 transition-colors group cursor-pointer border border-border hover:border-neon-gold/50">
+          <ArrowDownToLine className="h-6 w-6 text-neon-gold mb-2 group-hover:scale-110 transition-transform duration-300" />
+          <div className="stat-label mt-1 text-sm font-bold text-white group-hover:text-neon-gold transition-colors">Cashout</div>
+        </Link>
+        <Link to="/chat" className="stat-card hover:bg-white/5 transition-colors group cursor-pointer border border-border hover:border-neon-green/50">
+          <MessageCircle className="h-6 w-6 text-neon-green mb-2 group-hover:scale-110 transition-transform duration-300" />
+          <div className="stat-label mt-1 text-sm font-bold text-white group-hover:text-neon-green transition-colors">Live Chat</div>
+        </Link>
+        <Link to="/games" className="stat-card hover:bg-white/5 transition-colors group cursor-pointer border border-border hover:border-purple-400/50">
+          <Gamepad2 className="h-6 w-6 text-purple-400 mb-2 group-hover:scale-110 transition-transform duration-300" />
+          <div className="stat-label mt-1 text-sm font-bold text-white group-hover:text-purple-400 transition-colors">Play Now</div>
+        </Link>
       </div>
 
       {/* === MY GAMES === */}
