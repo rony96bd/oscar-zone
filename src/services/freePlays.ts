@@ -2,17 +2,17 @@ import { supabase } from '@/lib/supabase'
 import type { FreePlayRequest } from '@/types'
 
 export async function checkFreePlayEligibility(userId: string): Promise<{ eligible: boolean, remainingCount: number }> {
-  // 1. Get count of eligible deposits (completed orders >= 10)
-  const { count: depositsCount, error: depositsError } = await supabase
+  // 1. Get sum of all completed deposits to calculate earned free plays (1 per $10)
+  const { data: deposits, error: depositsError } = await supabase
     .from('orders')
-    .select('*', { count: 'exact', head: true })
+    .select('base_amount')
     .eq('user_id', userId)
-    .eq('status', 'completed')
-    .gte('base_amount', 10);
+    .eq('status', 'completed');
     
   if (depositsError) throw depositsError;
 
-  const earnedFreePlays = depositsCount || 0;
+  const totalDeposited = deposits?.reduce((sum, order) => sum + Number(order.base_amount || 0), 0) || 0;
+  const earnedFreePlays = Math.floor(totalDeposited / 10);
 
   // 2. Get count of free play requests made (not rejected)
   const { count: requestsCount, error: requestsError } = await supabase

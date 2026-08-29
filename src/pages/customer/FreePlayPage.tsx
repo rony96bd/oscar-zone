@@ -87,7 +87,7 @@ export default function FreePlayPage() {
               </div>
               <h2 className="text-xl font-bold text-white mb-2">Not eligible yet</h2>
               <p className="text-muted-foreground">
-                You do not have any available Free Play requests. Please deposit at least  to unlock your next Free Play.
+                You do not have any available Free Play requests. For every $10 deposited, you unlock 1 Free Play request.
               </p>
               <Link to="/load" className="btn-neon px-6 py-2 mt-6">
                 Deposit Now
