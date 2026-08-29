@@ -83,21 +83,24 @@ const queryClient = new QueryClient({
   },
 })
 
-class GlobalErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
+class GlobalErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null, isReloading: boolean}> {
   constructor(props: {children: React.ReactNode}) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, isReloading: false };
   }
 
   static getDerivedStateFromError(error: Error) {
-    if (error.name === 'ChunkLoadError' || error.message?.includes('Failed to fetch dynamically imported module') || error.message?.includes('Importing a module script failed')) {
+    const isChunkError = error.name === 'ChunkLoadError' || error.message?.includes('Failed to fetch dynamically imported module') || error.message?.includes('Importing a module script failed');
+    if (isChunkError) {
       // Force reload to get the latest chunks
       window.location.reload();
+      return { hasError: true, error, isReloading: true };
     }
-    return { hasError: true, error };
+    return { hasError: true, error, isReloading: false };
   }
 
   componentDidCatch(error: Error) {
+    // Also handle reload here just in case getDerivedStateFromError missed it
     if (error.name === 'ChunkLoadError' || error.message?.includes('Failed to fetch dynamically imported module') || error.message?.includes('Importing a module script failed')) {
       window.location.reload();
     }
@@ -105,6 +108,13 @@ class GlobalErrorBoundary extends React.Component<{children: React.ReactNode}, {
 
   render() {
     if (this.state.hasError) {
+      if (this.state.isReloading) {
+        return (
+          <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', color: '#a1a1aa' }}>
+            Updating app version...
+          </div>
+        );
+      }
       return (
         <div style={{ padding: 20, color: 'red', wordBreak: 'break-all' }}>
           <h2>Something went wrong.</h2>
