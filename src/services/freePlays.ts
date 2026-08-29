@@ -1,33 +1,39 @@
 import { supabase } from '@/lib/supabase'
 import type { FreePlayRequest } from '@/types'
 
-export async function checkFreePlayEligibility(userId: string): Promise<{ eligible: boolean, remainingCount: number }> {
-  // 1. Get count of eligible deposits (completed orders >= 10). One free play per qualifying deposit.
-  const { count: depositsCount, error: depositsError } = await supabase
-    .from('orders')
-    .select('*', { count: 'exact', head: true })
+export async function checkFreePlayEligibility(userId: string): Promise<{ eligible: boolean, remainingCount: number, currentSum: number }> {
+  // 1. Find the latest free play request that wasn't rejected
+  const { data: lastRequest, error: requestError } = await supabase
+    .from('free_play_requests')
+    .select('created_at')
     .eq('user_id', userId)
-    .eq('status', 'completed')
-    .gte('base_amount', 10);
-    
+    .neq('status', 'rejected')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (requestError) throw requestError;
+
+  // 2. Sum all completed deposits SINCE the last request
+  let query = supabase
+    .from('orders')
+    .select('base_amount')
+    .eq('user_id', userId)
+    .eq('status', 'completed');
+
+  if (lastRequest) {
+    query = query.gt('created_at', lastRequest.created_at);
+  }
+
+  const { data: deposits, error: depositsError } = await query;
   if (depositsError) throw depositsError;
 
-  const earnedFreePlays = depositsCount || 0;
+  const currentSum = deposits?.reduce((sum, order) => sum + Number(order.base_amount || 0), 0) || 0;
 
-  // 2. Get count of free play requests made (not rejected)
-  const { count: requestsCount, error: requestsError } = await supabase
-    .from('free_play_requests')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .neq('status', 'rejected');
-    
-  if (requestsError) throw requestsError;
-
-  const remainingCount = earnedFreePlays - (requestsCount || 0);
-  
   return {
-    eligible: remainingCount > 0,
-    remainingCount: Math.max(0, remainingCount)
+    eligible: currentSum >= 10,
+    remainingCount: currentSum >= 10 ? 1 : 0,
+    currentSum
   };
 }
 

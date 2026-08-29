@@ -86,10 +86,19 @@ export default function FreePlayPage() {
                   <AlertCircle className="h-8 w-8" />
                 </div>
                 <h2 className="text-xl font-bold text-white mb-2">Not eligible yet</h2>
-                <p className="text-muted-foreground">
-                  You do not have any available Free Play requests. You get 1 Free Play request for every deposit of $10 or more.
+                <p className="text-muted-foreground mb-3">
+                  You need to deposit a total of $10 to unlock your next Free Play.
                 </p>
-                <Link to="/load" className="btn-neon px-6 py-2 mt-6">
+                <div className="w-full max-w-xs mx-auto bg-black/40 rounded-full h-3 mb-2 overflow-hidden border border-border">
+                  <div 
+                    className="bg-neon-gold h-full rounded-full transition-all duration-500" 
+                    style={{ width: `${Math.min(100, ((eligibility?.currentSum || 0) / 10) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-neon-gold font-bold mb-4">
+                  ${(eligibility?.currentSum || 0).toFixed(2)} / $10.00
+                </p>
+                <Link to="/load" className="btn-neon px-6 py-2 mt-2">
                   Deposit Now
                 </Link>
               </>
