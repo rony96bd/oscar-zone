@@ -15,10 +15,10 @@ export function LiveActivityTicker() {
 
   return (
     <div className="w-full bg-black/60 border-y border-white/5 py-2 overflow-hidden relative flex items-center">
-      <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-[#0d1117] to-transparent z-10" />
-      <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-[#0d1117] to-transparent z-10" />
+      <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-[#0d1117] to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-[#0d1117] to-transparent z-10 pointer-events-none" />
       
-      <div className="flex animate-marquee whitespace-nowrap">
+      <div className="flex w-max animate-marquee hover:[animation-play-state:paused]">
         {/* Duplicate the array to make the marquee seamless */}
         {[...activities, ...activities].map((activity, index) => (
           <div key={`${activity.created_at}-${index}`} className="flex items-center mx-4 md:mx-8">
