@@ -27,6 +27,7 @@ const publicNavLinks = [
 const authNavLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/my-games', label: 'My Games', icon: Joystick },
+  { href: '/games', label: 'Game Links', icon: Gamepad2 },
   { href: '/load', label: 'Load Game', icon: Zap },
   { href: '/cashout', label: 'Cashout', icon: ArrowDownToLine },
   { href: '/orders', label: 'Orders', icon: ShoppingBag },
@@ -48,7 +49,7 @@ const mobileNavLinks = [
 // Identify paths that belong to the customer dashboard context
 const isDashboardPath = (path: string) => {
   return [
-    '/dashboard', '/my-games', '/load', '/cashout', '/orders', 
+    '/dashboard', '/my-games', '/games', '/load', '/cashout', '/orders', 
     '/earnings', '/notifications', '/chat', '/profile', '/settings'
   ].some(p => path === p || path.startsWith(p + '/'))
 }
