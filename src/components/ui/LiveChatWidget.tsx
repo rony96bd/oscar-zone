@@ -418,12 +418,12 @@ export function LiveChatWidget() {
                     return (
                       <div key={msg.id} className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
                         <div
-                          className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${
+                          className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm break-words ${
                             isMine
                               ? 'text-black rounded-tr-sm'
                               : 'text-white rounded-tl-sm'
                           }`}
-                          style={{ background: isMine ? '#00ff88' : 'rgba(255,255,255,0.1)' }}
+                          style={{ background: isMine ? '#00ff88' : 'rgba(255,255,255,0.1)', overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                         >
                           {msg.attachment_url && (
                             <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="block mb-2">
