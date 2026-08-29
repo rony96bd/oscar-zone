@@ -134,6 +134,26 @@ export default function DashboardPage() {
         <BannerCarousel type="announcement" autoPlayInterval={5000} />
       </div>
 
+      {/* === QUICK ACTIONS GRID === */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <Link to="/my-games" className="stat-card hover:bg-white/5 transition-colors group cursor-pointer border border-border hover:border-primary/50">
+          <Zap className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform duration-300" />
+          <div className="stat-label mt-1 text-sm font-bold text-white group-hover:text-primary transition-colors">Load Game</div>
+        </Link>
+        <Link to="/cashout" className="stat-card hover:bg-white/5 transition-colors group cursor-pointer border border-border hover:border-neon-gold/50">
+          <ArrowDownToLine className="h-6 w-6 text-neon-gold mb-2 group-hover:scale-110 transition-transform duration-300" />
+          <div className="stat-label mt-1 text-sm font-bold text-white group-hover:text-neon-gold transition-colors">Cashout</div>
+        </Link>
+        <Link to="/chat" className="stat-card hover:bg-white/5 transition-colors group cursor-pointer border border-border hover:border-neon-green/50">
+          <MessageCircle className="h-6 w-6 text-neon-green mb-2 group-hover:scale-110 transition-transform duration-300" />
+          <div className="stat-label mt-1 text-sm font-bold text-white group-hover:text-neon-green transition-colors">Live Chat</div>
+        </Link>
+        <Link to="/games" className="stat-card hover:bg-white/5 transition-colors group cursor-pointer border border-border hover:border-purple-400/50">
+          <Gamepad2 className="h-6 w-6 text-purple-400 mb-2 group-hover:scale-110 transition-transform duration-300" />
+          <div className="stat-label mt-1 text-sm font-bold text-white group-hover:text-purple-400 transition-colors">Play Now</div>
+        </Link>
+      </div>
+
       {/* === REFERRAL LEVEL CARD === */}
       <div className={cn("relative overflow-hidden rounded-2xl p-5 mb-6 border", lc.border, lc.bg)}>
         <div className="flex items-start justify-between mb-3">
@@ -196,26 +216,6 @@ export default function DashboardPage() {
             Full dashboard <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
-      </div>
-
-      {/* === QUICK ACTIONS GRID === */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <Link to="/my-games" className="stat-card hover:bg-white/5 transition-colors group cursor-pointer border border-border hover:border-primary/50">
-          <Zap className="h-6 w-6 text-primary mb-2 group-hover:scale-110 transition-transform duration-300" />
-          <div className="stat-label mt-1 text-sm font-bold text-white group-hover:text-primary transition-colors">Load Game</div>
-        </Link>
-        <Link to="/cashout" className="stat-card hover:bg-white/5 transition-colors group cursor-pointer border border-border hover:border-neon-gold/50">
-          <ArrowDownToLine className="h-6 w-6 text-neon-gold mb-2 group-hover:scale-110 transition-transform duration-300" />
-          <div className="stat-label mt-1 text-sm font-bold text-white group-hover:text-neon-gold transition-colors">Cashout</div>
-        </Link>
-        <Link to="/chat" className="stat-card hover:bg-white/5 transition-colors group cursor-pointer border border-border hover:border-neon-green/50">
-          <MessageCircle className="h-6 w-6 text-neon-green mb-2 group-hover:scale-110 transition-transform duration-300" />
-          <div className="stat-label mt-1 text-sm font-bold text-white group-hover:text-neon-green transition-colors">Live Chat</div>
-        </Link>
-        <Link to="/games" className="stat-card hover:bg-white/5 transition-colors group cursor-pointer border border-border hover:border-purple-400/50">
-          <Gamepad2 className="h-6 w-6 text-purple-400 mb-2 group-hover:scale-110 transition-transform duration-300" />
-          <div className="stat-label mt-1 text-sm font-bold text-white group-hover:text-purple-400 transition-colors">Play Now</div>
-        </Link>
       </div>
 
       {/* === MY GAMES === */}
