@@ -108,6 +108,7 @@ export interface PaymentMethod {
   maximum_amount: number
   agent_commission_rate: number
   is_active: boolean
+  is_agent: boolean
   sort_order: number
   created_at: string
   updated_at: string
@@ -157,6 +158,7 @@ export interface Order {
   final_game_credit: number
   payment_method_id: string
   payment_screenshot_path: string | null
+  customer_payment_tag: string | null
   status: OrderStatus
   assigned_agent_id: string | null
   admin_note: string | null

@@ -23,6 +23,7 @@ const EMPTY_METHOD: Partial<PaymentMethod> = {
   maximum_amount: 1000,
   agent_commission_rate: 0,
   is_active: true,
+  is_agent: false,
   sort_order: 99,
 }
 
@@ -253,6 +254,20 @@ function PaymentMethodForm({
         </div>
       </div>
 
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => set('is_agent', !form.is_agent)}
+          className="flex items-center gap-2 text-sm text-white"
+        >
+          {form.is_agent
+            ? <ToggleRight className="h-6 w-6 text-neon-gold" />
+            : <ToggleLeft className="h-6 w-6 text-muted-foreground" />
+          }
+          Is Agent Method? (Requires screenshot, optional tag)
+        </button>
+      </div>
+
       <div className="flex gap-3 pt-2 border-t border-border">
         <button
           type="button"
@@ -367,6 +382,11 @@ export default function AdminPaymentMethodsPage() {
                     )}>
                       {m.is_active ? 'Active' : 'Inactive'}
                     </span>
+                    {m.is_agent && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-neon-gold/15 text-neon-gold">
+                        Agent Method
+                      </span>
+                    )}
                   </div>
                   {m.tag && <p className="text-sm text-primary font-mono mt-0.5">{m.tag}</p>}
                   {m.account_name && <p className="text-xs text-muted-foreground">{m.account_name}</p>}

@@ -33,6 +33,7 @@ export default function LoadGamePage() {
   
   const [screenshotKey, setScreenshotKey] = useState<string | null>(null)
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
+  const [customerPaymentTag, setCustomerPaymentTag] = useState('')
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orderComplete, setOrderComplete] = useState(false)
@@ -191,7 +192,9 @@ export default function LoadGamePage() {
     if (Number(amount) > selectedMethod.maximum_amount) {
       return toast.error(`Maximum amount for ${selectedMethod.name} is ${formatCurrency(selectedMethod.maximum_amount)}`)
     }
-    if (!screenshotKey) return toast.error('Please upload your payment screenshot')
+    if (selectedMethod.is_agent && !screenshotKey) {
+      return toast.error('Please upload your payment screenshot (Required for Agent methods)')
+    }
     if (!turnstileToken) return toast.error('Please complete the security check')
 
     setIsSubmitting(true)
@@ -207,6 +210,7 @@ export default function LoadGamePage() {
           base_amount: Number(amount),
           payment_method_id: selectedMethod.id,
           payment_screenshot_path: screenshotKey,
+          customer_payment_tag: customerPaymentTag || null,
           is_guest: !isAuthenticated,
           guest_verified_user_id: guestVerifiedUserId,
           cf_turnstile_token: turnstileToken,
@@ -587,11 +591,27 @@ export default function LoadGamePage() {
                   )}
                 </div>
 
-                {/* 5. Screenshot */}
+                {/* 5. Payment Tag */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-3 flex items-center gap-2">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">5</span>
-                    Payment Screenshot
+                    Your Payment Tag / Name (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. $cashtag or username"
+                    className="game-input"
+                    value={customerPaymentTag}
+                    onChange={(e) => setCustomerPaymentTag(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1.5 ml-1">Helps us verify your payment faster.</p>
+                </div>
+
+                {/* 6. Screenshot */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">6</span>
+                    Payment Screenshot {selectedMethod?.is_agent ? '' : '(Optional)'}
                   </label>
                   <ScreenshotUpload 
                     onUpload={(key, url) => {
@@ -605,6 +625,9 @@ export default function LoadGamePage() {
                     uploaded={!!screenshotKey}
                     orderId="temp" // Just a placeholder for R2 key generation
                   />
+                  {selectedMethod?.is_agent && (
+                    <p className="text-xs text-neon-gold mt-2 ml-1">* Screenshot is required for this agent payment method.</p>
+                  )}
                 </div>
                 <div className="pt-4 border-t border-border flex flex-col items-center gap-4">
                   <Turnstile 
@@ -617,7 +640,15 @@ export default function LoadGamePage() {
                   />
                   <button
                     type="submit"
-                    disabled={isSubmitting || !selectedGame || !username || !amount || !selectedMethod || !screenshotKey || !turnstileToken}
+                    disabled={
+                      isSubmitting || 
+                      !selectedGame || 
+                      !username || 
+                      !amount || 
+                      !selectedMethod || 
+                      (selectedMethod?.is_agent && !screenshotKey) || 
+                      !turnstileToken
+                    }
                     className="btn-neon w-full py-4 text-lg"
                   >
                     {isSubmitting ? (

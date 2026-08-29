@@ -88,25 +88,28 @@ Deno.serve(async (req) => {
       const {
         order_number, game_name, username, base_amount, final_credit,
         regular_bonus_pct, promo_bonus_pct, promo_name, payment_name,
-        customer_name, is_guest
+        customer_name, is_guest, customer_payment_tag
       } = body
 
       const promoPart = promo_bonus_pct > 0
         ? `\n🎁 *Promo (${promo_name || 'Active Promo'}):* +${promo_bonus_pct}%`
         : ''
+      
+      const tagPart = customer_payment_tag ? `\n💳 *Payment Tag:* \`${customer_payment_tag}\`` : ''
 
       message = [
-        `🔔 *NEW LOAD ORDER*`,
+        `🔥 *NEW LOAD ORDER*`,
         ``,
         `📦 Order: \`${order_number}\``,
         `👤 Customer: ${customer_name}${is_guest ? ' _(guest)_' : ''}`,
         `🎮 Game: ${game_name}`,
-        `🆔 Username: \`${username}\``,
+        `👾 Username: \`${username}\``,
         `💵 Amount: ${formatCurrency(base_amount)}`,
-        `🎯 Regular Bonus: +${regular_bonus_pct}%`,
+        `🚀 Regular Bonus: +${regular_bonus_pct}%`,
         promoPart,
-        `💎 Game Credit: *${Math.ceil(final_credit)}*`,
+        `💰 Game Credit: *${Math.ceil(final_credit)}*`,
         `💳 Payment: ${payment_name}`,
+        tagPart,
         `⏰ Time: ${formatTime()}`,
       ].filter(Boolean).join('\n')
     }

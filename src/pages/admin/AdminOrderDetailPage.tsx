@@ -105,6 +105,7 @@ export default function AdminOrderDetailPage() {
             { label: 'Game', value: o.game?.name },
             { label: 'Username', value: o.username },
             { label: 'Payment', value: o.payment_method?.name },
+            { label: 'Payment Tag / Name', value: o.customer_payment_tag },
             { label: 'Type', value: o.is_guest ? 'Guest Order' : 'Registered User' },
             ...(o.is_guest ? [
               { label: 'Guest Username', value: o.username },
