@@ -81,18 +81,18 @@ export default function FreePlayPage() {
               </p>
             </>
           ) : (
-            <>
-              <div className="h-16 w-16 rounded-full bg-orange-500/10 text-orange-400 flex items-center justify-center mb-4">
-                <AlertCircle className="h-8 w-8" />
-              </div>
-              <h2 className="text-xl font-bold text-white mb-2">Not eligible yet</h2>
-              <p className="text-muted-foreground">
-                You do not have any available Free Play requests. For every $10 deposited, you unlock 1 Free Play request.
-              </p>
-              <Link to="/load" className="btn-neon px-6 py-2 mt-6">
-                Deposit Now
-              </Link>
-            </>
+              <>
+                <div className="h-16 w-16 rounded-full bg-orange-500/10 text-orange-400 flex items-center justify-center mb-4">
+                  <AlertCircle className="h-8 w-8" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2">Not eligible yet</h2>
+                <p className="text-muted-foreground">
+                  You do not have any available Free Play requests. You get 1 Free Play request for every deposit of $10 or more.
+                </p>
+                <Link to="/load" className="btn-neon px-6 py-2 mt-6">
+                  Deposit Now
+                </Link>
+              </>
           )}
         </div>
 
