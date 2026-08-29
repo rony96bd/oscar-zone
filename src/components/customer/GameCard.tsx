@@ -120,7 +120,7 @@ export function GameCard({ game, onLoadGame, compact = false, showDownload = tru
         )}
 
         {/* Actions */}
-        <div className={cn('flex gap-2', compact ? 'mt-2' : 'mt-auto pt-2')}>
+        <div className={cn('flex flex-wrap gap-2', compact ? 'mt-2' : 'mt-auto pt-2')}>
           {onLoadGame && (
             <button
               onClick={() => onLoadGame(game)}
@@ -216,13 +216,13 @@ export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, d
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {downloadUrl && (
             <a
               href={downloadUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-shrink-0 flex items-center justify-center h-9 w-9 rounded-lg bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center h-9 sm:w-9 rounded-lg bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
               title={`Download ${gameName}`}
             >
               <Download className="h-4 w-4" />
@@ -233,7 +233,7 @@ export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, d
               href={playNowUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-shrink-0 flex items-center justify-center gap-1.5 px-3 h-9 rounded-lg text-xs font-bold border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 h-9 rounded-lg text-xs font-bold border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
               style={{ color: theme.accent }}
               title={`Play ${gameName}`}
             >
@@ -243,7 +243,7 @@ export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, d
           )}
           <button
             onClick={onLoad}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-6 h-9 rounded-lg text-xs font-bold"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-6 h-9 rounded-lg text-xs font-bold"
             style={{
               background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent}80)`,
               color: '#080c14',
