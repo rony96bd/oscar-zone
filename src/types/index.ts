@@ -349,3 +349,29 @@ export interface FreePlayRequest {
   profile?: Profile
   game?: Game
 }
+
+export interface Testimonial {
+  id: string
+  user_id: string
+  cashout_request_id?: string
+  game_name: string
+  amount: number
+  message: string
+  status: 'pending' | 'approved' | 'rejected'
+  reward_claimed: boolean
+  created_at: string
+  updated_at: string
+  profiles?: {
+    username: string
+    full_name: string
+  }
+}
+
+export interface LiveActivity {
+  activity_type: 'load' | 'cashout'
+  amount: number
+  game_name: string
+  masked_name: string
+  created_at: string
+}
+

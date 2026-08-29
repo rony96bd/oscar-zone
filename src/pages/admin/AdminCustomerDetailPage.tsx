@@ -5,7 +5,7 @@ import { fetchCustomerDetail, updateCustomerStatus, assignCustomerGame, updateCu
 import { fetchGames } from '@/services/games'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
-import { Shield, ShoppingBag, Star, Lock, Edit2, X, Check } from 'lucide-react'
+import { Shield, ShoppingBag, Star, Lock, Edit2, X, Check, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 
@@ -47,6 +47,18 @@ export default function AdminCustomerDetailPage() {
       qc.invalidateQueries({ queryKey: ['admin-customer', id] })
     },
     onError: (err: any) => toast.error(err.message || 'Failed to update profile')
+  })
+
+  const updateVisibilityMutation = useMutation({
+    mutationFn: async (is_hidden: boolean) => {
+      const { error } = await supabase.from('profiles').update({ is_hidden_from_public: is_hidden }).eq('id', id!)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      toast.success('Visibility updated')
+      qc.invalidateQueries({ queryKey: ['admin-customer', id] })
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to update visibility')
   })
 
   const deleteMutation = useMutation({
@@ -170,7 +182,7 @@ export default function AdminCustomerDetailPage() {
         <h2 className="font-semibold text-white mb-4 pt-4 border-t border-border flex items-center gap-2">
           <Lock className="h-4 w-4" /> Security
         </h2>
-        <div className="flex flex-col gap-2 max-w-sm">
+        <div className="flex flex-col gap-2 max-w-sm mb-6">
           <label className="text-xs text-muted-foreground">Force Password Reset</label>
           <div className="flex gap-2">
             <input 
@@ -188,6 +200,23 @@ export default function AdminCustomerDetailPage() {
               {passwordMutation.isPending ? 'Updating...' : 'Update'}
             </button>
           </div>
+        </div>
+
+        <h2 className="font-semibold text-white mb-4 pt-4 border-t border-border flex items-center gap-2">
+          <Trophy className="h-4 w-4 text-neon-gold" /> Public Visibility
+        </h2>
+        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10 max-w-md">
+          <div>
+            <p className="text-sm font-medium text-white">Hide from public ticker?</p>
+            <p className="text-[10px] text-muted-foreground">If hidden, their loads and cashouts won't appear on the live ticker.</p>
+          </div>
+          <button
+            onClick={() => updateVisibilityMutation.mutate(!c.is_hidden_from_public)}
+            disabled={updateVisibilityMutation.isPending}
+            className={`w-12 h-6 rounded-full relative transition-colors ${c.is_hidden_from_public ? 'bg-primary' : 'bg-white/20'}`}
+          >
+            <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${c.is_hidden_from_public ? 'translate-x-6' : 'translate-x-0'}`} />
+          </button>
         </div>
       </div>
 

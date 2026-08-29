@@ -18,6 +18,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 
 // Public Pages
 const HomePage = lazy(() => import('@/pages/public/HomePage'))
+const WinnersCirclePage = lazy(() => import('@/pages/public/WinnersCirclePage'))
 const PendingApprovalPage = lazy(() => import('@/pages/public/PendingApprovalPage'))
 const GamesPage = lazy(() => import('@/pages/public/GamesPage'))
 const PromotionsPage = lazy(() => import('@/pages/public/PromotionsPage'))
@@ -60,6 +61,7 @@ const AdminBonusesPage = lazy(() => import('@/pages/admin/AdminBonusesPage'))
 const AdminFreePlaysPage = lazy(() => import('@/pages/admin/AdminFreePlaysPage'))
 const AdminPaymentMethodsPage = lazy(() => import('@/pages/admin/AdminPaymentMethodsPage'))
 const AdminReferralsPage = lazy(() => import('@/pages/admin/AdminReferralsPage'))
+const AdminTestimonialsPage = lazy(() => import('@/pages/admin/AdminTestimonialsPage'))
 const AdminChatPage = lazy(() => import('@/pages/admin/AdminChatPage'))
 const AdminNotificationsPage = lazy(() => import('@/pages/admin/AdminNotificationsPage'))
 const AdminTelegramPage = lazy(() => import('@/pages/admin/AdminTelegramPage'))
@@ -132,6 +134,7 @@ function AppContent() {
         {/* Customer Website */}
         <Route element={<CustomerLayout />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/winners-circle" element={<WinnersCirclePage />} />
           <Route path="/games" element={<GamesPage />} />
           <Route path="/promotions" element={<PromotionsPage />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
@@ -198,6 +201,7 @@ function AppContent() {
           <Route path="free-plays" element={<AdminFreePlaysPage />} />
           <Route path="payment-methods" element={<AdminPaymentMethodsPage />} />
           <Route path="referrals" element={<AdminReferralsPage />} />
+          <Route path="testimonials" element={<AdminTestimonialsPage />} />
           <Route path="chat" element={<AdminChatPage />} />
           <Route path="notifications" element={<AdminNotificationsPage />} />
           <Route path="telegram" element={<AdminTelegramPage />} />

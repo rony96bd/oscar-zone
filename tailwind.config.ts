@@ -95,16 +95,20 @@ const config: Config = {
         'game-grid': '40px 40px',
       },
       animation: {
-        'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
-        'float': 'float 3s ease-in-out infinite',
-        'shimmer': 'shimmer 2s linear infinite',
-        'slide-up': 'slide-up 0.3s ease-out',
-        'fade-in': 'fade-in 0.3s ease-out',
-        'scale-in': 'scale-in 0.2s ease-out',
-        'spin-slow': 'spin 3s linear infinite',
+        'glow-pulse': 'glow-pulse 3s infinite',
+        'float': 'float 4s ease-in-out infinite',
+        'shimmer': 'shimmer 2.5s infinite linear',
+        'slide-up': 'slide-up 0.4s ease-out forwards',
+        'fade-in': 'fade-in 0.3s ease-out forwards',
+        'scale-in': 'scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'bounce-gentle': 'bounce-gentle 2s ease-in-out infinite',
+        'marquee': 'marquee 25s linear infinite',
       },
       keyframes: {
+        'marquee': {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
         'glow-pulse': {
           '0%, 100%': { boxShadow: '0 0 20px rgba(0,212,255,0.3)' },
           '50%': { boxShadow: '0 0 40px rgba(0,212,255,0.6), 0 0 80px rgba(0,212,255,0.2)' },

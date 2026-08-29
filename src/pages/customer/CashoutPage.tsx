@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowDownToLine, Gamepad2, Wallet, CheckCircle, Loader2, Clock, XCircle, ChevronLeft, AlertTriangle, Info, ShieldCheck } from 'lucide-react'
+import { ArrowDownToLine, Gamepad2, Wallet, CheckCircle, Loader2, Clock, XCircle, ChevronLeft, AlertTriangle, Info, ShieldCheck, Trophy, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { fetchPaymentMethods } from '@/services/payments'
@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { cn, formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { ScreenshotUpload } from '@/components/customer/ScreenshotUpload'
+import { ShareCashoutModal } from '@/components/ui/ShareCashoutModal'
 import type { PaymentMethod, CustomerGame } from '@/types'
 
 export default function CashoutPage() {
@@ -26,6 +27,7 @@ export default function CashoutPage() {
   const [paymentDetail, setPaymentDetail] = useState('')
   const [qrCodePath, setQrCodePath] = useState<string | null>(null)
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null)
+  const [shareCashoutReq, setShareCashoutReq] = useState<any | null>(null)
 
   const { data: myGames = [] } = useQuery({
     queryKey: ['my-games', profile?.id],
@@ -448,7 +450,17 @@ export default function CashoutPage() {
                         Note: {req.admin_note}
                       </p>
                     )}
-                    <p className="text-[10px] text-muted-foreground mt-1">{formatRelativeTime(req.created_at)}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-[10px] text-muted-foreground">{formatRelativeTime(req.created_at)}</p>
+                      {req.status === 'completed' && (
+                        <button
+                          onClick={() => setShareCashoutReq(req)}
+                          className="inline-flex items-center gap-1.5 text-[10px] font-bold text-neon-gold hover:text-white bg-neon-gold/10 hover:bg-neon-gold/20 px-2 py-1 rounded-md transition-colors"
+                        >
+                          <Trophy className="h-3 w-3" /> Share & Get Bonus
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -456,6 +468,14 @@ export default function CashoutPage() {
           </div>
         </div>
       </div>
+
+      {shareCashoutReq && (
+        <ShareCashoutModal
+          cashoutRequest={shareCashoutReq}
+          onClose={() => setShareCashoutReq(null)}
+          onSuccess={() => setShareCashoutReq(null)}
+        />
+      )}
     </div>
   )
 }

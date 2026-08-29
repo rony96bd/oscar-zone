@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, Gamepad2, Joystick,
   Gift, CreditCard, UserCheck, MessageCircle, Bell, Send,
   Image, Megaphone, BarChart3, Shield, ClipboardList, ShieldCheck,
-  Settings, LogOut, Menu, X, ChevronRight, Zap, Bot, ArrowDownToLine, DollarSign, Coins
+  Settings, LogOut, Menu, X, ChevronRight, Zap, Bot, ArrowDownToLine, DollarSign, Coins, Trophy
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/authStore'
@@ -47,6 +47,7 @@ const navSections = [
       { href: '/admin/bonuses', label: 'Bonuses & Promos', icon: Gift },
       { href: '/admin/free-plays', label: 'Free Plays', icon: Gift },
       { href: '/admin/referrals', label: 'Referrals', icon: UserCheck },
+      { href: '/admin/testimonials', label: "Winner's Circle", icon: Trophy },
       { href: '/admin/banners', label: 'Banners', icon: Image },
       { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
     ],

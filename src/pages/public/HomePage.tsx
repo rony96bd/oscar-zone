@@ -12,6 +12,7 @@ import { useNavigate as useNav } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { BannerCarousel } from '@/components/ui/BannerCarousel'
+import { LiveActivityTicker } from '@/components/ui/LiveActivityTicker'
 
 export default function HomePage() {
   const { isAuthenticated } = useAuthStore()
@@ -132,6 +133,9 @@ export default function HomePage() {
           <BannerCarousel type="homepage" className="shadow-2xl" />
         </div>
       </section>
+
+      {/* ===== LIVE TICKER ===== */}
+      <LiveActivityTicker />
 
       {/* ===== CURRENT PROMOTION ===== */}
       {activePromo && (
