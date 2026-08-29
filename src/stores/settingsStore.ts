@@ -1,4 +1,4 @@
-﻿import { create } from 'zustand'
+import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 
 interface SettingsState {
@@ -10,12 +10,14 @@ interface SettingsState {
   supportFacebook: string
   metaTitle: string
   metaDescription: string
+  tickerPosition: 'header' | 'banner' | 'hidden'
   isLoading: boolean
   fetchSettings: () => Promise<void>
   setSiteLogoUrl: (url: string) => void
   setAllowRegistration: (allow: boolean) => void
   updateSupportSettings: (updates: Partial<SettingsState>) => void
   updateMetaSettings: (updates: Partial<SettingsState>) => void
+  updateTickerPosition: (position: 'header' | 'banner' | 'hidden') => void
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -27,6 +29,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   supportFacebook: 'https://facebook.com/oscarzone',
   metaTitle: 'Oscar Zone - Premium Gaming Top-up',
   metaDescription: 'Load your favorite games instantly with Oscar Zone. Premium gaming top-up service.',
+  tickerPosition: 'banner',
   isLoading: true,
 
   fetchSettings: async () => {
@@ -62,9 +65,17 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         
         const mTitle = data.find(d => d.key === 'meta_title')?.value
         const mDesc = data.find(d => d.key === 'meta_description')?.value
+        const tPosition = data.find(d => d.key === 'ticker_position')?.value
 
         const title = mTitle ? cleanValue(mTitle) : 'Oscar Zone - Premium Gaming Top-up'
         const desc = mDesc ? cleanValue(mDesc) : 'Load your favorite games instantly with Oscar Zone. Premium gaming top-up service.'
+        let parsedPosition: 'header' | 'banner' | 'hidden' = 'banner'
+        if (tPosition) {
+          const rawPos = cleanValue(tPosition)
+          if (rawPos === 'header' || rawPos === 'banner' || rawPos === 'hidden') {
+            parsedPosition = rawPos
+          }
+        }
 
         set({ 
           siteLogoUrl: url, 
@@ -75,6 +86,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           supportFacebook: sFacebook ? cleanValue(sFacebook) : 'https://facebook.com/oscarzone',
           metaTitle: title,
           metaDescription: desc,
+          tickerPosition: parsedPosition,
           isLoading: false 
         })
 
@@ -116,5 +128,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       document.getElementById('og-desc')?.setAttribute('content', newState.metaDescription)
       return newState
     })
+  },
+  
+  updateTickerPosition: (position: 'header' | 'banner' | 'hidden') => {
+    set({ tickerPosition: position })
   }
 }))

@@ -16,7 +16,7 @@ import { LiveActivityTicker } from '@/components/ui/LiveActivityTicker'
 
 export default function HomePage() {
   const { isAuthenticated } = useAuthStore()
-  const { allowRegistration } = useSettingsStore()
+  const { allowRegistration, tickerPosition } = useSettingsStore()
   const navigate = useNavigate()
 
   const { data: games = [] } = useQuery({
@@ -135,7 +135,7 @@ export default function HomePage() {
       </section>
 
       {/* ===== LIVE TICKER ===== */}
-      <LiveActivityTicker />
+      {tickerPosition === 'banner' && <LiveActivityTicker />}
 
       {/* ===== CURRENT PROMOTION ===== */}
       {activePromo && (

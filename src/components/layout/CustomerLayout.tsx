@@ -12,6 +12,7 @@ import { Logo } from '@/components/ui/Logo'
 import { APP_NAME } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { GlobalAnnouncements } from '@/components/ui/GlobalAnnouncements'
+import { LiveActivityTicker } from '@/components/ui/LiveActivityTicker'
 
 const publicNavLinks = [
   { href: '/', label: 'Home', icon: Home },
@@ -56,7 +57,7 @@ export function CustomerLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const { profile, isAuthenticated, isAdmin, signOut } = useAuthStore()
-  const { allowRegistration } = useSettingsStore()
+  const { allowRegistration, tickerPosition } = useSettingsStore()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -219,6 +220,12 @@ export function CustomerLayout() {
         </div>
       </header>
 
+      {tickerPosition === 'header' && (
+        <div className="fixed top-[64px] left-0 right-0 z-40">
+          <LiveActivityTicker />
+        </div>
+      )}
+
       {/* Mobile Navigation Drawer */}
       <div
         className={cn(
@@ -294,7 +301,7 @@ export function CustomerLayout() {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 pt-16 relative z-10">
+      <main className={cn("flex-1 relative z-10", tickerPosition === 'header' ? 'pt-24' : 'pt-16')}>
         <Outlet />
       </main>
       

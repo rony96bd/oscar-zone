@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users, Phone, Share2 } from 'lucide-react'
+import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users, Phone, Share2, Layout } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useThemeStore, ThemeName } from '@/stores/themeStore'
@@ -41,6 +41,11 @@ export default function AdminSettingsPage() {
   const { allowRegistration, setAllowRegistration } = useSettingsStore()
   const [selectedAllowReg, setSelectedAllowReg] = useState(allowRegistration)
   const [isSavingReg, setIsSavingReg] = useState(false)
+
+  // Ticker Settings
+  const { tickerPosition, updateTickerPosition } = useSettingsStore()
+  const [selectedTickerPos, setSelectedTickerPos] = useState<'header'|'banner'|'hidden'>(tickerPosition)
+  const [isSavingTicker, setIsSavingTicker] = useState(false)
 
   // Contact Support Settings
   const { supportEmail, supportPhone, supportTelegram, supportFacebook } = useSettingsStore()
@@ -205,6 +210,29 @@ export default function AdminSettingsPage() {
       toast.error('Failed to update registration settings')
     } finally {
       setIsSavingReg(false)
+    }
+  }
+
+  const handleSaveTicker = async () => {
+    setIsSavingTicker(true)
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          key: 'ticker_position',
+          value: selectedTickerPos,
+          description: 'Live ticker position'
+        }, { onConflict: 'key' })
+        
+      if (error) throw error
+  
+      updateTickerPosition(selectedTickerPos)
+      toast.success('Ticker settings updated.')
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Failed to update ticker settings')
+    } finally {
+      setIsSavingTicker(false)
     }
   }
 
