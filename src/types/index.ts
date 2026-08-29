@@ -73,6 +73,7 @@ export interface Game {
   banner_url: string | null
   description: string | null
   download_url: string | null
+  play_now_url: string | null
   is_active: boolean
   minimum_amount: number
   maximum_amount: number

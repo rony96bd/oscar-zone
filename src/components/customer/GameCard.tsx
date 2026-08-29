@@ -136,17 +136,35 @@ export function GameCard({ game, onLoadGame, compact = false, showDownload = tru
             </button>
           )}
 
-          {showDownload && game.download_url && (
-            <a
-              href={game.download_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-ghost-neon px-3 py-2.5 text-xs"
-              style={{ borderColor: `${theme.accent}30`, color: theme.accent }}
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              {!compact && 'Download'}
-            </a>
+          {showDownload && (game.download_url || game.play_now_url) && (
+            <div className="flex gap-1.5">
+              {game.download_url && (
+                <a
+                  href={game.download_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-ghost-neon px-3 py-2.5 text-xs"
+                  style={{ borderColor: `${theme.accent}30`, color: theme.accent }}
+                  title="Download"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  {!compact && 'Download'}
+                </a>
+              )}
+              {game.play_now_url && (
+                <a
+                  href={game.play_now_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-ghost-neon px-3 py-2.5 text-xs"
+                  style={{ borderColor: `${theme.accent}30`, color: theme.accent }}
+                  title="Play Now"
+                >
+                  <Gamepad2 className="h-3.5 w-3.5" />
+                  {!compact && 'Play Now'}
+                </a>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -162,9 +180,10 @@ interface SavedGameCardProps {
   onLoad: () => void
   logoUrl?: string | null
   downloadUrl?: string | null
+  playNowUrl?: string | null
 }
 
-export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, downloadUrl }: SavedGameCardProps) {
+export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, downloadUrl, playNowUrl }: SavedGameCardProps) {
   const theme = GAME_THEMES[gameSlug] || {
     gradient: 'from-primary/20 to-primary/5',
     glow: 'rgba(0,212,255,0.4)',
@@ -207,6 +226,19 @@ export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, d
               title={`Download ${gameName}`}
             >
               <Download className="h-4 w-4" />
+            </a>
+          )}
+          {playNowUrl && (
+            <a
+              href={playNowUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0 flex items-center justify-center gap-1.5 px-3 h-9 rounded-lg text-xs font-bold border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              style={{ color: theme.accent }}
+              title={`Play ${gameName}`}
+            >
+              <Gamepad2 className="h-4 w-4" />
+              Play
             </a>
           )}
           <button

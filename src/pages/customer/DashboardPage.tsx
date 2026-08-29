@@ -247,6 +247,7 @@ export default function DashboardPage() {
                 username={cg.username}
                 logoUrl={cg.game?.logo_url}
                 downloadUrl={cg.game?.download_url}
+                playNowUrl={cg.game?.play_now_url}
                 onLoad={() => navigate("/load", { state: { customerGameId: cg.id, gameId: cg.game_id } })}
               />
             ))}

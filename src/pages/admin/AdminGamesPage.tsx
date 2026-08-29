@@ -10,6 +10,7 @@ const EMPTY_GAME: Partial<Game> = {
   name: '',
   slug: '',
   download_url: '',
+  play_now_url: '',
   description: '',
   minimum_amount: 10,
   maximum_amount: 1000,
@@ -50,12 +51,19 @@ function GameForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Download URL</label>
+          <label className="text-xs text-muted-foreground mb-1 block">Download Link (Optional)</label>
           <div className="relative">
-            <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <ExternalLink className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input className="game-input pl-9" placeholder="https://..." value={form.download_url || ''} onChange={e => set('download_url', e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Play Now Link (Optional)</label>
+          <div className="relative">
+            <Gamepad2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input className="game-input pl-9" placeholder="https://..." value={form.play_now_url || ''} onChange={e => set('play_now_url', e.target.value)} />
           </div>
         </div>
         <div>
@@ -164,11 +172,18 @@ export default function AdminGamesPage() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">${game.minimum_amount} – ${game.maximum_amount} • {game.slug}</p>
-                  {game.download_url && (
-                    <a href={game.download_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 mt-0.5 w-fit">
-                      <ExternalLink className="h-3 w-3" /> Download Link
-                    </a>
-                  )}
+                  <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                    {game.download_url && (
+                      <a href={game.download_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 w-fit">
+                        <ExternalLink className="h-3 w-3" /> Download
+                      </a>
+                    )}
+                    {game.play_now_url && (
+                      <a href={game.play_now_url} target="_blank" rel="noopener noreferrer" className="text-xs text-neon-green hover:text-neon-green/80 flex items-center gap-1 w-fit">
+                        <Gamepad2 className="h-3 w-3" /> Play Now
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
