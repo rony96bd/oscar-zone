@@ -4,7 +4,7 @@ import { fetchFinanceReport, addFinanceLog, deleteFinanceLog } from '@/services/
 import { useAuthStore } from '@/stores/authStore'
 import { formatCurrency, formatTime } from '@/lib/utils'
 import { toast } from 'sonner'
-import { Calculator, Copy, Trash2, Plus, DollarSign, Wallet, ArrowDownRight, ArrowUpRight } from 'lucide-react'
+import { Calculator, Copy, Trash2, Plus, DollarSign, Wallet, ArrowDownRight, ArrowUpRight, Users, ShoppingBag } from 'lucide-react'
 
 export default function AdminReportsPage() {
   const { profile } = useAuthStore()
@@ -97,7 +97,8 @@ export default function AdminReportsPage() {
       {isLoading || !data ? (
         <div className="h-64 skeleton rounded-xl" />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* 1. Total Loads */}
           <div className="glass-card p-4">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-neon-green/20 text-neon-green"><ArrowDownRight className="h-5 w-5" /></div>
@@ -111,28 +112,51 @@ export default function AdminReportsPage() {
             </div>
           </div>
 
+          {/* 2. Agent Commission */}
           <div className="glass-card p-4">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-orange-500/20 text-orange-500"><Wallet className="h-5 w-5" /></div>
-              <p className="text-sm font-semibold text-muted-foreground">Point Purchases</p>
+              <div className="p-2 rounded-lg bg-orange-400/20 text-orange-400"><Users className="h-5 w-5" /></div>
+              <p className="text-sm font-semibold text-muted-foreground">Agent Commission</p>
+            </div>
+            <h3 className="text-2xl font-bold text-white">{formatCurrency(data.totalAgentCommissions)}</h3>
+            <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+              {Object.entries(data.commissionsByMethod || {}).map(([m, amt]) => (
+                <div key={m} className="flex justify-between"><span>{m}:</span><span className="text-white">{formatCurrency(amt as number)}</span></div>
+              ))}
+            </div>
+          </div>
+
+          {/* 3. Game Point Purchases */}
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-blue-400/20 text-blue-400"><ShoppingBag className="h-5 w-5" /></div>
+              <p className="text-sm font-semibold text-muted-foreground">Game Points (Cost)</p>
             </div>
             <h3 className="text-2xl font-bold text-white">{formatCurrency(data.totalPurchases)}</h3>
           </div>
 
+          {/* 4. Total Cashouts */}
           <div className="glass-card p-4">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-destructive/20 text-destructive"><ArrowUpRight className="h-5 w-5" /></div>
               <p className="text-sm font-semibold text-muted-foreground">Total Cashouts</p>
             </div>
             <h3 className="text-2xl font-bold text-white">{formatCurrency(data.totalCashouts)}</h3>
+            {data.totalExpenses > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">+{formatCurrency(data.totalExpenses)} other expenses</p>
+            )}
           </div>
 
+          {/* 5. Net Profit */}
           <div className="glass-card p-4 border-t-2 border-neon-gold">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-neon-gold/20 text-neon-gold"><DollarSign className="h-5 w-5" /></div>
               <p className="text-sm font-semibold text-muted-foreground">Net Profit</p>
             </div>
             <h3 className="text-2xl font-bold text-white">{formatCurrency(data.netProfit)}</h3>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              Loads - Agent Comm - Points - Cashouts
+            </p>
           </div>
         </div>
       )}
