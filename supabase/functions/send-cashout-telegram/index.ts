@@ -1,4 +1,4 @@
-﻿import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,13 +40,13 @@ Deno.serve(async (req) => {
     const message = [
       '\ud83d\udcb8 *NEW CASHOUT REQUEST*',
       '',
-      '\ud83c\udd94 Request: ' + request_number + '',
-      '\ud83d\udc64 Customer: ' + customer_name,
+      '\ud83c\udd94 Request: `' + request_number + '`',
+      '\ud83d\udc64 Customer: `' + customer_name + '`',
       '\ud83c\udfae Game: ' + game_name,
-      '\ud83d\udd79 Username: ' + game_username + '',
+      '\ud83d\udd79 Username: `' + game_username + '`',
       '\ud83d\udcb0 Amount: ' + formatCurrency(amount),
       '\ud83d\udcb3 Method: ' + payment_method_name,
-      '\ud83d\udccc Send To: ' + payment_detail,
+      '\ud83d\udccc Send To: `' + payment_detail + '`',
       '\ud83d\udd50 Time: ' + formatTime(),
     ].join('\n')
 
