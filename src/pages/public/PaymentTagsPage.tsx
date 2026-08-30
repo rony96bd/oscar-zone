@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, Share2, Maximize2, Info, Copy, Check, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, Share2, Maximize2, Info, Copy, Check, ShieldCheck, ExternalLink } from 'lucide-react'
 import { fetchPaymentMethods } from '@/services/payments'
 import { supabase } from '@/lib/supabase'
 import { formatDistanceToNow } from 'date-fns'
@@ -109,27 +109,39 @@ export default function PaymentTagsPage() {
                   </button>
                 </header>
 
-                {pm.tag && (
-                  <div className="mb-6 flex items-center justify-between rounded-xl bg-black/40 border border-white/5 p-4">
-                    <div>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                        Payment Tag
+                  {pm.tag && (
+                    <div className="mb-6 flex items-center justify-between rounded-xl bg-black/40 border border-white/5 p-4">
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                          Payment Tag
+                        </div>
+                        <div className="font-mono text-lg text-white font-bold">{pm.tag}</div>
                       </div>
-                      <div className="font-mono text-lg text-white font-bold">{pm.tag}</div>
+                      <button
+                        onClick={() => handleCopy(pm.tag || '', pm.id)}
+                        className={cn(
+                          "grid h-10 w-10 shrink-0 place-items-center rounded-lg transition-all",
+                          copiedId === pm.id
+                            ? "bg-neon-green/20 text-neon-green"
+                            : "bg-white/10 text-white hover:bg-white/20"
+                        )}
+                      >
+                        {copiedId === pm.id ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                      </button>
                     </div>
-                    <button
-                      onClick={() => handleCopy(pm.tag || '', pm.id)}
-                      className={cn(
-                        "grid h-10 w-10 shrink-0 place-items-center rounded-lg transition-all",
-                        copiedId === pm.id
-                          ? "bg-neon-green/20 text-neon-green"
-                          : "bg-white/10 text-white hover:bg-white/20"
-                      )}
+                  )}
+
+                  {pm.payment_link && (
+                    <a
+                      href={pm.payment_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mb-6 flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground py-3.5 px-4 font-bold transition-all hover:opacity-90 shadow-[0_0_15px_rgba(var(--primary),0.2)]"
                     >
-                      {copiedId === pm.id ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
-                    </button>
-                  </div>
-                )}
+                      <ExternalLink className="h-5 w-5" />
+                      Pay with {pm.name}
+                    </a>
+                  )}
 
                 {qrUrl && (
                   <button
