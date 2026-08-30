@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, Share2, Maximize2, Info, Copy, Check, ShieldCheck, ExternalLink } from 'lucide-react'
 import { fetchPaymentMethods } from '@/services/payments'
@@ -13,6 +13,21 @@ export default function PaymentTagsPage() {
     queryKey: ['payment-methods'],
     queryFn: fetchPaymentMethods
   })
+
+  useEffect(() => {
+    const originalTitle = document.title
+    const newTitle = 'Payment Tags - Oscar Zone'
+    document.title = newTitle
+
+    const ogTitle = document.getElementById('og-title')
+    const originalOgTitle = ogTitle?.getAttribute('content')
+    if (ogTitle) ogTitle.setAttribute('content', newTitle)
+
+    return () => {
+      document.title = originalTitle
+      if (ogTitle && originalOgTitle) ogTitle.setAttribute('content', originalOgTitle)
+    }
+  }, [])
 
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
