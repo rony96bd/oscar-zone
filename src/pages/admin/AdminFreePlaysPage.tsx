@@ -18,7 +18,7 @@ export default function AdminFreePlaysPage() {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string, status: 'approved' | 'rejected' }) => updateFreePlayRequestStatus(id, status),
     onSuccess: (data) => {
-      toast.success(Request  + data.status)
+      toast.success(`Request ${data.status} successfully`)
       queryClient.invalidateQueries({ queryKey: ['admin-free-plays'] })
     },
     onError: (err: any) => toast.error(err.message)
