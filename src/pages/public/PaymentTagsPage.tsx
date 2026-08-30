@@ -80,7 +80,7 @@ export default function PaymentTagsPage() {
 
         <div className="space-y-6">
           {paymentMethods.map((pm) => {
-            const qrUrl = pm.qr_code_url ? supabase.storage.from('payment-qr').getPublicUrl(pm.qr_code_url).data.publicUrl : null
+            const qrUrl = pm.qr_code_url || null
             const initial = pm.name.substring(0, 2)
             
             return (
