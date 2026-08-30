@@ -18,6 +18,7 @@ const publicNavLinks = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/games', label: 'Games', icon: Gamepad2 },
   { href: '/promotions', label: 'Promotions', icon: Star },
+  { href: '/payment-tags', label: 'Payment Tags', icon: Zap },
   { href: '/winners-circle', label: "Winner's Circle", icon: Trophy },
   { href: '/how-it-works', label: 'How It Works', icon: HelpCircle },
   { href: '/referral', label: 'Refer & Earn', icon: Users },
