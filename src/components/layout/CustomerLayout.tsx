@@ -104,7 +104,7 @@ export function CustomerLayout() {
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-1">
-            {(showAuthLinks ? authNavLinks.slice(0, 5) : publicNavLinks).map((link) => {
+            {navLinks.slice(0, 5).map((link) => {
               const isActive = location.pathname === link.href
               return (
                 <Link
@@ -123,14 +123,14 @@ export function CustomerLayout() {
               )
             })}
             
-            {showAuthLinks && (
+            {navLinks.length > 5 && (
               <div className="relative group">
                 <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200">
                   <MoreHorizontal className="h-4 w-4" />
                   More
                 </button>
                 <div className="absolute top-full right-0 mt-1 w-48 glass-card py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-2xl">
-                  {authNavLinks.slice(5, 9).map((link) => (
+                  {navLinks.slice(5).map((link) => (
                     <Link
                       key={link.href}
                       to={link.href}
