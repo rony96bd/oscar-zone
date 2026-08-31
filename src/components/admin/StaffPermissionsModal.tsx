@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
@@ -26,6 +26,7 @@ const ALL_PERMISSIONS: Permission[] = [
   { key: 'manage_free_plays', label: 'Manage Free Plays',    description: 'Approve or reject free play requests',          group: 'Free Plays' },
   { key: 'view_reports',      label: 'Reports & Accounting', description: 'View revenue reports and accounting data',      group: 'Reports' },
   { key: 'send_notifications',label: 'Send Notifications',   description: 'Broadcast notifications to customers',          group: 'Reports' },
+  { key: 'manage_testimonials',label: "Winner's Circle",    description: "Approve or reject Winner's Circle testimonials", group: 'Marketing' },
 ]
 
 const GROUPS = [...new Set(ALL_PERMISSIONS.map(p => p.group))]

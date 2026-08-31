@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { fetchReferralLevels } from '@/services/referrals'
@@ -6,6 +6,8 @@ import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { Users, TrendingUp, Gift, CheckCircle, Settings, Edit2, Save, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { Navigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authStore'
 
 async function fetchAllReferrals() {
   const { data, error } = await supabase
@@ -40,6 +42,12 @@ async function fetchReferralSettings() {
 }
 
 export default function AdminReferralsPage() {
+  const { isSupportAgent } = useAuthStore()
+
+  if (isSupportAgent()) {
+    return <Navigate to="/admin" replace />
+  }
+
   const qc = useQueryClient()
   const [editLevel, setEditLevel] = useState<any | null>(null)
   const [editSettings, setEditSettings] = useState(false)

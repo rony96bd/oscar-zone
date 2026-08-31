@@ -5,8 +5,16 @@ import { fetchAllTestimonials, updateTestimonialStatus } from '@/services/engage
 import { formatRelativeTime, formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { Testimonial } from '@/types'
+import { Navigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authStore'
 
 export default function AdminTestimonialsPage() {
+  const { isSupportAgent, hasPermission } = useAuthStore()
+
+  if (isSupportAgent() && !hasPermission('manage_testimonials')) {
+    return <Navigate to="/admin" replace />
+  }
+
   const qc = useQueryClient()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 

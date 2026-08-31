@@ -7,8 +7,16 @@ import { formatDate } from '@/lib/utils'
 import { PromotionModal } from '@/components/admin/PromotionModal'
 import { PromotionUsersModal } from '@/components/admin/PromotionUsersModal'
 import { AssignedUsersList } from '@/components/admin/AssignedUsersList'
+import { Navigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authStore'
 
 export default function AdminBonusesPage() {
+  const { isSupportAgent } = useAuthStore()
+
+  if (isSupportAgent()) {
+    return <Navigate to="/admin" replace />
+  }
+
   const qc = useQueryClient()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPromo, setEditingPromo] = useState<any>(null)

@@ -44,10 +44,10 @@ const navSections = [
   {
     label: 'Marketing',
     items: [
-      { href: '/admin/bonuses', label: 'Bonuses & Promos', icon: Gift, permission: null },
+      { href: '/admin/bonuses', label: 'Bonuses & Promos', icon: Gift, permission: null, adminOnly: true },
       { href: '/admin/free-plays', label: 'Free Plays', icon: Gift, permission: 'view_free_plays' },
-      { href: '/admin/referrals', label: 'Referrals', icon: UserCheck, permission: null },
-      { href: '/admin/testimonials', label: "Winner's Circle", icon: Trophy, permission: null },
+      { href: '/admin/referrals', label: 'Referrals', icon: UserCheck, permission: null, adminOnly: true },
+      { href: '/admin/testimonials', label: "Winner's Circle", icon: Trophy, permission: 'manage_testimonials' },
       { href: '/admin/banners', label: 'Banners', icon: Image, permission: null, adminOnly: true },
       { href: '/admin/announcements', label: 'Announcements', icon: Megaphone, permission: null, adminOnly: true },
     ],

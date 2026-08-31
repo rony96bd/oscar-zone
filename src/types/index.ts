@@ -15,6 +15,7 @@ export type StaffPermissionKey =
   | 'manage_free_plays'
   | 'view_reports'
   | 'send_notifications'
+  | 'manage_testimonials'
 
 export type StaffPermissions = Partial<Record<StaffPermissionKey, boolean>>
 export type OrderStatus =

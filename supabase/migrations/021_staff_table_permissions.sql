@@ -21,3 +21,7 @@ CREATE POLICY "Admins can view profiles" ON profiles FOR SELECT USING (is_admin(
 -- Orders
 DROP POLICY IF EXISTS "Admins can view orders" ON orders;
 CREATE POLICY "Admins can view orders" ON orders FOR SELECT USING (is_admin());
+
+-- Testimonials (Winner's Circle)
+DROP POLICY IF EXISTS "Admins can manage testimonials" ON testimonials;
+CREATE POLICY "Admins can manage testimonials" ON testimonials FOR ALL USING (is_admin()) WITH CHECK (is_admin());
