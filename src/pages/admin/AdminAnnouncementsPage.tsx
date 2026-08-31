@@ -5,6 +5,8 @@ import type { Announcement } from "@/types"
 import { toast } from "sonner"
 import { Plus, Pencil, Trash2, Loader2, X, CheckCircle, XCircle, BellRing, AlertTriangle, Info, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Navigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authStore'
 
 const emptyForm = {
   title: "",
@@ -17,6 +19,12 @@ const emptyForm = {
 }
 
 export default function AdminAnnouncementsPage() {
+  const { isSupportAgent } = useAuthStore()
+
+  if (isSupportAgent()) {
+    return <Navigate to="/admin" replace />
+  }
+
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)

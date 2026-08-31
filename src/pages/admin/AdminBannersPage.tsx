@@ -1,8 +1,10 @@
-﻿import { useState, useRef } from "react"
+import { useState, useRef } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { fetchAllBanners, createBanner, updateBanner, deleteBanner, uploadBannerImage } from "@/services/banners"
 import type { Banner, BannerType } from "@/types"
 import { toast } from "sonner"
+import { Navigate } from "react-router-dom"
+import { useAuthStore } from "@/stores/authStore"
 import { Plus, Pencil, Trash2, Loader2, Image as ImageIcon, ExternalLink, X, CheckCircle, XCircle, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -26,6 +28,12 @@ const emptyForm = {
 }
 
 export default function AdminBannersPage() {
+  const { isSupportAgent } = useAuthStore()
+
+  if (isSupportAgent()) {
+    return <Navigate to="/admin" replace />
+  }
+
   const qc = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
 
