@@ -190,52 +190,54 @@ export function AdminLayout() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto no-scrollbar py-4 px-2">
-        {navSections.map((section) => (
-          <div key={section.label} className="mb-4">
-            {sidebarOpen && (
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-2 mb-1">
-                {section.label}
-              </p>
-            )}
-            {section.items.map((item) => {
-              // Hide admin-only items from staff
-              if ((item as any).adminOnly && isSupportAgent()) return null;
+        {navSections.map((section) => {
+          const visibleItems = section.items.filter(item => {
+            if ((item as any).adminOnly && isSupportAgent()) return false;
+            if (item.href === '/admin/accounting' && isSupportAgent()) return false;
+            if (item.permission && isSupportAgent() && !hasPermission(item.permission as any)) return false;
+            return true;
+          });
 
-              // Hide Settlement History / Accounting from staff entirely
-              if (item.href === '/admin/accounting' && isSupportAgent()) return null;
-              
-              // Hide nav items that require a permission the staff doesn't have
-              if (item.permission && isSupportAgent() && !hasPermission(item.permission as any)) return null
-              
-              const active = isActive(item.href, (item as any).exact)
-              const badge = item.label === 'Live Chat' ? chatUnread : item.label === 'Notifications' ? notifUnread : 0
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    'sidebar-item mb-0.5',
-                    active && 'active',
-                    !sidebarOpen && 'justify-center px-2'
-                  )}
-                  title={!sidebarOpen ? item.label : undefined}
-                >
-                  <item.icon className="h-4 w-4 flex-shrink-0" />
-                  {sidebarOpen && (
-                    <>
-                      <span className="flex-1">{item.label}</span>
-                      {badge > 0 && (
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
-                          {badge > 9 ? '9+' : badge}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </Link>
-              )
-            })}
-          </div>
-        ))}
+          if (visibleItems.length === 0) return null;
+
+          return (
+            <div key={section.label} className="mb-4">
+              {sidebarOpen && (
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-2 mb-1">
+                  {section.label}
+                </p>
+              )}
+              {visibleItems.map((item) => {
+                const active = isActive(item.href, (item as any).exact)
+                const badge = item.label === 'Live Chat' ? chatUnread : item.label === 'Notifications' ? notifUnread : 0
+                return (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className={cn(
+                      'sidebar-item mb-0.5',
+                      active && 'active',
+                      !sidebarOpen && 'justify-center px-2'
+                    )}
+                    title={!sidebarOpen ? item.label : undefined}
+                  >
+                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    {sidebarOpen && (
+                      <>
+                        <span className="flex-1">{item.label}</span>
+                        {badge > 0 && (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
+                            {badge > 9 ? '9+' : badge}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          )
+        })}
       </nav>
 
       {/* User */}
