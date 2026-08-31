@@ -58,7 +58,7 @@ export default function AdminDashboardPage() {
     }
   })
 
-  if (statsLoading || accLoading) {
+  if (statsLoading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

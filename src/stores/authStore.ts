@@ -83,7 +83,7 @@ export const useAuthStore = create<AuthState>()(
         const profile = get().profile
         if (!profile) return false
         if (profile.role === 'admin' || profile.role === 'super_admin') return true
-        return profile.permissions?.[key] === true
+        return (profile.permissions as any)?.[key] === true
       },
     }),
     {

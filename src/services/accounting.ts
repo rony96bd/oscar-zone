@@ -9,8 +9,8 @@ export async function fetchActiveCycle(): Promise<AccountingCycle | null> {
     .single()
   
   if (error) {
-    if (error.code === 'PGRST116') return null
-    throw error
+    // PGRST116 = no rows found; other errors (e.g. RLS for staff) — return null silently
+    return null
   }
   return data
 }
