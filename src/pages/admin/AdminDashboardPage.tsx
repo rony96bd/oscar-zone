@@ -10,7 +10,7 @@ import { useAuthStore } from '@/stores/authStore'
 
 export default function AdminDashboardPage() {
   const queryClient = useQueryClient()
-  const profile = useAuthStore(state => state.profile)
+  const { profile, isSupportAgent } = useAuthStore()
   const [showCloseModal, setShowCloseModal] = useState(false)
   const [closeDate, setCloseDate] = useState(() => {
     const d = new Date();
@@ -98,14 +98,16 @@ export default function AdminDashboardPage() {
           <Link to="/admin/accounting" className="btn-ghost-neon px-4 py-2 flex items-center gap-2">
             <ArrowDownRight className="h-4 w-4" />
           </Link>
-          <button 
-            onClick={() => setShowCloseModal(true)}
-            className="btn-neon px-4 py-2 flex items-center gap-2"
-            disabled={!accounting?.activeCycle}
-          >
-            <Calendar className="h-4 w-4" />
-            Close Cycle
-          </button>
+          {!isSupportAgent() && (
+            <button 
+              onClick={() => setShowCloseModal(true)}
+              className="btn-neon px-4 py-2 flex items-center gap-2"
+              disabled={!accounting?.activeCycle}
+            >
+              <Calendar className="h-4 w-4" />
+              Close Cycle
+            </button>
+          )}
         </div>
       </div>
 
