@@ -1,9 +1,17 @@
-﻿import { useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { fetchAllCycles } from '@/services/accounting'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { Calendar, DollarSign, ArrowDownRight, Users, TrendingUp } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
+import { Navigate } from 'react-router-dom'
 
 export default function AdminAccountingPage() {
+  const { isSupportAgent } = useAuthStore()
+
+  if (isSupportAgent()) {
+    return <Navigate to="/admin" replace />
+  }
+
   const { data: cycles, isLoading } = useQuery({
     queryKey: ['accounting-cycles'],
     queryFn: fetchAllCycles,

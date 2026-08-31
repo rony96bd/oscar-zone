@@ -95,9 +95,11 @@ export default function AdminDashboardPage() {
               No Active Cycle (Check RLS Policies for accounting_cycles table)
             </span>
           )}
-          <Link to="/admin/accounting" className="btn-ghost-neon px-4 py-2 flex items-center gap-2">
-            <ArrowDownRight className="h-4 w-4" />
-          </Link>
+          {!isSupportAgent() && (
+            <Link to="/admin/accounting" className="btn-ghost-neon px-4 py-2 flex items-center gap-2">
+              <ArrowDownRight className="h-4 w-4" />
+            </Link>
+          )}
           {!isSupportAgent() && (
             <button 
               onClick={() => setShowCloseModal(true)}

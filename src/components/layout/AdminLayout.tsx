@@ -198,8 +198,12 @@ export function AdminLayout() {
               </p>
             )}
             {section.items.map((item) => {
+              // Hide Settlement History / Accounting from staff entirely
+              if (item.href === '/admin/accounting' && isSupportAgent()) return null;
+              
               // Hide nav items that require a permission the staff doesn't have
-              if (isSupportAgent() && item.permission && !hasPermission(item.permission as any)) return null
+              if (item.permission && isSupportAgent() && !hasPermission(item.permission as any)) return null
+              
               const active = isActive(item.href, (item as any).exact)
               const badge = item.label === 'Live Chat' ? chatUnread : item.label === 'Notifications' ? notifUnread : 0
               return (
