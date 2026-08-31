@@ -177,13 +177,14 @@ interface SavedGameCardProps {
   gameName: string
   gameSlug: string
   username: string
+  gamePassword?: string
   onLoad: () => void
   logoUrl?: string | null
   downloadUrl?: string | null
   playNowUrl?: string | null
 }
 
-export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, downloadUrl, playNowUrl }: SavedGameCardProps) {
+export function SavedGameCard({ gameName, gameSlug, username, gamePassword, onLoad, logoUrl, downloadUrl, playNowUrl }: SavedGameCardProps) {
   const theme = GAME_THEMES[gameSlug] || {
     gradient: 'from-primary/20 to-primary/5',
     glow: 'rgba(0,212,255,0.4)',
@@ -199,21 +200,25 @@ export function SavedGameCard({ gameName, gameSlug, username, onLoad, logoUrl, d
       />
       <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 w-full">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          {logoUrl ? (
-            <img src={logoUrl} alt={gameName} className="h-12 w-12 rounded-xl object-cover shrink-0" />
-          ) : (
-            <div
-              className="h-12 w-12 rounded-xl flex items-center justify-center font-bold text-sm text-white shrink-0"
-              style={{ background: `linear-gradient(135deg, ${theme.accent}40, ${theme.accent}20)`, border: `1px solid ${theme.accent}40` }}
-            >
-              {initials}
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-white text-sm truncate">{gameName}</p>
-            <p className="text-xs font-mono mt-0.5 truncate" style={{ color: theme.accent }}>
-              {username}
+          <div className="h-12 w-12 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+            {logoUrl ? (
+              <img src={logoUrl} alt={gameName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-gaming font-bold text-lg" style={{ color: theme.accent }}>{initials}</span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-gaming font-bold text-white text-base truncate pr-4">{gameName}</h3>
+            <p className="text-sm font-mono mt-0.5 break-all">
+              <span className="text-muted-foreground mr-1">ID:</span>
+              <span style={{ color: theme.accent }}>{username}</span>
             </p>
+            {gamePassword && (
+              <p className="text-xs font-mono mt-0.5 break-all">
+                <span className="text-muted-foreground mr-1">Pass:</span>
+                <span className="text-white font-bold">{gamePassword}</span>
+              </p>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">

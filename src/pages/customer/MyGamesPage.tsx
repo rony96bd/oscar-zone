@@ -105,6 +105,7 @@ export default function MyGamesPage() {
               gameName={cg.game?.name || 'Unknown Game'}
               gameSlug={cg.game?.slug || ''}
               username={cg.username}
+              gamePassword={cg.game_password}
               logoUrl={cg.game?.logo_url}
               downloadUrl={cg.game?.download_url}
               playNowUrl={cg.game?.play_now_url}

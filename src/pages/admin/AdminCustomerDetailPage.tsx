@@ -89,8 +89,8 @@ export default function AdminCustomerDetailPage() {
   })
 
   const assignGameMutation = useMutation({
-    mutationFn: (data: { gameId: string; username: string; status: string }) => 
-      assignCustomerGame(id!, data.gameId, data.username),
+    mutationFn: (data: { gameId: string; username: string; status: string; password?: string }) => 
+      assignCustomerGame(id!, data.gameId, data.username, data.password),
     onSuccess: () => {
       toast.success('Game account linked successfully')
       qc.invalidateQueries({ queryKey: ['admin-customer', id] })
@@ -272,7 +272,10 @@ export default function AdminCustomerDetailPage() {
             <div key={cg.id} className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/10">
               <div>
                 <p className="text-sm font-semibold text-white">{cg.game?.name || 'Unknown Game'}</p>
-                <p className="text-xs text-primary font-mono">{cg.username}</p>
+                <p className="text-xs font-mono mt-0.5">
+                  <span className="text-primary mr-2">{cg.username}</span>
+                  {cg.game_password && <span className="text-muted-foreground">Pass: {cg.game_password}</span>}
+                </p>
               </div>
               <span className={`text-[10px] px-2 py-1 rounded-full uppercase font-bold ${cg.status === 'active' ? 'bg-neon-green/20 text-neon-green' : 'bg-destructive/20 text-destructive'}`}>
                 {cg.status}
@@ -290,24 +293,26 @@ export default function AdminCustomerDetailPage() {
           const fd = new FormData(e.currentTarget)
           const gameId = fd.get('game_id') as string
           const username = fd.get('username') as string
+          const password = fd.get('password') as string
           if (!gameId || !username) return toast.error('Fill required fields')
-          assignGameMutation.mutate({ gameId, username, status: 'active' })
+          assignGameMutation.mutate({ gameId, username, status: 'active', password })
           e.currentTarget.reset()
         }} className="p-4 rounded-xl border border-border bg-black/20 space-y-4">
           <h3 className="text-sm font-semibold text-white">Assign New Game Account</h3>
           <div className="flex flex-col sm:flex-row gap-3">
-            <select name="game_id" className="game-input flex-1" required>
-              <option value="">-- Select Game --</option>
-              {games?.map(g => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
-            <input type="text" name="username" placeholder="In-Game Username" className="game-input flex-1" required />
-            <button type="submit" disabled={assignGameMutation.isPending} className="btn-neon px-4">
-              Add
-            </button>
-          </div>
-          <p className="text-[10px] text-muted-foreground">This username will be selectable by the customer when loading funds, and verified for guests.</p>
+              <select name="game_id" className="game-input bg-black/40" required>
+                <option value="">-- Select Game --</option>
+                {games?.map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+              <input type="text" name="username" placeholder="In-Game Username" className="game-input flex-1" required />
+              <input type="text" name="password" placeholder="Password (default: aaa111)" className="game-input flex-1" />
+              <button type="submit" disabled={assignGameMutation.isPending} className="btn-neon px-4">
+                Add
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">This username will be selectable by the customer when loading funds, and verified for guests.</p>
         </form>
       </div>
 

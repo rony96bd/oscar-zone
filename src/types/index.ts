@@ -106,6 +106,7 @@ export interface CustomerGame {
   customer_id: string
   game_id: string
   username: string
+  game_password?: string
   game_user_id: string | null
   status: 'active' | 'inactive'
   created_at: string

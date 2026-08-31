@@ -1,4 +1,4 @@
-﻿import { useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { fetchAllCustomerGames } from '@/services/games'
 import { Joystick, Search, UserPlus, Clock } from 'lucide-react'
 import { useState } from 'react'
@@ -145,8 +145,11 @@ export default function AdminCustomerGamesPage() {
                 <div key={cg.id} className="glass-card p-4 flex items-center gap-4">
                   <Joystick className="h-5 w-5 text-primary flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white text-sm">{cg.game?.name} · <span className="font-mono text-primary">{cg.username}</span></p>
-                    <p className="text-xs text-muted-foreground">{cg.profile?.full_name} · {formatRelativeTime(cg.created_at)}</p>
+                    <p className="font-semibold text-white text-sm">
+                      {cg.game?.name} • <span className="font-mono text-primary">{cg.username}</span>
+                      {cg.game_password && <span className="text-xs text-muted-foreground ml-2">Pass: {cg.game_password}</span>}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{cg.profile?.full_name} • {formatRelativeTime(cg.created_at)}</p>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full border ${cg.status === 'active' ? 'bg-neon-green/20 text-neon-green border-neon-green/30' : 'bg-muted text-muted-foreground border-border'}`}>{cg.status}</span>
                 </div>

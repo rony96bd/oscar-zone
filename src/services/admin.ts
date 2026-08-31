@@ -112,10 +112,16 @@ export async function updateCustomerBonus(customerId: string, bonusPct: number):
   if (error) throw error
 }
 
-export async function assignCustomerGame(customerId: string, gameId: string, username: string): Promise<void> {
+export async function assignCustomerGame(customerId: string, gameId: string, username: string, gamePassword?: string): Promise<void> {
   const { error } = await supabase
     .from('customer_games')
-    .insert({ customer_id: customerId, game_id: gameId, username, status: 'active' })
+    .insert({ 
+      customer_id: customerId, 
+      game_id: gameId, 
+      username, 
+      game_password: gamePassword || 'aaa111', 
+      status: 'active' 
+    })
   if (error) throw error
 }
 
