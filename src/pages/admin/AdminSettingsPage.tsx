@@ -28,7 +28,16 @@ const THEMES = [
   }
 ]
 
+import { Navigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authStore'
+
 export default function AdminSettingsPage() {
+  const { isSupportAgent } = useAuthStore()
+
+  if (isSupportAgent()) {
+    return <Navigate to="/admin" replace />
+  }
+
   const { theme: currentTheme, fetchTheme, setTheme: setGlobalTheme } = useThemeStore()
   const { siteLogoUrl, setSiteLogoUrl, fetchSettings, updateSupportSettings, updateMetaSettings, metaTitle, metaDescription } = useSettingsStore()
   

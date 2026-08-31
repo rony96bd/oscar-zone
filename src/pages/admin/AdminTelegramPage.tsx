@@ -3,8 +3,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Bot, Plus, TestTube, Trash2 } from 'lucide-react'
+import { Navigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authStore'
 
 export default function AdminTelegramPage() {
+  const { isSupportAgent } = useAuthStore()
+
+  if (isSupportAgent()) {
+    return <Navigate to="/admin" replace />
+  }
+
   const qc = useQueryClient()
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ name: '', chat_id: '', description: '' })

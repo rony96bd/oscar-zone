@@ -56,12 +56,12 @@ const navSections = [
     label: 'System',
     items: [
       { href: '/admin/notifications', label: 'Notifications', icon: Bell, permission: 'send_notifications' },
-      { href: '/admin/telegram', label: 'Telegram', icon: Bot, permission: null },
+      { href: '/admin/telegram', label: 'Telegram', icon: Bot, permission: null, adminOnly: true },
       { href: '/admin/reports', label: 'Reports', icon: BarChart3, permission: 'view_reports' },
       { href: '/admin/accounting', label: 'Accounting', icon: DollarSign, permission: 'view_reports' },
-      { href: '/admin/users', label: 'Admin Users', icon: Shield, permission: null },
-      { href: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList, permission: null },
-      { href: '/admin/settings', label: 'Settings', icon: Settings, permission: null },
+      { href: '/admin/users', label: 'Admin Users', icon: Shield, permission: null, adminOnly: true },
+      { href: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList, permission: null, adminOnly: true },
+      { href: '/admin/settings', label: 'Settings', icon: Settings, permission: null, adminOnly: true },
     ],
   },
 ]
@@ -198,6 +198,9 @@ export function AdminLayout() {
               </p>
             )}
             {section.items.map((item) => {
+              // Hide admin-only items from staff
+              if ((item as any).adminOnly && isSupportAgent()) return null;
+
               // Hide Settlement History / Accounting from staff entirely
               if (item.href === '/admin/accounting' && isSupportAgent()) return null;
               

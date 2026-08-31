@@ -6,8 +6,16 @@ import { formatRelativeTime, cn } from '@/lib/utils'
 import { CreateUserModal } from '@/components/admin/CreateUserModal'
 import { StaffPermissionsModal } from '@/components/admin/StaffPermissionsModal'
 import type { Profile } from '@/types'
+import { Navigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authStore'
 
 export default function AdminUsersPage() {
+  const { isSupportAgent } = useAuthStore()
+
+  if (isSupportAgent()) {
+    return <Navigate to="/admin" replace />
+  }
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedStaff, setSelectedStaff] = useState<Profile | null>(null)
 
