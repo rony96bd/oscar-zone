@@ -299,20 +299,20 @@ export default function AdminCustomerDetailPage() {
           e.currentTarget.reset()
         }} className="p-4 rounded-xl border border-border bg-black/20 space-y-4">
           <h3 className="text-sm font-semibold text-white">Assign New Game Account</h3>
-          <div className="flex flex-col sm:flex-row gap-3">
-              <select name="game_id" className="game-input bg-black/40" required>
-                <option value="">-- Select Game --</option>
-                {games?.map(g => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
-                ))}
-              </select>
-              <input type="text" name="username" placeholder="In-Game Username" className="game-input flex-1" required />
-              <input type="text" name="password" placeholder="Password (default: aaa111)" className="game-input flex-1" />
-              <button type="submit" disabled={assignGameMutation.isPending} className="btn-neon px-4">
-                Add
-              </button>
-            </div>
-            <p className="text-[10px] text-muted-foreground">This username will be selectable by the customer when loading funds, and verified for guests.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <select name="game_id" className="game-input bg-black/40 sm:col-span-2" required>
+              <option value="">-- Select Game --</option>
+              {games?.map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+            <input type="text" name="username" placeholder="In-Game Username" className="game-input" required />
+            <input type="text" name="password" placeholder="Password (default: aaa111)" className="game-input" />
+          </div>
+          <button type="submit" disabled={assignGameMutation.isPending} className="btn-neon w-full py-2.5">
+            Add Account
+          </button>
+          <p className="text-[10px] text-muted-foreground text-center">This username will be selectable by the customer when loading funds, and verified for guests.</p>
         </form>
       </div>
 
