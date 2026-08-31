@@ -1,5 +1,22 @@
 export type UserRole = 'customer' | 'admin' | 'super_admin' | 'support_agent'
 export type AccountStatus = 'active' | 'suspended' | 'restricted' | 'pending'
+
+export type StaffPermissionKey =
+  | 'view_orders'
+  | 'manage_orders'
+  | 'view_cashout'
+  | 'manage_cashout'
+  | 'view_customers'
+  | 'manage_customers'
+  | 'view_chat'
+  | 'view_games'
+  | 'manage_games'
+  | 'view_free_plays'
+  | 'manage_free_plays'
+  | 'view_reports'
+  | 'send_notifications'
+
+export type StaffPermissions = Partial<Record<StaffPermissionKey, boolean>>
 export type OrderStatus =
   | 'pending_payment_review'
   | 'payment_verified'
@@ -61,6 +78,7 @@ export interface Profile {
   custom_bonus_percentage: number | null
   notes: string | null
   last_login: string | null
+  permissions: StaffPermissions
   created_at: string
   updated_at: string
 }

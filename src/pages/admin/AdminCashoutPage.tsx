@@ -6,6 +6,7 @@ import { sendNotificationToUser } from '@/services/notifications'
 import { getScreenshotUrl } from '@/services/payments'
 import { formatCurrency, formatRelativeTime, cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { usePermission } from '@/hooks/usePermission'
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected'
 
@@ -13,6 +14,7 @@ export default function AdminCashoutPage() {
   const [filter, setFilter] = useState<FilterStatus>('pending')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [noteMap, setNoteMap] = useState<Record<string, string>>({})
+  const canManage = usePermission('manage_cashout')
   const [qrUrls, setQrUrls] = useState<Record<string, string>>({})
   const qc = useQueryClient()
 
@@ -147,7 +149,7 @@ export default function AdminCashoutPage() {
                         <ImageIcon className="h-3 w-3" /> View QR
                       </button>
                     )}
-                    {req.status === 'pending' && (
+                    {req.status === 'pending' && canManage && (
                       <button onClick={() => setExpandedId(expandedId === req.id ? null : req.id)}
                         className="flex-shrink-0 flex items-center gap-1 text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary/10 transition-colors">
                         Action {expandedId === req.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -156,7 +158,7 @@ export default function AdminCashoutPage() {
                   </div>
                 </div>
 
-                {expandedId === req.id && req.status === 'pending' && (
+                {expandedId === req.id && req.status === 'pending' && canManage && (
                   <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/10 space-y-3">
                     <div>
                       <label className="block text-xs text-muted-foreground mb-1.5">Admin Note (optional, shown to customer)</label>

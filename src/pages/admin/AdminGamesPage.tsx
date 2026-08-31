@@ -5,6 +5,7 @@ import { Gamepad2, Plus, Edit, ExternalLink, Check, X, Save, Loader2, Link as Li
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { Game } from '@/types'
+import { usePermission } from '@/hooks/usePermission'
 
 const EMPTY_GAME: Partial<Game> = {
   name: '',
@@ -107,6 +108,7 @@ export default function AdminGamesPage() {
   const qc = useQueryClient()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [addingNew, setAddingNew] = useState(false)
+  const canManage = usePermission('manage_games')
 
   const { data: games = [], isLoading } = useQuery({
     queryKey: ['admin-games'],
@@ -135,9 +137,11 @@ export default function AdminGamesPage() {
           <h1 className="text-2xl font-gaming font-bold text-white">Games</h1>
           <p className="text-sm text-muted-foreground">Manage game platforms and loading limits</p>
         </div>
-        <button onClick={() => { setAddingNew(true); setEditingId(null) }} className="btn-neon text-sm px-4 py-2">
-          <Plus className="h-4 w-4" /> Add Game
-        </button>
+        {canManage && (
+          <button onClick={() => { setAddingNew(true); setEditingId(null) }} className="btn-neon text-sm px-4 py-2">
+            <Plus className="h-4 w-4" /> Add Game
+          </button>
+        )}
       </div>
 
       {addingNew && (

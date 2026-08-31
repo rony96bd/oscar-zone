@@ -9,6 +9,7 @@ import { getScreenshotSignedUrl } from '@/services/r2'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { OrderStatus } from '@/types'
+import { usePermission } from '@/hooks/usePermission'
 
 function ScreenshotViewer({ path }: { path: string }) {
   const { data: url, isLoading } = useQuery({
@@ -36,6 +37,7 @@ function ScreenshotViewer({ path }: { path: string }) {
 export default function AdminOrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const canManage = usePermission('manage_orders')
   const qc = useQueryClient()
   const [note, setNote] = useState('')
   const [migrateUserId, setMigrateUserId] = useState('')
@@ -131,7 +133,7 @@ export default function AdminOrderDetailPage() {
       </div>
 
       {/* Status Actions */}
-      {allowedTransitions.length > 0 && (
+      {allowedTransitions.length > 0 && canManage && (
         <div className="glass-card p-6">
           <h2 className="font-semibold text-white mb-4">Update Status</h2>
           <textarea

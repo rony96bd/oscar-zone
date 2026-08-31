@@ -19,49 +19,49 @@ const navSections = [
   {
     label: 'Overview',
     items: [
-      { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+      { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true, permission: null },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
-      { href: '/admin/cashout', label: 'Cashout', icon: ArrowDownToLine },
-      { href: '/admin/cashout-rules', label: 'Cashout Rules', icon: ShieldCheck },
-      { href: '/admin/customers', label: 'Customers', icon: Users },
-      { href: '/admin/chat', label: 'Live Chat', icon: MessageCircle },
+      { href: '/admin/orders', label: 'Orders', icon: ShoppingBag, permission: 'view_orders' },
+      { href: '/admin/cashout', label: 'Cashout', icon: ArrowDownToLine, permission: 'view_cashout' },
+      { href: '/admin/cashout-rules', label: 'Cashout Rules', icon: ShieldCheck, permission: 'manage_cashout' },
+      { href: '/admin/customers', label: 'Customers', icon: Users, permission: 'view_customers' },
+      { href: '/admin/chat', label: 'Live Chat', icon: MessageCircle, permission: 'view_chat' },
     ],
   },
   {
     label: 'Catalog',
     items: [
-      { href: '/admin/games', label: 'Games', icon: Gamepad2 },
-      { href: '/admin/customer-games', label: 'Player Accounts', icon: Joystick },
-      { href: '/admin/point-purchases', label: 'Load Game Points', icon: Coins },
-      { href: '/admin/payment-methods', label: 'Payments', icon: CreditCard },
+      { href: '/admin/games', label: 'Games', icon: Gamepad2, permission: 'view_games' },
+      { href: '/admin/customer-games', label: 'Player Accounts', icon: Joystick, permission: 'view_games' },
+      { href: '/admin/point-purchases', label: 'Load Game Points', icon: Coins, permission: 'manage_games' },
+      { href: '/admin/payment-methods', label: 'Payments', icon: CreditCard, permission: 'manage_orders' },
     ],
   },
   {
     label: 'Marketing',
     items: [
-      { href: '/admin/bonuses', label: 'Bonuses & Promos', icon: Gift },
-      { href: '/admin/free-plays', label: 'Free Plays', icon: Gift },
-      { href: '/admin/referrals', label: 'Referrals', icon: UserCheck },
-      { href: '/admin/testimonials', label: "Winner's Circle", icon: Trophy },
-      { href: '/admin/banners', label: 'Banners', icon: Image },
-      { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
+      { href: '/admin/bonuses', label: 'Bonuses & Promos', icon: Gift, permission: null },
+      { href: '/admin/free-plays', label: 'Free Plays', icon: Gift, permission: 'view_free_plays' },
+      { href: '/admin/referrals', label: 'Referrals', icon: UserCheck, permission: null },
+      { href: '/admin/testimonials', label: "Winner's Circle", icon: Trophy, permission: null },
+      { href: '/admin/banners', label: 'Banners', icon: Image, permission: null },
+      { href: '/admin/announcements', label: 'Announcements', icon: Megaphone, permission: null },
     ],
   },
   {
     label: 'System',
     items: [
-      { href: '/admin/notifications', label: 'Notifications', icon: Bell },
-      { href: '/admin/telegram', label: 'Telegram', icon: Bot },
-      { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
-      { href: '/admin/accounting', label: 'Accounting', icon: DollarSign },
-      { href: '/admin/users', label: 'Admin Users', icon: Shield },
-      { href: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList },
-      { href: '/admin/settings', label: 'Settings', icon: Settings },
+      { href: '/admin/notifications', label: 'Notifications', icon: Bell, permission: 'send_notifications' },
+      { href: '/admin/telegram', label: 'Telegram', icon: Bot, permission: null },
+      { href: '/admin/reports', label: 'Reports', icon: BarChart3, permission: 'view_reports' },
+      { href: '/admin/accounting', label: 'Accounting', icon: DollarSign, permission: 'view_reports' },
+      { href: '/admin/users', label: 'Admin Users', icon: Shield, permission: null },
+      { href: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList, permission: null },
+      { href: '/admin/settings', label: 'Settings', icon: Settings, permission: null },
     ],
   },
 ]
@@ -126,7 +126,7 @@ export function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [logoError, setLogoError] = useState(false)
-  const { profile, signOut } = useAuthStore()
+  const { profile, signOut, hasPermission, isSupportAgent } = useAuthStore()
   const { unreadCount: chatUnread, setConversations } = useChatStore()
   const { unreadCount: notifUnread } = useNotificationStore()
   const location = useLocation()
@@ -198,6 +198,8 @@ export function AdminLayout() {
               </p>
             )}
             {section.items.map((item) => {
+              // Hide nav items that require a permission the staff doesn't have
+              if (isSupportAgent() && item.permission && !hasPermission(item.permission as any)) return null
               const active = isActive(item.href, (item as any).exact)
               const badge = item.label === 'Live Chat' ? chatUnread : item.label === 'Notifications' ? notifUnread : 0
               return (

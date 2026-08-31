@@ -1,12 +1,15 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchCustomers } from '@/services/admin'
-import { Shield, Plus } from 'lucide-react'
+import { Shield, Plus, ShieldCheck } from 'lucide-react'
 import { formatRelativeTime, cn } from '@/lib/utils'
 import { CreateUserModal } from '@/components/admin/CreateUserModal'
+import { StaffPermissionsModal } from '@/components/admin/StaffPermissionsModal'
+import type { Profile } from '@/types'
 
 export default function AdminUsersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedStaff, setSelectedStaff] = useState<Profile | null>(null)
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['admin-users'],
@@ -65,12 +68,30 @@ export default function AdminUsersPage() {
                 {user.telegram && <p>Telegram: {user.telegram}</p>}
                 <p>Created: {formatRelativeTime(user.created_at)}</p>
               </div>
+
+              {user.role === 'support_agent' && (
+                <button
+                  onClick={() => setSelectedStaff(user as Profile)}
+                  className="mt-1 w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Edit Permissions
+                </button>
+              )}
             </div>
           ))}
         </div>
       )}
 
       <CreateUserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} defaultRole="support_agent" />
+
+      {selectedStaff && (
+        <StaffPermissionsModal
+          staff={selectedStaff}
+          isOpen={!!selectedStaff}
+          onClose={() => setSelectedStaff(null)}
+        />
+      )}
     </div>
   )
 }

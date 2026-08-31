@@ -5,10 +5,12 @@ import { Calendar, CheckCircle, XCircle, Search, Gift } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { FreePlayRequest } from '@/types'
+import { usePermission } from '@/hooks/usePermission'
 
 export default function AdminFreePlaysPage() {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
+  const canManage = usePermission('manage_free_plays')
 
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ['admin-free-plays'],
@@ -109,7 +111,7 @@ export default function AdminFreePlaysPage() {
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      {req.status === 'pending' && (
+                      {req.status === 'pending' && canManage && (
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => {

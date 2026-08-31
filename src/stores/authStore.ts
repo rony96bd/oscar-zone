@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Profile, UserRole } from '@/types'
+import type { Profile, UserRole, StaffPermissionKey } from '@/types'
 import { supabase } from '@/lib/supabase'
 
 interface AuthState {
@@ -16,6 +16,7 @@ interface AuthState {
   isAdmin: () => boolean
   isCustomer: () => boolean
   isSupportAgent: () => boolean
+  hasPermission: (key: StaffPermissionKey) => boolean
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -75,6 +76,14 @@ export const useAuthStore = create<AuthState>()(
 
       isSupportAgent: () => {
         return get().profile?.role === 'support_agent'
+      },
+
+      // Admins always have all permissions; staff only if explicitly granted
+      hasPermission: (key: StaffPermissionKey) => {
+        const profile = get().profile
+        if (!profile) return false
+        if (profile.role === 'admin' || profile.role === 'super_admin') return true
+        return profile.permissions?.[key] === true
       },
     }),
     {

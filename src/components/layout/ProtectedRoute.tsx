@@ -8,11 +8,11 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, redirectTo = '/login' }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, isAdmin } = useAuthStore()
+  const { isAuthenticated, isLoading, isAdmin, isSupportAgent } = useAuthStore()
 
   if (isLoading) return <PageLoader />
   if (!isAuthenticated) return <Navigate to={redirectTo} replace />
-  if (isAdmin()) return <Navigate to="/admin" replace />
+  if (isAdmin() || isSupportAgent()) return <Navigate to="/admin" replace />
 
   const { profile } = useAuthStore.getState()
   if (profile && (profile.account_status === 'pending' || profile.account_status === 'suspended' || profile.account_status === 'restricted')) {
@@ -26,11 +26,11 @@ export function ProtectedRoute({ children, redirectTo = '/login' }: ProtectedRou
 }
 
 export function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, isAdmin } = useAuthStore()
+  const { isAuthenticated, isLoading, isAdmin, isSupportAgent } = useAuthStore()
 
   if (isLoading) return <PageLoader />
   if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (!isAdmin()) return <Navigate to="/dashboard" replace />
+  if (!isAdmin() && !isSupportAgent()) return <Navigate to="/dashboard" replace />
 
   return <>{children}</>
 }

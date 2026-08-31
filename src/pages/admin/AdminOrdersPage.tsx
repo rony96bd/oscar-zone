@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchOrders, updateOrderStatus, migrateGuestOrderToUser } from '@/services/orders'
@@ -7,6 +7,7 @@ import { cn, formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderSt
 import { toast } from 'sonner'
 import type { OrderStatus } from '@/types'
 import { CreateOrderModal } from '@/components/admin/CreateOrderModal'
+import { usePermission } from '@/hooks/usePermission'
 
 const STATUS_OPTIONS: { label: string; value: string }[] = [
   { label: 'All Orders', value: '' },
@@ -45,6 +46,8 @@ export default function AdminOrdersPage() {
     },
     onError: () => toast.error('Failed to update status'),
   })
+
+  const canManage = usePermission('manage_orders')
 
   const QUICK_ACTIONS: { label: string; status: OrderStatus; icon: any; color: string }[] = [
     { label: 'Approve', status: 'completed', icon: CheckCircle, color: 'text-neon-green' },
@@ -111,8 +114,8 @@ export default function AdminOrdersPage() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="flex gap-1 flex-wrap">
-                  {QUICK_ACTIONS.filter(a => {
+                <div className="flex gap-1 flex-wrap flex-col sm:flex-row">
+                  {canManage && QUICK_ACTIONS.filter(a => {
                     const allowed: Record<string, string[]> = {
                       pending_payment_review: ['completed', 'rejected'],
                     }
