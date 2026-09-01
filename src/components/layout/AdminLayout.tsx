@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, Gamepad2, Joystick,
   Gift, CreditCard, UserCheck, MessageCircle, Bell, Send,
   Image, Megaphone, BarChart3, Shield, ClipboardList, ShieldCheck,
-  Settings, LogOut, Menu, X, ChevronRight, Zap, Bot, ArrowDownToLine, DollarSign, Coins, Trophy
+  Settings, LogOut, Menu, X, ChevronRight, Zap, Bot, ArrowDownToLine, DollarSign, Coins, Trophy, Activity
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/authStore'
@@ -58,6 +58,7 @@ const navSections = [
       { href: '/admin/notifications', label: 'Notifications', icon: Bell, permission: 'send_notifications' },
       { href: '/admin/telegram', label: 'Telegram', icon: Bot, permission: null, adminOnly: true },
       { href: '/admin/reports', label: 'Reports', icon: BarChart3, permission: 'view_reports' },
+      { href: '/admin/staff-performance', label: 'Staff Performance', icon: Activity, permission: null, adminOnly: true },
       { href: '/admin/accounting', label: 'Accounting', icon: DollarSign, permission: 'view_reports' },
       { href: '/admin/users', label: 'Admin Users', icon: Shield, permission: null, adminOnly: true },
       { href: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList, permission: null, adminOnly: true },

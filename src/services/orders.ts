@@ -69,11 +69,15 @@ export async function fetchOrderById(id: string): Promise<Order | null> {
 export async function updateOrderStatus(
   orderId: string,
   status: OrderStatus,
-  note?: string
+  note?: string,
+  staffId?: string
 ): Promise<void> {
   const updates: any = { status }
   if (note) updates.admin_note = note
   if (status === 'rejected') updates.rejection_reason = note
+  if (staffId && (status === 'completed' || status === 'rejected')) {
+    updates.processed_by = staffId
+  }
 
   const { error } = await supabase
     .from('orders')

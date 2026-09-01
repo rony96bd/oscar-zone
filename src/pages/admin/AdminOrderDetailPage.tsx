@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import type { OrderStatus } from '@/types'
 import { usePermission } from '@/hooks/usePermission'
+import { useAuthStore } from '@/stores/authStore'
 
 function ScreenshotViewer({ path }: { path: string }) {
   const { data: url, isLoading } = useQuery({
@@ -42,6 +43,8 @@ export default function AdminOrderDetailPage() {
   const [note, setNote] = useState('')
   const [migrateUserId, setMigrateUserId] = useState('')
 
+  const { profile } = useAuthStore()
+
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', id],
     queryFn: () => fetchOrderById(id!),
@@ -50,7 +53,7 @@ export default function AdminOrderDetailPage() {
 
   const statusMutation = useMutation({
     mutationFn: ({ status, note }: { status: OrderStatus; note?: string }) =>
-      updateOrderStatus(id!, status, note),
+      updateOrderStatus(id!, status, note, profile?.id),
     onSuccess: () => { 
       toast.success('Status updated'); 
       qc.invalidateQueries({ queryKey: ['order', id] }) 

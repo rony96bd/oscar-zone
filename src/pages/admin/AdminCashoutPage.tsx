@@ -7,6 +7,7 @@ import { getScreenshotUrl } from '@/services/payments'
 import { formatCurrency, formatRelativeTime, cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
+import { useAuthStore } from '@/stores/authStore'
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected'
 
@@ -17,6 +18,7 @@ export default function AdminCashoutPage() {
   const canManage = usePermission('manage_cashout')
   const [qrUrls, setQrUrls] = useState<Record<string, string>>({})
   const qc = useQueryClient()
+  const { profile } = useAuthStore()
 
   const [previewQrUrl, setPreviewQrUrl] = useState<string | null>(null)
 
@@ -40,7 +42,7 @@ export default function AdminCashoutPage() {
   const statusMutation = useMutation({
     mutationFn: async ({ id, status, userId, requestNumber }: { id: string; status: 'approved' | 'rejected'; userId: string; requestNumber: string }) => {
       const note = noteMap[id]
-      await updateCashoutStatus(id, status, note)
+      await updateCashoutStatus(id, status, note, profile?.id)
       const title = status === 'approved' ? 'Cashout Approved' : 'Cashout Rejected'
       const message = status === 'approved'
         ? `Your cashout request ${requestNumber} has been approved. Payment will be processed shortly.`

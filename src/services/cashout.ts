@@ -66,11 +66,16 @@ export async function fetchAllCashoutRequests(status?: string): Promise<CashoutR
 export async function updateCashoutStatus(
   id: string,
   status: 'approved' | 'rejected',
-  adminNote?: string
+  adminNote?: string,
+  staffId?: string
 ): Promise<void> {
+  const updates: any = { status, admin_note: adminNote || null, updated_at: new Date().toISOString() }
+  if (staffId) {
+    updates.processed_by = staffId
+  }
   const { error } = await supabase
     .from('cashout_requests')
-    .update({ status, admin_note: adminNote || null, updated_at: new Date().toISOString() })
+    .update(updates)
     .eq('id', id)
   if (error) throw error
 }
