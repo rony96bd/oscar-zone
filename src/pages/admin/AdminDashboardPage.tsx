@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAdminStats } from '@/services/admin'
-import { fetchActiveAccountingStats, closeAccountingCycle } from '@/services/accounting'
-import { ShoppingBag, Users, DollarSign, TrendingUp, Clock, Calendar, Wallet, ArrowDownRight } from 'lucide-react'
+import { fetchActiveAccountingStats, closeAccountingCycle, undoLastAccountingCycle } from '@/services/accounting'
+import { ShoppingBag, Users, DollarSign, TrendingUp, Clock, Calendar, Wallet, ArrowDownRight, RotateCcw } from 'lucide-react'
 import { formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel, cn } from '@/lib/utils'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -26,6 +26,17 @@ export default function AdminDashboardPage() {
   const { data: accounting, isLoading: accLoading, error: accError } = useQuery({
     queryKey: ['active-accounting'],
     queryFn: fetchActiveAccountingStats,
+  })
+
+  const undoMutation = useMutation({
+    mutationFn: undoLastAccountingCycle,
+    onSuccess: () => {
+      toast.success('Last close cycle undone successfully!')
+      queryClient.invalidateQueries({ queryKey: ['active-accounting'] })
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to undo cycle')
+    }
   })
 
   const closeMutation = useMutation({
@@ -102,14 +113,28 @@ export default function AdminDashboardPage() {
             </Link>
           )}
           {!isSupportAgent() && (
-            <button 
-              onClick={() => setShowCloseModal(true)}
-              className="btn-neon px-4 py-2 flex items-center gap-2"
-              disabled={!accounting?.activeCycle}
-            >
-              <Calendar className="h-4 w-4" />
-              Close Cycle
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to undo the last Close Cycle? This will restore the previous cycle and delete the current one.')) {
+                    undoMutation.mutate()
+                  }
+                }}
+                className="btn-ghost-neon px-4 py-2 flex items-center gap-2 text-red-400 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400"
+                disabled={undoMutation.isPending}
+              >
+                <RotateCcw className="h-4 w-4" />
+                Undo Last Close
+              </button>
+              <button 
+                onClick={() => setShowCloseModal(true)}
+                className="btn-neon px-4 py-2 flex items-center gap-2"
+                disabled={!accounting?.activeCycle}
+              >
+                <Calendar className="h-4 w-4" />
+                Close Cycle
+              </button>
+            </div>
           )}
         </div>
       </div>

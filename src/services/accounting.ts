@@ -64,6 +64,58 @@ export async function closeAccountingCycle(cycleId: string, data: CloseCycleData
   if (newCycleError) throw newCycleError
 }
 
+export async function undoLastAccountingCycle(): Promise<void> {
+  // 1. Get current active cycle
+  const { data: activeCycle, error: activeError } = await supabase
+    .from('accounting_cycles')
+    .select('id')
+    .eq('status', 'active')
+    .single()
+    
+  if (activeError) throw activeError
+
+  // 2. Get most recently closed cycle
+  const { data: closedCycles, error: closedError } = await supabase
+    .from('accounting_cycles')
+    .select('id')
+    .eq('status', 'closed')
+    .order('end_date', { ascending: false })
+    .limit(1)
+    
+  if (closedError) throw closedError
+  if (!closedCycles || closedCycles.length === 0) {
+    throw new Error('No closed cycle found to undo')
+  }
+
+  const lastClosedCycle = closedCycles[0]
+
+  // 3. Delete active cycle
+  const { error: deleteError } = await supabase
+    .from('accounting_cycles')
+    .delete()
+    .eq('id', activeCycle.id)
+    
+  if (deleteError) throw deleteError
+
+  // 4. Restore the last closed cycle
+  const { error: restoreError } = await supabase
+    .from('accounting_cycles')
+    .update({
+      status: 'active',
+      end_date: null,
+      total_deposits: 0,
+      total_cashouts: 0,
+      total_agent_commissions: 0,
+      total_game_points_cost: 0,
+      total_expenses: 0,
+      net_profit: 0,
+      closed_by: null
+    })
+    .eq('id', lastClosedCycle.id)
+    
+  if (restoreError) throw restoreError
+}
+
 export interface AccountingStats {
   activeCycle: AccountingCycle | null
   totalDeposits: number
