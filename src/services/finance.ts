@@ -77,6 +77,17 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
     if (log.type === 'cashout') totalCashouts += amt
     else if (log.type === 'point_purchase') totalPurchases += amt
     else if (log.type === 'other_expense') totalExpenses += amt
+    else if (log.type === 'manual_load') {
+      totalLoads += amt
+      // Note: We don't add this to loadsByMethod or commissionsByMethod because manual loads have unknown methods, 
+      // but if the admin wrote the method name matching a real one, we could parse it. 
+      // For now, just adding to totalLoads is sufficient for net profit.
+      if (log.method) {
+        loadsByMethod[log.method] = (loadsByMethod[log.method] || 0) + amt
+      } else {
+        loadsByMethod['Manual Load'] = (loadsByMethod['Manual Load'] || 0) + amt
+      }
+    }
   })
 
   const netProfit = totalLoads - totalAgentCommissions - totalCashouts - totalPurchases - totalExpenses
@@ -95,7 +106,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
 }
 
 export async function addFinanceLog(payload: {
-  type: 'cashout' | 'point_purchase' | 'other_expense'
+  type: 'cashout' | 'point_purchase' | 'other_expense' | 'manual_load'
   amount: number
   method?: string
   note?: string

@@ -166,6 +166,14 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
     if (log.type === 'cashout') totalCashouts += amt
     else if (log.type === 'point_purchase') totalGamePointsCost += amt
     else if (log.type === 'other_expense') totalExpenses += amt
+    else if (log.type === 'manual_load') {
+      totalDeposits += amt
+      if (log.method) {
+        depositsByMethod[log.method] = (depositsByMethod[log.method] || 0) + amt
+      } else {
+        depositsByMethod['Manual Load'] = (depositsByMethod['Manual Load'] || 0) + amt
+      }
+    }
   });
   
   const netProfit = totalDeposits - totalAgentCommissions - totalCashouts - totalGamePointsCost - totalExpenses;

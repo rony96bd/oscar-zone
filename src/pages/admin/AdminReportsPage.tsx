@@ -15,7 +15,7 @@ export default function AdminReportsPage() {
   const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0])
   
   const [isAdding, setIsAdding] = useState(false)
-  const [type, setType] = useState<'cashout' | 'point_purchase' | 'other_expense'>('cashout')
+  const [type, setType] = useState<'cashout' | 'point_purchase' | 'other_expense' | 'manual_load'>('cashout')
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState('')
   const [note, setNote] = useState('')
@@ -178,6 +178,7 @@ export default function AdminReportsPage() {
               <option value="cashout">Cashout</option>
               <option value="point_purchase">Point Purchase</option>
               <option value="other_expense">Other Expense</option>
+              <option value="manual_load">Manual Load (Deposit)</option>
             </select>
           </div>
           <div className="flex-1 w-full">
