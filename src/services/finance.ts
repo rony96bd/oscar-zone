@@ -1,8 +1,9 @@
 import { supabase } from '@/lib/supabase'
 
 export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
-  const fromISO = dateFrom + 'T00:00:00.000Z'
-  const toISO   = dateTo   + 'T23:59:59.999Z'
+  // Use local browser timezone to calculate correct UTC bounds
+  const fromISO = new Date(`${dateFrom}T00:00:00`).toISOString()
+  const toISO   = new Date(`${dateTo}T23:59:59.999`).toISOString()
 
   // 1. Completed orders in date range
   const { data: orders, error: orderError } = await supabase
@@ -64,16 +65,18 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
   })
 
   // ---- Cashouts (real data) ----
-  const totalCashouts = (cashouts || []).reduce((sum, c) => sum + Number(c.amount), 0)
+  let totalCashouts = (cashouts || []).reduce((sum, c) => sum + Number(c.amount), 0)
 
   // ---- Point Purchases (real data) ----
-  const totalPurchases = (purchases || []).reduce((sum, p) => sum + Number(p.amount), 0)
+  let totalPurchases = (purchases || []).reduce((sum, p) => sum + Number(p.amount), 0)
 
-  // ---- Manual other expenses from logs ----
+  // ---- Manual logs from finance_logs ----
   let totalExpenses = 0
   logs?.forEach(log => {
     const amt = Number(log.amount) || 0
-    if (log.type === 'other_expense') totalExpenses += amt
+    if (log.type === 'cashout') totalCashouts += amt
+    else if (log.type === 'point_purchase') totalPurchases += amt
+    else if (log.type === 'other_expense') totalExpenses += amt
   })
 
   const netProfit = totalLoads - totalAgentCommissions - totalCashouts - totalPurchases - totalExpenses

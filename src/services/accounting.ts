@@ -127,6 +127,13 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
 
   if (purchaseError) throw purchaseError;
 
+  const { data: logs, error: logError } = await supabase
+    .from('finance_logs')
+    .select('*')
+    .gte('created_at', activeCycle.start_date);
+
+  if (logError) throw logError;
+
   let totalDeposits = 0;
   let totalAgentCommissions = 0;
   
@@ -150,10 +157,18 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
     commissionsByMethod[methodName] = (commissionsByMethod[methodName] || 0) + commission;
   });
 
-  const totalCashouts = (cashouts || []).reduce((sum, c) => sum + c.amount, 0);
-  const totalGamePointsCost = (purchases || []).reduce((sum, p) => sum + Number(p.amount), 0);
+  let totalCashouts = (cashouts || []).reduce((sum, c) => sum + Number(c.amount), 0);
+  let totalGamePointsCost = (purchases || []).reduce((sum, p) => sum + Number(p.amount), 0);
+  let totalExpenses = 0;
+
+  logs?.forEach(log => {
+    const amt = Number(log.amount) || 0
+    if (log.type === 'cashout') totalCashouts += amt
+    else if (log.type === 'point_purchase') totalGamePointsCost += amt
+    else if (log.type === 'other_expense') totalExpenses += amt
+  });
   
-  const netProfit = totalDeposits - totalAgentCommissions - totalCashouts - totalGamePointsCost;
+  const netProfit = totalDeposits - totalAgentCommissions - totalCashouts - totalGamePointsCost - totalExpenses;
 
   return {
     activeCycle,
