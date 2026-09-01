@@ -44,6 +44,7 @@ export default function AdminDashboardPage() {
         totalCashouts: accounting.totalCashouts,
         totalAgentCommissions: accounting.totalAgentCommissions,
         totalGamePointsCost: accounting.totalGamePointsCost,
+        totalExpenses: accounting.totalExpenses || 0,
         netProfit: accounting.netProfit,
         closedBy: profile.id
       })

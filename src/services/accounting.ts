@@ -31,6 +31,7 @@ export interface CloseCycleData {
   totalCashouts: number
   totalAgentCommissions: number
   totalGamePointsCost: number
+  totalExpenses: number
   netProfit: number
   closedBy: string
 }
@@ -44,6 +45,7 @@ export async function closeAccountingCycle(cycleId: string, data: CloseCycleData
       total_cashouts: data.totalCashouts,
       total_agent_commissions: data.totalAgentCommissions,
       total_game_points_cost: data.totalGamePointsCost,
+      total_expenses: data.totalExpenses,
       net_profit: data.netProfit,
       status: 'closed',
       closed_by: data.closedBy
@@ -68,6 +70,7 @@ export interface AccountingStats {
   totalCashouts: number
   totalAgentCommissions: number
   totalGamePointsCost: number
+  totalExpenses: number
   netProfit: number
   depositsByMethod: Record<string, number>
   commissionsByMethod: Record<string, number>
@@ -98,6 +101,7 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
       totalCashouts: 0,
       totalAgentCommissions: 0,
       totalGamePointsCost: 0,
+      totalExpenses: 0,
       netProfit: 0,
       depositsByMethod,
       commissionsByMethod
@@ -184,6 +188,7 @@ export async function fetchActiveAccountingStats(): Promise<AccountingStats> {
     totalCashouts,
     totalAgentCommissions,
     totalGamePointsCost,
+    totalExpenses,
     netProfit,
     depositsByMethod,
     commissionsByMethod
