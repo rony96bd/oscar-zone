@@ -30,7 +30,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
   // 2. Completed/Approved cashouts in date range
   const { data: cashouts, error: cashoutError } = await supabase
     .from('cashout_requests')
-    .select('id, amount, updated_at, payment_method:payment_methods(name), profile:profiles!cashout_requests_user_id_fkey(full_name)')
+    .select('id, amount, updated_at, payment_method_name, profile:profiles!cashout_requests_user_id_fkey(full_name)')
     .in('status', ['completed', 'approved'])
     .gte('updated_at', fromISO)
     .lte('updated_at', toISO)
@@ -97,7 +97,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
   cashouts?.forEach(c => {
     const amount = Number(c.amount) || 0
     totalCashouts += amount
-    const pm = Array.isArray(c.payment_method) ? c.payment_method[0] : c.payment_method as any
+    const pmName = c.payment_method_name || 'Unknown'
     const prof = Array.isArray(c.profile) ? c.profile[0] : c.profile as any
 
     allTransactions.push({
@@ -105,7 +105,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
       date: c.updated_at,
       type: 'Cashout',
       amount: amount,
-      method: pm?.name || 'Unknown',
+      method: pmName,
       actor: prof?.full_name || 'Unknown Agent',
       rawType: 'cashout_req'
     })
