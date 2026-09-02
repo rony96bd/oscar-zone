@@ -70,7 +70,7 @@ export default function AdminDashboardPage() {
     }
   })
 
-  if (statsLoading) {
+  if (statsLoading || accLoading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -102,7 +102,7 @@ export default function AdminDashboardPage() {
               Accounting Error: {(accError as any).message}
             </span>
           )}
-          {(!accounting || !accounting.activeCycle) && !accError && (
+          {(!accounting || !accounting.activeCycle) && !accError && !accLoading && (
             <span className="text-xs text-red-500 bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20">
               No Active Cycle (Check RLS Policies for accounting_cycles table)
             </span>
