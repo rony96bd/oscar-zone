@@ -97,12 +97,12 @@ function GameIconCard({ game, onLoadGame }: { game: Game; onLoadGame: (game: Gam
                   href={game.download_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs border transition-all hover:bg-white/5"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs border transition-all hover:bg-white/5 whitespace-nowrap"
                   style={{ borderColor: `${theme.border}30`, color: theme.accent }}
                   onClick={e => e.stopPropagation()}
                 >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Download
+                  <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="hidden sm:inline">Download</span>
                 </a>
               )}
               {game.play_now_url && (
@@ -110,12 +110,12 @@ function GameIconCard({ game, onLoadGame }: { game: Game; onLoadGame: (game: Gam
                   href={game.play_now_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs border transition-all hover:bg-white/5"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs border transition-all hover:bg-white/5 whitespace-nowrap"
                   style={{ borderColor: `${theme.border}30`, color: theme.accent }}
                   onClick={e => e.stopPropagation()}
                 >
-                  <Gamepad2 className="h-3.5 w-3.5" />
-                  Play Now
+                  <Gamepad2 className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="hidden sm:inline">Play Now</span>
                 </a>
               )}
             </div>
