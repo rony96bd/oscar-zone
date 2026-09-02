@@ -126,7 +126,7 @@ export async function fetchGuestOrders(): Promise<Order[]> {
 
 export async function calculateBonusPreview(
   gameId: string,
-  amount: number,
+  rawAmount: number,
   customerId?: string
 ): Promise<{
   regular_bonus_pct: number
@@ -137,6 +137,8 @@ export async function calculateBonusPreview(
   final_credit: number
   promotion_name: string | null
 }> {
+  const amount = Math.floor(rawAmount)
+
   if (!gameId || !amount || amount < 1) {
     throw new Error('Invalid parameters')
   }

@@ -406,10 +406,14 @@ export default function LoadGamePage() {
                       <input
                         type="number"
                         required
-                        step="0.01"
+                        step="1"
+                        min="1"
                         value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        placeholder="0.00"
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, '');
+                          setAmount(val);
+                        }}
+                        placeholder="0"
                         className="game-input pl-8"
                       />
                     </div>

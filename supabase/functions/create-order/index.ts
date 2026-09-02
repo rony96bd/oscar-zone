@@ -49,7 +49,6 @@ Deno.serve(async (req) => {
     const {
       game_id,
       username,
-      base_amount,
       payment_method_id,
       payment_screenshot_path,
       customer_payment_tag,
@@ -57,6 +56,9 @@ Deno.serve(async (req) => {
       guest_verified_user_id,
       cf_turnstile_token,
     } = body
+
+    // Force base_amount to be an integer
+    const base_amount = Math.floor(Number(body.base_amount || 0))
 
     // Validate Turnstile Token
     if (!cf_turnstile_token) {

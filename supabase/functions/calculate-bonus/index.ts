@@ -24,7 +24,10 @@ serve(async (req) => {
       userId = user?.id || null
     }
 
-    const { game_id, amount, customer_id } = await req.json()
+    const body = await req.json()
+    const game_id = body.game_id
+    const customer_id = body.customer_id
+    const amount = Math.floor(Number(body.amount || 0))
 
     if (!game_id || !amount || amount < 1) {
       return new Response(
