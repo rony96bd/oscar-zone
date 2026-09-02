@@ -1,5 +1,17 @@
 import { supabase } from '@/lib/supabase'
 
+export interface TransactionLog {
+  id: string
+  date: string
+  type: 'Order' | 'Cashout' | 'Game Points' | 'Manual Log'
+  subType?: string
+  amount: number
+  method?: string
+  note?: string
+  actor?: string // who did it or user involved
+  rawType: string // to know if we can delete it (only manual logs can be deleted)
+}
+
 export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
   // Use local browser timezone to calculate correct UTC bounds
   const fromISO = new Date(`${dateFrom}T00:00:00`).toISOString()
@@ -8,7 +20,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
   // 1. Completed orders in date range
   const { data: orders, error: orderError } = await supabase
     .from('orders')
-    .select('base_amount, payment_method:payment_methods(name, agent_commission_rate)')
+    .select('id, base_amount, updated_at, payment_method:payment_methods(name, agent_commission_rate), profile:profiles(full_name), game:games(name)')
     .eq('status', 'completed')
     .gte('updated_at', fromISO)
     .lte('updated_at', toISO)
@@ -18,7 +30,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
   // 2. Completed/Approved cashouts in date range
   const { data: cashouts, error: cashoutError } = await supabase
     .from('cashout_requests')
-    .select('amount')
+    .select('id, amount, updated_at, payment_method:payment_methods(name), profile:profiles(full_name)')
     .in('status', ['completed', 'approved'])
     .gte('updated_at', fromISO)
     .lte('updated_at', toISO)
@@ -28,7 +40,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
   // 3. Game point purchases in date range
   const { data: purchases, error: purchaseError } = await supabase
     .from('game_point_purchases')
-    .select('amount')
+    .select('id, amount, created_at, game:games(name), profile:profiles(full_name)')
     .gte('created_at', fromISO)
     .lte('created_at', toISO)
 
@@ -37,12 +49,13 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
   // 4. Manual finance logs in date range (for any other expenses)
   const { data: logs, error: logError } = await supabase
     .from('finance_logs')
-    .select('*')
+    .select('id, amount, type, method, note, log_date, created_at, profile:profiles(full_name)')
     .gte('log_date', dateFrom)
     .lte('log_date', dateTo)
-    .order('created_at', { ascending: false })
 
   if (logError) throw logError
+
+  const allTransactions: TransactionLog[] = []
 
   // ---- Calculate Loads & Agent Commissions ----
   const loadsByMethod: Record<string, number> = {}
@@ -62,33 +75,93 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
 
     loadsByMethod[methodName] = (loadsByMethod[methodName] || 0) + amount
     commissionsByMethod[methodName] = (commissionsByMethod[methodName] || 0) + commission
+    
+    const prof = Array.isArray(o.profile) ? o.profile[0] : o.profile as any
+    const g = Array.isArray(o.game) ? o.game[0] : o.game as any
+
+    allTransactions.push({
+      id: o.id,
+      date: o.updated_at,
+      type: 'Order',
+      subType: 'Deposit/Load',
+      amount: amount,
+      method: methodName,
+      note: `Game: ${g?.name || 'Unknown'}`,
+      actor: prof?.full_name || 'Unknown User',
+      rawType: 'order'
+    })
   })
 
   // ---- Cashouts (real data) ----
-  let totalCashouts = (cashouts || []).reduce((sum, c) => sum + Number(c.amount), 0)
+  let totalCashouts = 0
+  cashouts?.forEach(c => {
+    const amount = Number(c.amount) || 0
+    totalCashouts += amount
+    const pm = Array.isArray(c.payment_method) ? c.payment_method[0] : c.payment_method as any
+    const prof = Array.isArray(c.profile) ? c.profile[0] : c.profile as any
+
+    allTransactions.push({
+      id: c.id,
+      date: c.updated_at,
+      type: 'Cashout',
+      amount: amount,
+      method: pm?.name || 'Unknown',
+      actor: prof?.full_name || 'Unknown Agent',
+      rawType: 'cashout_req'
+    })
+  })
 
   // ---- Point Purchases (real data) ----
-  let totalPurchases = (purchases || []).reduce((sum, p) => sum + Number(p.amount), 0)
+  let totalPurchases = 0
+  purchases?.forEach(p => {
+    const amount = Number(p.amount) || 0
+    totalPurchases += amount
+    const g = Array.isArray(p.game) ? p.game[0] : p.game as any
+    const prof = Array.isArray(p.profile) ? p.profile[0] : p.profile as any
+
+    allTransactions.push({
+      id: p.id,
+      date: p.created_at,
+      type: 'Game Points',
+      amount: amount,
+      note: `Game: ${g?.name || 'Unknown'}`,
+      actor: prof?.full_name || 'System/Admin',
+      rawType: 'purchase'
+    })
+  })
 
   // ---- Manual logs from finance_logs ----
   let totalExpenses = 0
   logs?.forEach(log => {
-    const amt = Number(log.amount) || 0
-    if (log.type === 'cashout') totalCashouts += amt
-    else if (log.type === 'point_purchase') totalPurchases += amt
-    else if (log.type === 'other_expense') totalExpenses += amt
+    const amount = Number(log.amount) || 0
+    const prof = Array.isArray(log.profile) ? log.profile[0] : log.profile as any
+
+    if (log.type === 'cashout') totalCashouts += amount
+    else if (log.type === 'point_purchase') totalPurchases += amount
+    else if (log.type === 'other_expense') totalExpenses += amount
     else if (log.type === 'manual_load') {
-      totalLoads += amt
-      // Note: We don't add this to loadsByMethod or commissionsByMethod because manual loads have unknown methods, 
-      // but if the admin wrote the method name matching a real one, we could parse it. 
-      // For now, just adding to totalLoads is sufficient for net profit.
+      totalLoads += amount
       if (log.method) {
-        loadsByMethod[log.method] = (loadsByMethod[log.method] || 0) + amt
+        loadsByMethod[log.method] = (loadsByMethod[log.method] || 0) + amount
       } else {
-        loadsByMethod['Manual Load'] = (loadsByMethod['Manual Load'] || 0) + amt
+        loadsByMethod['Manual Load'] = (loadsByMethod['Manual Load'] || 0) + amount
       }
     }
+
+    allTransactions.push({
+      id: log.id,
+      date: log.created_at || log.log_date,
+      type: 'Manual Log',
+      subType: log.type.replace('_', ' '),
+      amount: amount,
+      method: log.method || '-',
+      note: log.note || '-',
+      actor: prof?.full_name || 'Admin',
+      rawType: 'manual_log'
+    })
   })
+
+  allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const netProfit = totalLoads - totalAgentCommissions - totalCashouts - totalPurchases - totalExpenses
 
@@ -101,7 +174,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
     totalPurchases,
     totalExpenses,
     netProfit,
-    logs: logs || []
+    allTransactions
   }
 }
 

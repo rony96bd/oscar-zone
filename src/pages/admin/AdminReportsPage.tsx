@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchFinanceReport, addFinanceLog, deleteFinanceLog } from '@/services/finance'
 import { useAuthStore } from '@/stores/authStore'
-import { formatCurrency, formatTime } from '@/lib/utils'
+import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { toast } from 'sonner'
-import { Calculator, Copy, Trash2, Plus, DollarSign, Wallet, ArrowDownRight, ArrowUpRight, Users, ShoppingBag } from 'lucide-react'
+import { Calculator, Copy, Trash2, Plus, DollarSign, Wallet, ArrowDownRight, ArrowUpRight, Users, ShoppingBag, Printer } from 'lucide-react'
 
 export default function AdminReportsPage() {
   const { profile } = useAuthStore()
@@ -79,20 +79,23 @@ export default function AdminReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-gaming font-bold text-white flex items-center gap-2">
-            <Calculator className="h-6 w-6 text-neon-gold" />
-            Finance & Reports
-          </h1>
-          <p className="text-muted-foreground text-sm">Track loads, point purchases, and cashouts</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-gaming font-bold text-white flex items-center gap-3">
+              <Calculator className="h-6 w-6 text-primary" />
+              Finance & Reports
+            </h1>
+            <p className="text-muted-foreground text-sm print:hidden">Track loads, point purchases, and cashouts</p>
+            <div className="hidden print:block text-muted-foreground font-semibold mt-2">
+              Date: {dateFrom === dateTo ? dateFrom : `${dateFrom} to ${dateTo}`}
+            </div>
+          </div>
+          <div className="flex gap-2 print:hidden">
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="game-input py-1" />
+            <span className="text-muted-foreground self-center">to</span>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="game-input py-1" />
+          </div>
         </div>
-        <div className="flex gap-2">
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="game-input py-1" />
-          <span className="text-muted-foreground self-center">to</span>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="game-input py-1" />
-        </div>
-      </div>
 
       {isLoading || !data ? (
         <div className="h-64 skeleton rounded-xl" />
@@ -161,17 +164,20 @@ export default function AdminReportsPage() {
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 print:hidden">
         <button onClick={() => setIsAdding(!isAdding)} className="btn-neon px-4 py-2 text-sm flex items-center gap-2">
           <Plus className="h-4 w-4" /> Add Expense / Cashout
         </button>
         <button onClick={copyReport} className="btn-ghost-neon px-4 py-2 text-sm flex items-center gap-2 text-neon-gold hover:bg-neon-gold/10 hover:border-neon-gold/30 hover:text-neon-gold">
           <Copy className="h-4 w-4" /> Copy Report
         </button>
+        <button onClick={() => window.print()} className="btn-ghost-neon px-4 py-2 text-sm flex items-center gap-2 text-white hover:bg-white/10 hover:border-white/30">
+          <Printer className="h-4 w-4" /> Print
+        </button>
       </div>
 
       {isAdding && (
-        <form onSubmit={addMutation.mutate} className="glass-card p-4 flex flex-col md:flex-row gap-3 items-end bg-black/40">
+        <form onSubmit={addMutation.mutate} className="glass-card p-4 flex flex-col md:flex-row gap-3 items-end bg-black/40 print:hidden">
           <div className="flex-1 w-full">
             <label className="block text-xs text-muted-foreground mb-1">Type</label>
             <select value={type} onChange={e => setType(e.target.value as any)} className="game-input w-full">
@@ -197,10 +203,10 @@ export default function AdminReportsPage() {
         </form>
       )}
 
-      {/* Logs Table */}
-      <div className="glass-card overflow-hidden">
+      {/* Transactions Table */}
+      <div className="glass-card overflow-hidden print-table">
         <div className="p-4 border-b border-border bg-black/20">
-          <h2 className="font-semibold text-white">Recent Manual Logs</h2>
+          <h2 className="font-semibold text-white">All Transactions</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -209,28 +215,35 @@ export default function AdminReportsPage() {
                 <th className="p-3 font-medium text-muted-foreground">Date</th>
                 <th className="p-3 font-medium text-muted-foreground">Type</th>
                 <th className="p-3 font-medium text-muted-foreground">Amount</th>
+                <th className="p-3 font-medium text-muted-foreground">User/Actor</th>
                 <th className="p-3 font-medium text-muted-foreground">Method</th>
                 <th className="p-3 font-medium text-muted-foreground">Note</th>
-                <th className="p-3 font-medium text-muted-foreground">Action</th>
+                <th className="p-3 font-medium text-muted-foreground print:hidden">Action</th>
               </tr>
             </thead>
             <tbody>
-              {data?.logs.length === 0 ? (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No logs in this date range</td></tr>
+              {data?.allTransactions?.length === 0 ? (
+                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No transactions in this date range</td></tr>
               ) : (
-                data?.logs.map((log: any) => (
-                  <tr key={log.id} className="border-b border-border hover:bg-muted/5 transition-colors">
-                    <td className="p-3 whitespace-nowrap">{log.log_date}</td>
+                data?.allTransactions?.map((tx: any) => (
+                  <tr key={tx.id} className="border-b border-border hover:bg-muted/5 transition-colors">
+                    <td className="p-3 whitespace-nowrap">{formatDateTime(tx.date)}</td>
                     <td className="p-3">
-                      <span className="capitalize">{log.type.replace('_', ' ')}</span>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-white">{tx.type}</span>
+                        {tx.subType && <span className="text-xs text-muted-foreground capitalize">{tx.subType}</span>}
+                      </div>
                     </td>
-                    <td className="p-3 font-medium text-white">{formatCurrency(log.amount)}</td>
-                    <td className="p-3 text-muted-foreground">{log.method || '-'}</td>
-                    <td className="p-3 text-muted-foreground">{log.note || '-'}</td>
-                    <td className="p-3">
-                      <button onClick={() => { if(window.confirm('Delete this log?')) deleteMutation.mutate(log.id) }} className="text-muted-foreground hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                    <td className="p-3 font-medium text-white">{formatCurrency(tx.amount)}</td>
+                    <td className="p-3 text-white">{tx.actor || '-'}</td>
+                    <td className="p-3 text-muted-foreground">{tx.method || '-'}</td>
+                    <td className="p-3 text-muted-foreground">{tx.note || '-'}</td>
+                    <td className="p-3 print:hidden">
+                      {tx.rawType === 'manual_log' && (
+                        <button onClick={() => { if(window.confirm('Delete this log?')) deleteMutation.mutate(tx.id) }} className="text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

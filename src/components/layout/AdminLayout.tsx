@@ -272,7 +272,7 @@ export function AdminLayout() {
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          'admin-sidebar hidden lg:flex flex-col transition-all duration-300 flex-shrink-0',
+          'admin-sidebar hidden lg:flex flex-col transition-all duration-300 flex-shrink-0 print:hidden',
           sidebarOpen ? 'w-56' : 'w-16'
         )}
       >
@@ -283,10 +283,10 @@ export function AdminLayout() {
       {mobileSidebarOpen && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/60 lg:hidden print:hidden"
             onClick={() => setMobileSidebarOpen(false)}
           />
-          <aside className="fixed left-0 top-0 bottom-0 z-50 w-56 admin-sidebar lg:hidden">
+          <aside className="fixed left-0 top-0 bottom-0 z-50 w-56 admin-sidebar lg:hidden print:hidden">
             {sidebarContent()}
           </aside>
         </>
@@ -295,7 +295,7 @@ export function AdminLayout() {
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Topbar */}
-        <header className="flex items-center justify-between h-16 px-6 border-b border-game-border bg-game-dark/80 backdrop-blur">
+        <header className="flex items-center justify-between h-16 px-6 border-b border-game-border bg-game-dark/80 backdrop-blur print:hidden">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
