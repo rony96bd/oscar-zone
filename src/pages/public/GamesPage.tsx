@@ -74,9 +74,6 @@ function GameIconCard({ game, onLoadGame }: { game: Game; onLoadGame: (game: Gam
           {game.description && (
             <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{game.description}</p>
           )}
-          <p className="text-xs mt-1" style={{ color: theme.accent }}>
-            ${game.minimum_amount} – ${game.maximum_amount}
-          </p>
         </div>
 
         {/* Actions */}
