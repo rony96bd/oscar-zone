@@ -20,7 +20,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
   // 1. Completed orders in date range
   const { data: orders, error: orderError } = await supabase
     .from('orders')
-    .select('id, base_amount, updated_at, payment_method:payment_methods(name, agent_commission_rate), profile:profiles(full_name), game:games(name)')
+    .select('id, base_amount, updated_at, payment_method:payment_methods(name, agent_commission_rate), profile:profiles!orders_user_id_fkey(full_name), game:games(name)')
     .eq('status', 'completed')
     .gte('updated_at', fromISO)
     .lte('updated_at', toISO)
@@ -30,7 +30,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
   // 2. Completed/Approved cashouts in date range
   const { data: cashouts, error: cashoutError } = await supabase
     .from('cashout_requests')
-    .select('id, amount, updated_at, payment_method:payment_methods(name), profile:profiles(full_name)')
+    .select('id, amount, updated_at, payment_method:payment_methods(name), profile:profiles!cashout_requests_user_id_fkey(full_name)')
     .in('status', ['completed', 'approved'])
     .gte('updated_at', fromISO)
     .lte('updated_at', toISO)
