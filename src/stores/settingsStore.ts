@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 
 interface SettingsState {
+  siteName: string
+  siteTagline: string
   siteLogoUrl: string | null
   allowRegistration: boolean
   supportEmail: string
@@ -21,14 +23,16 @@ interface SettingsState {
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
+  siteName: import.meta.env.VITE_APP_NAME || 'GameZone',
+  siteTagline: import.meta.env.VITE_APP_TAGLINE || 'Top Up. Play More. Win Big.',
   siteLogoUrl: null,
   allowRegistration: true,
-  supportEmail: 'support@oscarzone.com',
-  supportPhone: '+1 (555) 000-0000',
-  supportTelegram: 'https://t.me/oscarzone',
-  supportFacebook: 'https://facebook.com/oscarzone',
-  metaTitle: 'Oscar Zone - Premium Gaming Top-up',
-  metaDescription: 'Load your favorite games instantly with Oscar Zone. Premium gaming top-up service.',
+  supportEmail: import.meta.env.VITE_DEFAULT_SUPPORT_EMAIL || '',
+  supportPhone: '',
+  supportTelegram: import.meta.env.VITE_DEFAULT_SUPPORT_TELEGRAM || '',
+  supportFacebook: import.meta.env.VITE_DEFAULT_SUPPORT_FACEBOOK || '',
+  metaTitle: import.meta.env.VITE_APP_NAME || 'GameZone',
+  metaDescription: import.meta.env.VITE_APP_DESCRIPTION || 'Premium game top-up service.',
   tickerPosition: 'banner',
   isLoading: true,
 
@@ -66,9 +70,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         const mTitle = data.find(d => d.key === 'meta_title')?.value
         const mDesc = data.find(d => d.key === 'meta_description')?.value
         const tPosition = data.find(d => d.key === 'ticker_position')?.value
+        const sName = data.find(d => d.key === 'site_name')?.value
+        const sTagline = data.find(d => d.key === 'site_tagline')?.value
 
-        const title = mTitle ? cleanValue(mTitle) : 'Oscar Zone - Premium Gaming Top-up'
-        const desc = mDesc ? cleanValue(mDesc) : 'Load your favorite games instantly with Oscar Zone. Premium gaming top-up service.'
+        const defaultAppName = import.meta.env.VITE_APP_NAME || 'GameZone'
+        const defaultAppDesc = import.meta.env.VITE_APP_DESCRIPTION || 'Premium game top-up service.'
+
+        const title = mTitle ? cleanValue(mTitle) : defaultAppName
+        const desc = mDesc ? cleanValue(mDesc) : defaultAppDesc
         let parsedPosition: 'header' | 'banner' | 'hidden' = 'banner'
         if (tPosition) {
           const rawPos = cleanValue(tPosition)
@@ -78,12 +87,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         }
 
         set({ 
+          siteName: sName ? cleanValue(sName) : defaultAppName,
+          siteTagline: sTagline ? cleanValue(sTagline) : (import.meta.env.VITE_APP_TAGLINE || 'Top Up. Play More. Win Big.'),
           siteLogoUrl: url, 
           allowRegistration: allowReg, 
-          supportEmail: sEmail ? cleanValue(sEmail) : 'support@oscarzone.com',
-          supportPhone: sPhone ? cleanValue(sPhone) : '+1 (555) 000-0000',
-          supportTelegram: sTelegram ? cleanValue(sTelegram) : 'https://t.me/oscarzone',
-          supportFacebook: sFacebook ? cleanValue(sFacebook) : 'https://facebook.com/oscarzone',
+          supportEmail: sEmail ? cleanValue(sEmail) : (import.meta.env.VITE_DEFAULT_SUPPORT_EMAIL || ''),
+          supportPhone: sPhone ? cleanValue(sPhone) : '',
+          supportTelegram: sTelegram ? cleanValue(sTelegram) : (import.meta.env.VITE_DEFAULT_SUPPORT_TELEGRAM || ''),
+          supportFacebook: sFacebook ? cleanValue(sFacebook) : (import.meta.env.VITE_DEFAULT_SUPPORT_FACEBOOK || ''),
           metaTitle: title,
           metaDescription: desc,
           tickerPosition: parsedPosition,

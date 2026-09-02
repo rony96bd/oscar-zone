@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
+const APP_NAME = Deno.env.get('APP_NAME') || 'GameZone'
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
@@ -51,7 +52,7 @@ Deno.serve(async (req) => {
 
     let message: string
     if (isTest) {
-      message = `🚀 *OscarZone Telegram Connected*\n\nThis is a test notification.\nTime: ${formatTime()}`
+      message = `🔔 *${APP_NAME} Telegram Connected*\n\nThis is a test notification.\nTime: ${formatTime()}`
     } else if (eventType === 'signup') {
       message = [
         `👤 *NEW USER REGISTRATION*`,

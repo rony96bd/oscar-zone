@@ -1,11 +1,11 @@
-export const APP_NAME = 'OscarZone'
-export const APP_TAGLINE = 'Top Up. Play More. Win Big.'
-export const APP_DESCRIPTION = 'The #1 trusted game loading service for US players.'
+export const APP_NAME = import.meta.env.VITE_APP_NAME || 'GameZone'
+export const APP_TAGLINE = import.meta.env.VITE_APP_TAGLINE || 'Top Up. Play More. Win Big.'
+export const APP_DESCRIPTION = import.meta.env.VITE_APP_DESCRIPTION || 'The #1 trusted game loading service.'
 
-export const SUPPORT_EMAIL = 'support@oscarzone.com'
-export const SUPPORT_PHONE = '+1 (555) 000-0000'
-export const SUPPORT_TELEGRAM = 'https://t.me/oscarzone'
-export const SUPPORT_FACEBOOK = 'https://facebook.com/oscarzone'
+export const SUPPORT_EMAIL = import.meta.env.VITE_DEFAULT_SUPPORT_EMAIL || ''
+export const SUPPORT_PHONE = ''
+export const SUPPORT_TELEGRAM = import.meta.env.VITE_DEFAULT_SUPPORT_TELEGRAM || ''
+export const SUPPORT_FACEBOOK = import.meta.env.VITE_DEFAULT_SUPPORT_FACEBOOK || ''
 
 export const SCREENSHOT_BUCKET = 'payment-screenshots'
 export const AVATAR_BUCKET = 'avatars'

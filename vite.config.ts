@@ -1,11 +1,17 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import legacy from '@vitejs/plugin-legacy'
 import { fileURLToPath, URL } from 'node:url'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const appName = env.VITE_APP_NAME || 'GameZone'
+  const appShortName = env.VITE_APP_SHORT_NAME || appName
+  const appDescription = env.VITE_APP_DESCRIPTION || 'Premium game top-up service.'
+
+  return {
   plugins: [
     react(),
     legacy({
@@ -16,9 +22,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'Oscar Zone',
-        short_name: 'OscarZone',
-        description: 'Premium Gaming Top-up and Digital Services',
+        name: appName,
+        short_name: appShortName,
+        description: appDescription,
         theme_color: '#09090b',
         background_color: '#09090b',
         display: 'standalone',
@@ -61,4 +67,5 @@ export default defineConfig({
       },
     },
   },
+  }
 })

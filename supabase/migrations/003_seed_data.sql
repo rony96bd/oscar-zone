@@ -12,11 +12,11 @@ INSERT INTO games (name, slug, download_url, description, minimum_amount, maximu
   ('Game Room', 'game-room', 'https://www.gameroom777.com/m', 'Game Room 777 offers the best fish table experience with generous bonuses for loyal players.', 10, 1000, 6, true),
   ('Cash Frenzy', 'cash-frenzy', 'https://www.cashfrenzy777.com/', 'Cash Frenzy Casino delivers non-stop slot action with massive coin rewards and daily bonuses.', 10, 1000, 7, true);
 
--- Payment Methods
+-- Payment Methods (update tags/account names from Admin Panel after setup)
 INSERT INTO payment_methods (name, tag, account_name, instructions, minimum_amount, maximum_amount, is_active, sort_order) VALUES
-  ('Chime', '$YourChimeTag', 'Oscar Zone', E'1. Open your Chime app\n2. Tap "Pay Friends"\n3. Search for our Chime tag\n4. Enter the exact amount\n5. Add your game username in the memo\n6. Screenshot your payment confirmation', 10, 1000, true, 1),
-  ('PayPal', '@OscarZoneGaming', 'Oscar Zone Gaming', E'1. Open PayPal\n2. Send payment to Friends & Family (NOT Goods & Services)\n3. Add your game username in the note\n4. Screenshot the payment confirmation', 10, 1000, true, 2),
-  ('Cash App', '$OscarZone', 'Oscar Zone', E'1. Open Cash App\n2. Search for our $Cashtag\n3. Enter the exact amount\n4. Add your game username in the note\n5. Screenshot the payment confirmation', 10, 1000, true, 3);
+  ('Chime', '$YourChimeTag', 'Your Business Name', E'1. Open your Chime app\n2. Tap "Pay Friends"\n3. Search for our Chime tag\n4. Enter the exact amount\n5. Add your game username in the memo\n6. Screenshot your payment confirmation', 10, 1000, true, 1),
+  ('PayPal', '@YourPayPalTag', 'Your Business Name', E'1. Open PayPal\n2. Send payment to Friends & Family (NOT Goods & Services)\n3. Add your game username in the note\n4. Screenshot the payment confirmation', 10, 1000, true, 2),
+  ('Cash App', '$YourCashTag', 'Your Business Name', E'1. Open Cash App\n2. Search for our $Cashtag\n3. Enter the exact amount\n4. Add your game username in the note\n5. Screenshot the payment confirmation', 10, 1000, true, 3);
 
 -- Referral Levels
 INSERT INTO referral_levels (level, min_referrals, max_referrals, commission_percentage, label) VALUES
@@ -38,13 +38,13 @@ INSERT INTO promotions (name, description, type, bonus_percentage, minimum_amoun
 
 -- System Settings
 INSERT INTO system_settings (key, value, description) VALUES
-  ('site_name', 'OscarZone', 'Website name'),
+  ('site_name', 'GameZone', 'Website name'),
   ('site_tagline', 'Top Up. Play More. Win Big.', 'Website tagline'),
   ('default_bonus_percentage', '10', 'Default regular bonus percentage'),
   ('registration_enabled', 'true', 'Allow new user registrations'),
   ('maintenance_mode', 'false', 'Put site in maintenance mode'),
-  ('support_email', 'support@oscarzone.com', 'Support email address'),
-  ('support_phone', '+1 (555) 000-0000', 'Support phone number'),
+  ('support_email', 'support@yourdomain.com', 'Support email address'),
+  ('support_phone', '', 'Support phone number'),
   ('min_order_amount', '10', 'Minimum order amount in USD'),
   ('max_order_amount', '1000', 'Maximum order amount in USD'),
   ('referral_qualification_orders', '1', 'Orders needed to qualify a referral'),
