@@ -102,7 +102,8 @@ function GameIconCard({ game, onLoadGame }: { game: Game; onLoadGame: (game: Gam
                   onClick={e => e.stopPropagation()}
                 >
                   <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="hidden sm:inline">Download</span>
+                  {/* Show text only if Play Now is NOT present */}
+                  {!game.play_now_url && 'Download'}
                 </a>
               )}
               {game.play_now_url && (
@@ -115,7 +116,7 @@ function GameIconCard({ game, onLoadGame }: { game: Game; onLoadGame: (game: Gam
                   onClick={e => e.stopPropagation()}
                 >
                   <Gamepad2 className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="hidden sm:inline">Play Now</span>
+                  Play Now
                 </a>
               )}
             </div>
