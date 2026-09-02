@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAllGames, createGame, updateGame } from '@/services/games'
-import { Gamepad2, Plus, Edit, ExternalLink, Check, X, Save, Loader2, Link as LinkIcon, ToggleLeft, ToggleRight, Edit2 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { Gamepad2, Plus, X, Save, Loader2, ExternalLink, ToggleLeft, ToggleRight, Edit2, Upload, Image } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { Game } from '@/types'
 import { usePermission } from '@/hooks/usePermission'
+import { Link as LinkIcon } from 'lucide-react'
 
 const EMPTY_GAME: Partial<Game> = {
   name: '',
@@ -16,6 +18,70 @@ const EMPTY_GAME: Partial<Game> = {
   minimum_amount: 10,
   maximum_amount: 1000,
   is_active: true,
+}
+
+async function uploadGameIcon(file: File, gameId: string): Promise<string> {
+  const ext = file.name.split('.').pop()
+  const path = `${gameId}.${ext}`
+  const { error } = await supabase.storage
+    .from('game-icons')
+    .upload(path, file, { upsert: true, contentType: file.type })
+  if (error) throw error
+  const { data } = supabase.storage.from('game-icons').getPublicUrl(path)
+  // Add timestamp to bust cache
+  return `${data.publicUrl}?t=${Date.now()}`
+}
+
+function IconUploader({ gameId, currentUrl, onUploaded }: { gameId: string; currentUrl?: string | null; onUploaded: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) { toast.error('Icon must be under 2MB'); return }
+    setUploading(true)
+    try {
+      const url = await uploadGameIcon(file, gameId)
+      onUploaded(url)
+      toast.success('Icon uploaded!')
+    } catch (err: any) {
+      toast.error(err.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="h-16 w-16 rounded-xl overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center flex-shrink-0">
+        {currentUrl ? (
+          <img src={currentUrl} alt="icon" className="w-full h-full object-cover" />
+        ) : (
+          <Image className="h-6 w-6 text-muted-foreground" />
+        )}
+      </div>
+      <div>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="btn-ghost-neon px-3 py-1.5 text-xs flex items-center gap-1.5"
+        >
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+          {uploading ? 'Uploading...' : 'Upload Icon'}
+        </button>
+        <p className="text-[10px] text-muted-foreground mt-1">PNG, JPG or WEBP — max 2MB</p>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={handleFile}
+        />
+      </div>
+    </div>
+  )
 }
 
 function GameForm({
@@ -35,6 +101,18 @@ function GameForm({
 
   return (
     <div className="space-y-5">
+      {/* Icon upload — only for existing games with an ID */}
+      {initial.id && (
+        <div>
+          <label className="text-xs text-muted-foreground mb-2 block">Game Icon (100×100)</label>
+          <IconUploader
+            gameId={initial.id}
+            currentUrl={form.logo_url}
+            onUploaded={(url) => set('logo_url', url)}
+          />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Game Name *</label>
@@ -165,8 +243,13 @@ export default function AdminGamesPage() {
           {(games as Game[]).map((game) => (
             <div key={game.id} className={cn('glass-card overflow-hidden transition-all', !game.is_active && 'opacity-60')}>
               <div className="p-5 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 font-bold text-primary font-gaming flex-shrink-0">
-                  {game.name.substring(0, 2).toUpperCase()}
+                {/* Icon preview */}
+                <div className="h-14 w-14 rounded-xl overflow-hidden bg-primary/20 flex items-center justify-center font-bold text-primary font-gaming flex-shrink-0">
+                  {game.logo_url ? (
+                    <img src={game.logo_url} alt={game.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{game.name.substring(0, 2).toUpperCase()}</span>
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
