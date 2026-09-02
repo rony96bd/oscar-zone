@@ -236,10 +236,8 @@ export default function AdminReportsPage() {
                     </td>
                     <td className="p-3 font-medium text-white">{formatCurrency(tx.amount)}</td>
                     <td className="p-3">
-                      <div className="flex flex-col">
-                        <span className="text-white">{tx.customer}</span>
-                        {tx.staff && <span className="text-[10px] text-muted-foreground">({tx.staff})</span>}
-                      </div>
+                      <span className="text-white">{tx.customer}</span>
+                      {tx.staff && <span className="text-[10px] text-muted-foreground ml-1">({tx.staff})</span>}
                     </td>
                     <td className="p-3 text-muted-foreground">{tx.method || '-'}</td>
                     <td className="p-3 text-muted-foreground">{tx.note || '-'}</td>
