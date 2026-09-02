@@ -8,7 +8,8 @@ export interface TransactionLog {
   amount: number
   method?: string
   note?: string
-  actor?: string // who did it or user involved
+  customer?: string
+  staff?: string
   rawType: string // to know if we can delete it (only manual logs can be deleted)
 }
 
@@ -20,7 +21,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
   // 1. Completed orders in date range
   const { data: orders, error: orderError } = await supabase
     .from('orders')
-    .select('id, base_amount, updated_at, payment_method:payment_methods(name, agent_commission_rate), profile:profiles!orders_user_id_fkey(full_name), game:games(name)')
+    .select('id, base_amount, updated_at, payment_method:payment_methods(name, agent_commission_rate), profile:profiles!orders_user_id_fkey(full_name), staff:profiles!orders_processed_by_fkey(full_name), game:games(name)')
     .eq('status', 'completed')
     .gte('updated_at', fromISO)
     .lte('updated_at', toISO)
@@ -30,7 +31,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
   // 2. Completed/Approved cashouts in date range
   const { data: cashouts, error: cashoutError } = await supabase
     .from('cashout_requests')
-    .select('id, amount, updated_at, payment_method_name, profile:profiles!cashout_requests_user_id_fkey(full_name)')
+    .select('id, amount, updated_at, payment_method_name, profile:profiles!cashout_requests_user_id_fkey(full_name), staff:profiles!cashout_requests_processed_by_fkey(full_name)')
     .in('status', ['completed', 'approved'])
     .gte('updated_at', fromISO)
     .lte('updated_at', toISO)
@@ -77,6 +78,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
     commissionsByMethod[methodName] = (commissionsByMethod[methodName] || 0) + commission
     
     const prof = Array.isArray(o.profile) ? o.profile[0] : o.profile as any
+    const staffObj = Array.isArray(o.staff) ? o.staff[0] : o.staff as any
     const g = Array.isArray(o.game) ? o.game[0] : o.game as any
 
     allTransactions.push({
@@ -87,7 +89,8 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
       amount: amount,
       method: methodName,
       note: `Game: ${g?.name || 'Unknown'}`,
-      actor: prof?.full_name || 'Unknown User',
+      customer: prof?.full_name || 'Unknown',
+      staff: staffObj?.full_name,
       rawType: 'order'
     })
   })
@@ -99,6 +102,7 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
     totalCashouts += amount
     const pmName = c.payment_method_name || 'Unknown'
     const prof = Array.isArray(c.profile) ? c.profile[0] : c.profile as any
+    const staffObj = Array.isArray(c.staff) ? c.staff[0] : c.staff as any
 
     allTransactions.push({
       id: c.id,
@@ -106,7 +110,8 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
       type: 'Cashout',
       amount: amount,
       method: pmName,
-      actor: prof?.full_name || 'Unknown Agent',
+      customer: prof?.full_name || 'Unknown',
+      staff: staffObj?.full_name,
       rawType: 'cashout_req'
     })
   })
@@ -125,7 +130,8 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
       type: 'Game Points',
       amount: amount,
       note: `Game: ${g?.name || 'Unknown'}`,
-      actor: prof?.full_name || 'System/Admin',
+      customer: '-',
+      staff: prof?.full_name || 'Admin',
       rawType: 'purchase'
     })
   })
@@ -156,7 +162,8 @@ export async function fetchFinanceReport(dateFrom: string, dateTo: string) {
       amount: amount,
       method: log.method || '-',
       note: log.note || '-',
-      actor: prof?.full_name || 'Admin',
+      customer: '-',
+      staff: prof?.full_name || 'Admin',
       rawType: 'manual_log'
     })
   })

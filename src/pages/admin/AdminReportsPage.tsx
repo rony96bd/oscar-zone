@@ -100,7 +100,7 @@ export default function AdminReportsPage() {
       {isLoading || !data ? (
         <div className="h-64 skeleton rounded-xl" />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 print:hidden">
           {/* 1. Total Loads */}
           <div className="glass-card p-4">
             <div className="flex items-center gap-3 mb-2">
@@ -215,7 +215,7 @@ export default function AdminReportsPage() {
                 <th className="p-3 font-medium text-muted-foreground">Date</th>
                 <th className="p-3 font-medium text-muted-foreground">Type</th>
                 <th className="p-3 font-medium text-muted-foreground">Amount</th>
-                <th className="p-3 font-medium text-muted-foreground">User/Actor</th>
+                <th className="p-3 font-medium text-muted-foreground">Customer (Staff)</th>
                 <th className="p-3 font-medium text-muted-foreground">Method</th>
                 <th className="p-3 font-medium text-muted-foreground">Note</th>
                 <th className="p-3 font-medium text-muted-foreground print:hidden">Action</th>
@@ -235,7 +235,12 @@ export default function AdminReportsPage() {
                       </div>
                     </td>
                     <td className="p-3 font-medium text-white">{formatCurrency(tx.amount)}</td>
-                    <td className="p-3 text-white">{tx.actor || '-'}</td>
+                    <td className="p-3">
+                      <div className="flex flex-col">
+                        <span className="text-white">{tx.customer}</span>
+                        {tx.staff && <span className="text-[10px] text-muted-foreground">({tx.staff})</span>}
+                      </div>
+                    </td>
                     <td className="p-3 text-muted-foreground">{tx.method || '-'}</td>
                     <td className="p-3 text-muted-foreground">{tx.note || '-'}</td>
                     <td className="p-3 print:hidden">
