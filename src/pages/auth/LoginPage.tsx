@@ -37,7 +37,8 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       // Reconstruct the dummy email used during registration
-      const dummyEmail = `${data.username.toLowerCase()}@users.oscarzone.com`
+      const authDomain = import.meta.env.VITE_AUTH_DOMAIN || 'users.oscarzone.com'
+      const dummyEmail = `${data.username.toLowerCase()}@${authDomain}`
       
       const { error } = await supabase.auth.signInWithPassword({
         email: dummyEmail,

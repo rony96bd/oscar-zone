@@ -90,7 +90,8 @@ export default function RegisterPage() {
     setIsLoading(true)
     try {
       // Create a dummy email for Supabase Auth to work behind the scenes
-      const dummyEmail = `${data.username.toLowerCase()}@users.oscarzone.com`
+      const authDomain = import.meta.env.VITE_AUTH_DOMAIN || 'users.oscarzone.com'
+      const dummyEmail = `${data.username.toLowerCase()}@${authDomain}`
 
       const { error } = await supabase.auth.signUp({
         email: dummyEmail,
