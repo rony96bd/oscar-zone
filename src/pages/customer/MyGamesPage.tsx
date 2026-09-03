@@ -89,7 +89,7 @@ export default function MyGamesPage() {
       </div>
 
       {gamesLoading ? (
-        <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-20 skeleton rounded-xl" />)}</div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">{[1, 2, 3].map(i => <div key={i} className="h-48 skeleton rounded-2xl" />)}</div>
       ) : customerGames.length === 0 ? (
         <div className="glass-card p-12 text-center flex flex-col items-center">
           <Joystick className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
@@ -98,7 +98,7 @@ export default function MyGamesPage() {
           <button onClick={() => setShowRequestModal(true)} className="btn-neon px-6 py-3">Request Game ID</button>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
           {customerGames.map(cg => (
             <SavedGameCard 
               key={cg.id} 

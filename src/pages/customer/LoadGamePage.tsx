@@ -13,6 +13,7 @@ import { ScreenshotUpload } from '@/components/customer/ScreenshotUpload'
 import { APP_NAME } from '@/lib/constants'
 import type { Game, PaymentMethod } from '@/types'
 import { Turnstile } from '@marsidev/react-turnstile'
+import { GameCard } from '@/components/customer/GameCard'
 
 export default function LoadGamePage() {
   const [searchParams] = useSearchParams()
@@ -310,29 +311,13 @@ export default function LoadGamePage() {
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {games?.map((game) => (
-                        <button
+                        <GameCard
                           key={game.id}
-                          type="button"
+                          game={game}
+                          selected={selectedGameId === game.id}
                           onClick={() => setSelectedGameId(game.id)}
-                          className={cn(
-                            "relative overflow-hidden rounded-xl border p-3 flex flex-col items-center gap-2 transition-all group",
-                            selectedGameId === game.id 
-                              ? "border-primary bg-primary/10 shadow-neon-blue" 
-                              : "border-border bg-game-darker hover:border-primary/50"
-                          )}
-                        >
-                          {game.logo_url ? (
-                            <img src={game.logo_url} alt={game.name} className="h-10 w-10 object-contain" />
-                          ) : (
-                            <Gamepad2 className={cn("h-8 w-8", selectedGameId === game.id ? "text-primary" : "text-muted-foreground")} />
-                          )}
-                          <span className={cn(
-                            "text-xs font-semibold text-center leading-tight",
-                            selectedGameId === game.id ? "text-white" : "text-muted-foreground"
-                          )}>
-                            {game.name}
-                          </span>
-                        </button>
+                          showDownload={false}
+                        />
                       ))}
                     </div>
                   )}
