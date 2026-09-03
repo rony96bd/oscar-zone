@@ -74,11 +74,7 @@ export default function HomePage() {
           )}
 
           <h1 className="text-5xl sm:text-6xl md:text-7xl font-gaming font-bold tracking-tight mb-6 text-white">
-            {APP_TAGLINE.split('.').map((part: string, i: number) => (
-              <span key={i} className={i === 1 ? 'text-gradient-blue' : i === 2 ? 'text-gradient-gold' : ''}>
-                {part}{i < 2 ? '. ' : '.'}
-              </span>
-            ))}
+            Top Up. <span className="text-gradient-blue">Play More.</span> <span className="text-gradient-gold">Win Big.</span>
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10">
