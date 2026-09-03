@@ -97,21 +97,36 @@ WHERE email = 'admin@yourdomain.com';
 ## ধাপ ৫ — Edge Functions ডিপ্লয় করুন
 
 Supabase CLI ইন্সটল করুন:
-```bash
+`ash
 npm install -g supabase
-```
+`
 
-Login ও Function ডিপ্লয়:
-```bash
+Login করুন:
+`ash
 npx supabase login
-npx supabase functions deploy send-telegram-notification --project-ref YOUR_PROJECT_REF
-npx supabase functions deploy send-push-notification --project-ref YOUR_PROJECT_REF
-```
+`
 
-Edge Function Environment Variables সেট করুন — Supabase Dashboard → **Edge Functions → send-telegram-notification → Secrets**:
+আপনার প্রজেক্টের ১৪টি Edge Functions একসাথে ডিপ্লয় করুন:
+`ash
+npx supabase functions deploy --project-ref YOUR_PROJECT_REF
+`
 
-| Key | Value |
-|-----|-------|
+**Edge Function Secrets (Environment Variables) সেট করুন:**
+Supabase ফাংশনগুলো কাজ করার জন্য কিছু সিক্রেট সেট করতে হবে। টার্মিনাল থেকেই নিচের কমান্ডগুলো দিয়ে সেট করুন:
+
+টেলিগ্রাম বটের জন্য:
+`ash
+npx supabase secrets set TELEGRAM_BOT_TOKEN="আপনার-বট-টোকেন" --project-ref YOUR_PROJECT_REF
+`
+
+সাইটের নামের জন্য:
+`ash
+npx supabase secrets set APP_NAME="আপনার-সাইটের-নাম" --project-ref YOUR_PROJECT_REF
+`
+
+*(নোট: SUPABASE_URL এবং SUPABASE_SERVICE_ROLE_KEY স্বয়ংক্রিয়ভাবে সেট থাকে, তাই সেগুলো দেওয়ার দরকার নেই।)*
+
+-----|-------|
 | `TELEGRAM_BOT_TOKEN` | আপনার Telegram Bot Token |
 | `APP_NAME` | আপনার সাইটের নাম (যেমন: `MyGameZone`) |
 
@@ -182,6 +197,7 @@ Cloudflare Pages → আপনার প্রজেক্ট → **Custom Domai
 
 শুধুমাত্র নতুন Supabase প্রজেক্ট তৈরি করুন এবং Cloudflare Pages এ নতুন deployment তৈরি করুন ভিন্ন environment variables দিয়ে।
 একই GitHub repository থেকে সব ক্লায়েন্ট আপডেট পাবে।
+
 
 
 
