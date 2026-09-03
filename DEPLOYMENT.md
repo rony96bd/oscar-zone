@@ -33,8 +33,8 @@ supabase/migrations/002_rls_policies.sql
 supabase/migrations/003_seed_data.sql
 supabase/migrations/004_storage_policies.sql
 supabase/migrations/005_r2_and_system.sql
-supabase/migrations/006_username_auth.sql
 supabase/migrations/006_push_subscriptions.sql
+supabase/migrations/006_username_auth.sql
 supabase/migrations/007_guest_live_chat.sql
 supabase/migrations/008_referral_signup.sql
 supabase/migrations/009_referral_system.sql
@@ -49,6 +49,18 @@ supabase/migrations/015_cashout_rules.sql
 supabase/migrations/016_winners_circle.sql
 supabase/migrations/017_game_play_now_url.sql
 supabase/migrations/018_customer_payment_tag.sql
+supabase/migrations/019_staff_permissions.sql
+supabase/migrations/020_staff_accounting_rls.sql
+supabase/migrations/020_update_is_admin.sql
+supabase/migrations/021_staff_table_permissions.sql
+supabase/migrations/022_staff_testimonials.sql
+supabase/migrations/023_game_password.sql
+supabase/migrations/024_staff_processed_by.sql
+supabase/migrations/025_accounting_cycles_columns.sql
+supabase/migrations/026_fix_active_cycle.sql
+supabase/migrations/027_retroactive_processed_by.sql
+supabase/migrations/028_retroactive_created_by.sql
+supabase/migrations/029_game_icons_storage.sql
 ```
 
 ---
@@ -169,3 +181,4 @@ Cloudflare Pages → আপনার প্রজেক্ট → **Custom Domai
 
 শুধুমাত্র নতুন Supabase প্রজেক্ট তৈরি করুন এবং Cloudflare Pages এ নতুন deployment তৈরি করুন ভিন্ন environment variables দিয়ে।
 একই GitHub repository থেকে সব ক্লায়েন্ট আপডেট পাবে।
+
