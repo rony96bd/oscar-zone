@@ -71,11 +71,12 @@ Supabase Dashboard → **Storage** → **New Bucket** এ গিয়ে নি
 
 | Bucket Name | Public |
 |-------------|--------|
-| `payment-screenshots` | ✅ হ্যাঁ |
-| `avatars` | ✅ হ্যাঁ |
-| `game-assets` | ✅ হ্যাঁ |
-| `banners` | ✅ হ্যাঁ |
-| `payment-qr` | ✅ হ্যাঁ |
+| `payment-screenshots` | ❌ না (Private) |
+| `avatars` | ✅ হ্যাঁ (Public) |
+| `game-assets` | ✅ হ্যাঁ (Public) |
+| `banners` | ✅ হ্যাঁ (Public) |
+| `game-icons` | ✅ হ্যাঁ (Public) |
+| `chat_attachments` | ✅ হ্যাঁ (Public) |
 
 ---
 
@@ -181,4 +182,7 @@ Cloudflare Pages → আপনার প্রজেক্ট → **Custom Domai
 
 শুধুমাত্র নতুন Supabase প্রজেক্ট তৈরি করুন এবং Cloudflare Pages এ নতুন deployment তৈরি করুন ভিন্ন environment variables দিয়ে।
 একই GitHub repository থেকে সব ক্লায়েন্ট আপডেট পাবে।
+
+
+
 
