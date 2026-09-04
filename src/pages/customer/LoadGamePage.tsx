@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Gamepad2, Zap, Image as ImageIcon, CheckCircle, Loader2, ZoomIn, X as XIcon, AlertTriangle, Info, Copy } from 'lucide-react'
+import { ChevronLeft, Gamepad2, Zap, Image as ImageIcon, CheckCircle, Loader2, ZoomIn, X as XIcon, AlertTriangle, Info, Copy, ExternalLink } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fetchGames, fetchCustomerGames } from '@/services/games'
 import { calculateBonusPreview } from '@/services/orders'
@@ -538,8 +538,9 @@ export default function LoadGamePage() {
                             {/* Payment Link */}
                             {selectedMethod.payment_link && (
                               <a href={selectedMethod.payment_link} target="_blank" rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 underline">
+                                className="inline-flex items-center justify-center gap-2 btn-neon px-6 py-2.5 text-sm w-full sm:w-auto mb-3 shadow-lg hover:-translate-y-0.5 transition-transform">
                                 Click here to pay
+                                <ExternalLink className="h-4 w-4" />
                               </a>
                             )}
 
