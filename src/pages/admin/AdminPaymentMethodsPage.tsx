@@ -4,13 +4,30 @@ import { fetchAllPaymentMethods, updatePaymentMethod, createPaymentMethod } from
 import { 
   CreditCard, ToggleLeft, ToggleRight, Edit2, X, Save, 
   Plus, Loader2, QrCode, Link as LinkIcon, Tag, User, 
-  AlignLeft, ChevronUp, ChevronDown, Upload, ImageIcon, Trash2
+  AlignLeft, Upload, Trash2, GripVertical
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { GAME_ASSETS_BUCKET } from '@/lib/constants'
 import type { PaymentMethod } from '@/types'
 import { cn } from '@/lib/utils'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 const EMPTY_METHOD: Partial<PaymentMethod> = {
   name: '',
@@ -303,20 +320,42 @@ function PaymentMethodForm({
   )
 }
 
-/* ─────── Payment Method Card ─────── */
+/* ─────── Sortable Payment Method Card ─────── */
 function PaymentMethodCard({
   m,
   editingId,
   setEditingId,
   setAddingNew,
   toggleActive,
-  reorder,
   updateMutation,
 }: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: m.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : undefined,
+  }
+
   return (
-    <div className={cn('glass-card overflow-hidden transition-all', !m.is_active && 'opacity-60')}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn('glass-card overflow-hidden transition-all', !m.is_active && 'opacity-60', isDragging && 'shadow-2xl ring-2 ring-primary/50')}
+    >
       {/* Header */}
       <div className="p-5 flex items-center gap-4">
+        {/* Drag handle */}
+        <button
+          {...attributes}
+          {...listeners}
+          className="h-8 w-6 flex items-center justify-center text-muted-foreground hover:text-white cursor-grab active:cursor-grabbing transition-colors flex-shrink-0 touch-none"
+          title="Drag to reorder"
+        >
+          <GripVertical className="h-5 w-5" />
+        </button>
+
         {/* Logo or initials */}
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 border border-white/10 flex-shrink-0 overflow-hidden">
           {m.logo_url ? (
@@ -343,6 +382,7 @@ function PaymentMethodCard({
           </div>
           {m.tag && <p className="text-sm text-primary font-mono mt-0.5">{m.tag}</p>}
           {m.account_name && <p className="text-xs text-muted-foreground">{m.account_name}</p>}
+          <p className="text-xs text-muted-foreground/50 mt-0.5">Order: {m.sort_order}</p>
         </div>
 
         {/* QR thumb */}
@@ -358,14 +398,6 @@ function PaymentMethodCard({
 
         {/* Controls */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex flex-col gap-1">
-            <button onClick={() => reorder(m, 'up')} className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
-              <ChevronUp className="h-3 w-3" />
-            </button>
-            <button onClick={() => reorder(m, 'down')} className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
-              <ChevronDown className="h-3 w-3" />
-            </button>
-          </div>
           <button
             onClick={() => { setEditingId(editingId === m.id ? null : m.id); setAddingNew(false) }}
             className={cn(
@@ -407,17 +439,28 @@ export default function AdminPaymentMethodsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [addingNew, setAddingNew] = useState(false)
   const [activeTab, setActiveTab] = useState<'active' | 'inactive'>('active')
+  const [localOrder, setLocalOrder] = useState<PaymentMethod[]>([])
 
   const { data: methods = [], isLoading } = useQuery({
     queryKey: ['admin-payment-methods'],
     queryFn: fetchAllPaymentMethods,
+    select: (data) => [...data].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
   })
+
+  // Sync localOrder when server data changes
+  const activeMethods = (methods as PaymentMethod[]).filter(m => m.is_active)
+  const inactiveMethods = (methods as PaymentMethod[]).filter(m => !m.is_active)
+  const displayedMethods = activeTab === 'active' ? activeMethods : inactiveMethods
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<PaymentMethod> }) =>
       updatePaymentMethod(id, updates),
     onSuccess: () => {
-      toast.success('Payment method updated!')
       qc.invalidateQueries({ queryKey: ['admin-payment-methods'] })
       setEditingId(null)
     },
@@ -437,12 +480,32 @@ export default function AdminPaymentMethodsPage() {
   const toggleActive = (m: PaymentMethod) =>
     updateMutation.mutate({ id: m.id, updates: { is_active: !m.is_active } })
 
-  const reorder = (m: PaymentMethod, dir: 'up' | 'down') =>
-    updateMutation.mutate({ id: m.id, updates: { sort_order: (m.sort_order ?? 0) + (dir === 'up' ? -1 : 1) } })
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
 
-  const activeMethods = (methods as PaymentMethod[]).filter(m => m.is_active)
-  const inactiveMethods = (methods as PaymentMethod[]).filter(m => !m.is_active)
-  const displayedMethods = activeTab === 'active' ? activeMethods : inactiveMethods
+    const currentList = [...displayedMethods]
+    const oldIndex = currentList.findIndex(m => m.id === active.id)
+    const newIndex = currentList.findIndex(m => m.id === over.id)
+    const reordered = arrayMove(currentList, oldIndex, newIndex)
+
+    // Optimistically update all sort_orders for items in this tab
+    // Save all changed items to DB
+    const updates = reordered.map((m, idx) => ({ id: m.id, sort_order: idx + 1 }))
+    
+    // Fire all updates in parallel (fire and forget)
+    toast.promise(
+      Promise.all(updates.map(u => updatePaymentMethod(u.id, { sort_order: u.sort_order }))),
+      {
+        loading: 'Saving order...',
+        success: () => {
+          qc.invalidateQueries({ queryKey: ['admin-payment-methods'] })
+          return 'Order saved!'
+        },
+        error: 'Failed to save order',
+      }
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -523,20 +586,30 @@ export default function AdminPaymentMethodsPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {displayedMethods.map((m) => (
-            <PaymentMethodCard
-              key={m.id}
-              m={m}
-              editingId={editingId}
-              setEditingId={setEditingId}
-              setAddingNew={setAddingNew}
-              toggleActive={toggleActive}
-              reorder={reorder}
-              updateMutation={updateMutation}
-            />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={displayedMethods.map(m => m.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-4">
+              {displayedMethods.map((m) => (
+                <PaymentMethodCard
+                  key={m.id}
+                  m={m}
+                  editingId={editingId}
+                  setEditingId={setEditingId}
+                  setAddingNew={setAddingNew}
+                  toggleActive={toggleActive}
+                  updateMutation={updateMutation}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   )

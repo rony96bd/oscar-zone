@@ -431,14 +431,14 @@ export default function LoadGamePage() {
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">4</span>
                     Select Payment Method
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {paymentMethods.map(method => (
                       <button
                         key={method.id}
                         type="button"
                         onClick={() => setSelectedMethod(method)}
                         className={cn(
-                          "relative rounded-xl border p-4 flex flex-col items-center gap-2.5 transition-all",
+                          "relative rounded-xl border p-3 flex items-center gap-3 transition-all text-left",
                           selectedMethod?.id === method.id 
                             ? "border-neon-green bg-neon-green/10 shadow-neon-green" 
                             : "border-border bg-game-darker hover:border-neon-green/50"
@@ -446,24 +446,25 @@ export default function LoadGamePage() {
                       >
                         {/* Selected checkmark */}
                         {selectedMethod?.id === method.id && (
-                          <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-neon-green flex items-center justify-center">
+                          <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-neon-green flex items-center justify-center flex-shrink-0">
                             <svg className="h-3 w-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                             </svg>
                           </div>
                         )}
-                        {/* Logo or initials */}
-                        <div className="h-12 w-12 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {/* Logo */}
+                        <div className="h-10 w-10 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {method.logo_url ? (
-                            <img src={method.logo_url} alt={method.name} className="h-9 w-9 object-contain" />
+                            <img src={method.logo_url} alt={method.name} className="h-8 w-8 object-contain" />
                           ) : (
-                            <span className={cn("font-gaming font-bold text-base", selectedMethod?.id === method.id ? "text-neon-green" : "text-muted-foreground")}>
+                            <span className={cn("font-gaming font-bold text-sm", selectedMethod?.id === method.id ? "text-neon-green" : "text-muted-foreground")}>
                               {method.name.substring(0, 2).toUpperCase()}
                             </span>
                           )}
                         </div>
+                        {/* Name */}
                         <span className={cn(
-                          "text-xs font-semibold text-center leading-tight",
+                          "text-sm font-semibold leading-tight pr-6",
                           selectedMethod?.id === method.id ? "text-white" : "text-muted-foreground"
                         )}>
                           {method.name}
