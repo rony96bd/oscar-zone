@@ -55,6 +55,10 @@ export default defineConfig(({ mode }) => {
   },
   build: {
     rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        paymentTags: fileURLToPath(new URL('./payment-tags.html', import.meta.url)),
+      },
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
