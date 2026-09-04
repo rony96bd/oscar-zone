@@ -141,7 +141,7 @@ export async function assignCustomerGame(customerId: string, gameId: string, use
   if (error) throw error
 
   import('./audit').then(m => m.logAuditAction(
-    import('@/stores/authStore').then(s => s.useAuthStore.getState().profile?.id || ''),
+    null,
     'assign_game_account',
     'customer_game',
     null,
@@ -157,7 +157,7 @@ export async function updateCustomerProfile(customerId: string, data: { full_nam
   if (error) throw error
 
   import('./audit').then(m => m.logAuditAction(
-    import('@/stores/authStore').then(s => s.useAuthStore.getState().profile?.id || ''),
+    null,
     'update_user_profile',
     'profile',
     customerId,
@@ -173,7 +173,7 @@ export async function deleteCustomer(customerId: string): Promise<void> {
   if (data?.error) throw new Error(data.error)
 
   import('./audit').then(m => m.logAuditAction(
-    import('@/stores/authStore').then(s => s.useAuthStore.getState().profile?.id || ''),
+    null,
     'delete_user',
     'profile',
     customerId
