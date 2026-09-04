@@ -7,8 +7,11 @@ import { formatDistanceToNow } from 'date-fns'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 export default function PaymentTagsPage() {
+  const { metaTitle } = useSettingsStore()
+  
   const { data: paymentMethods = [], isLoading } = useQuery({
     queryKey: ['payment-methods'],
     queryFn: fetchPaymentMethods
@@ -24,10 +27,10 @@ export default function PaymentTagsPage() {
     if (ogTitle) ogTitle.setAttribute('content', newTitle)
 
     return () => {
-      document.title = originalTitle
+      document.title = metaTitle || originalTitle
       if (ogTitle && originalOgTitle) ogTitle.setAttribute('content', originalOgTitle)
     }
-  }, [])
+  }, [metaTitle])
 
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)

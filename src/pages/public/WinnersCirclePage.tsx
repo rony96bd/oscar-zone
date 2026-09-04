@@ -1,13 +1,32 @@
+import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Trophy, Star, MessageSquare } from 'lucide-react'
 import { fetchApprovedTestimonials } from '@/services/engagement'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 export default function WinnersCirclePage() {
+  const { metaTitle } = useSettingsStore()
+
   const { data: testimonials = [], isLoading } = useQuery({
     queryKey: ['winners-circle'],
     queryFn: fetchApprovedTestimonials,
   })
+
+  useEffect(() => {
+    const originalTitle = document.title
+    const newTitle = 'Winners Circle - Oscar Zone'
+    document.title = newTitle
+
+    const ogTitle = document.getElementById('og-title')
+    const originalOgTitle = ogTitle?.getAttribute('content')
+    if (ogTitle) ogTitle.setAttribute('content', newTitle)
+
+    return () => {
+      document.title = metaTitle || originalTitle
+      if (ogTitle && originalOgTitle) ogTitle.setAttribute('content', originalOgTitle)
+    }
+  }, [metaTitle])
 
   return (
     <div className="min-h-screen hero-bg pt-24 pb-12 px-4">
