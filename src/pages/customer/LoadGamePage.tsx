@@ -438,17 +438,36 @@ export default function LoadGamePage() {
                         type="button"
                         onClick={() => setSelectedMethod(method)}
                         className={cn(
-                          "relative rounded-xl border p-3 flex flex-col items-center gap-2 transition-all",
+                          "relative rounded-xl border p-4 flex flex-col items-center gap-2.5 transition-all",
                           selectedMethod?.id === method.id 
                             ? "border-neon-green bg-neon-green/10 shadow-neon-green" 
                             : "border-border bg-game-darker hover:border-neon-green/50"
                         )}
                       >
-                        {method.logo_url ? (
-                          <img src={method.logo_url} alt={method.name} className="h-8 object-contain" />
-                        ) : (
-                          <span className="font-gaming font-bold text-lg">{method.name}</span>
+                        {/* Selected checkmark */}
+                        {selectedMethod?.id === method.id && (
+                          <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-neon-green flex items-center justify-center">
+                            <svg className="h-3 w-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
                         )}
+                        {/* Logo or initials */}
+                        <div className="h-12 w-12 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {method.logo_url ? (
+                            <img src={method.logo_url} alt={method.name} className="h-9 w-9 object-contain" />
+                          ) : (
+                            <span className={cn("font-gaming font-bold text-base", selectedMethod?.id === method.id ? "text-neon-green" : "text-muted-foreground")}>
+                              {method.name.substring(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <span className={cn(
+                          "text-xs font-semibold text-center leading-tight",
+                          selectedMethod?.id === method.id ? "text-white" : "text-muted-foreground"
+                        )}>
+                          {method.name}
+                        </span>
                       </button>
                     ))}
                   </div>

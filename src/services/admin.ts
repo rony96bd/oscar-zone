@@ -102,6 +102,14 @@ export async function updateCustomerStatus(customerId: string, status: string): 
     .update({ account_status: status })
     .eq('id', customerId)
   if (error) throw error
+
+  import('./audit').then(m => m.logAuditAction(
+    null,
+    'update_user_status',
+    'profile',
+    customerId,
+    { new_status: status }
+  ))
 }
 
 export async function updateCustomerBonus(customerId: string, bonusPct: number): Promise<void> {
@@ -110,6 +118,14 @@ export async function updateCustomerBonus(customerId: string, bonusPct: number):
     .update({ custom_bonus_percentage: bonusPct })
     .eq('id', customerId)
   if (error) throw error
+
+  import('./audit').then(m => m.logAuditAction(
+    null,
+    'update_user_bonus',
+    'profile',
+    customerId,
+    { bonus_percentage: bonusPct }
+  ))
 }
 
 export async function assignCustomerGame(customerId: string, gameId: string, username: string, gamePassword?: string): Promise<void> {
@@ -123,14 +139,30 @@ export async function assignCustomerGame(customerId: string, gameId: string, use
       status: 'active' 
     })
   if (error) throw error
+
+  import('./audit').then(m => m.logAuditAction(
+    import('@/stores/authStore').then(s => s.useAuthStore.getState().profile?.id || ''),
+    'assign_game_account',
+    'customer_game',
+    null,
+    { customer_id: customerId, game_id: gameId, username }
+  ))
 }
 
-export async function updateCustomerProfile(customerId: string, data: { full_name?: string; username?: string }): Promise<void> {
+export async function updateCustomerProfile(customerId: string, data: { full_name?: string; username?: string; role?: string }): Promise<void> {
   const { error } = await supabase
     .from('profiles')
     .update(data)
     .eq('id', customerId)
   if (error) throw error
+
+  import('./audit').then(m => m.logAuditAction(
+    import('@/stores/authStore').then(s => s.useAuthStore.getState().profile?.id || ''),
+    'update_user_profile',
+    'profile',
+    customerId,
+    data
+  ))
 }
 
 export async function deleteCustomer(customerId: string): Promise<void> {
@@ -139,4 +171,11 @@ export async function deleteCustomer(customerId: string): Promise<void> {
   })
   if (error) throw error
   if (data?.error) throw new Error(data.error)
+
+  import('./audit').then(m => m.logAuditAction(
+    import('@/stores/authStore').then(s => s.useAuthStore.getState().profile?.id || ''),
+    'delete_user',
+    'profile',
+    customerId
+  ))
 }

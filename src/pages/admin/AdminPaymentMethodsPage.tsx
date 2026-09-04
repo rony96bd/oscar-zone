@@ -17,6 +17,7 @@ const EMPTY_METHOD: Partial<PaymentMethod> = {
   tag: '',
   account_name: '',
   payment_link: '',
+  logo_url: '',
   qr_code_url: '',
   instructions: '',
   minimum_amount: 10,
@@ -27,18 +28,23 @@ const EMPTY_METHOD: Partial<PaymentMethod> = {
   sort_order: 99,
 }
 
-/* ─────── QR Upload Component ─────── */
-function QrUploader({
+/* ─────── Image Upload Component (reusable for QR and Logo) ─────── */
+function ImageUploader({
   currentUrl,
   onChange,
+  label,
+  previewClass = 'h-24 w-24',
+  path,
 }: {
   currentUrl: string
   onChange: (url: string) => void
+  label: string
+  previewClass?: string
+  path: string
 }) {
   const [uploading, setUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Extract storage path from public URL
   const getPathFromUrl = (url: string): string | null => {
     try {
       const marker = `/object/public/${GAME_ASSETS_BUCKET}/`
@@ -51,12 +57,12 @@ function QrUploader({
   }
 
   const deleteFromStorage = async (url: string) => {
-    const path = getPathFromUrl(url)
-    if (!path) return // External URL — nothing to delete
+    const p = getPathFromUrl(url)
+    if (!p) return
     try {
-      await supabase.storage.from(GAME_ASSETS_BUCKET).remove([path])
+      await supabase.storage.from(GAME_ASSETS_BUCKET).remove([p])
     } catch (err) {
-      console.warn('Could not delete old QR from storage:', err)
+      console.warn('Could not delete old image from storage:', err)
     }
   }
 
@@ -66,24 +72,23 @@ function QrUploader({
 
     setUploading(true)
     try {
-      // Delete old QR from storage first (if it was uploaded here)
       if (currentUrl) await deleteFromStorage(currentUrl)
 
       const ext = file.name.split('.').pop() || 'png'
-      const path = `qr-codes/${Date.now()}.${ext}`
+      const filePath = `${path}/${Date.now()}.${ext}`
       
       const { error: uploadError } = await supabase.storage
         .from(GAME_ASSETS_BUCKET)
-        .upload(path, file, { upsert: true, cacheControl: '86400' })
+        .upload(filePath, file, { upsert: true, cacheControl: '86400' })
       
       if (uploadError) throw uploadError
 
       const { data: { publicUrl } } = supabase.storage
         .from(GAME_ASSETS_BUCKET)
-        .getPublicUrl(path)
+        .getPublicUrl(filePath)
 
       onChange(publicUrl)
-      toast.success('QR code uploaded!')
+      toast.success(`${label} uploaded!`)
     } catch (err: any) {
       toast.error(err.message || 'Upload failed')
     } finally {
@@ -93,27 +98,26 @@ function QrUploader({
 
   return (
     <div className="space-y-3">
-      <label className="text-xs text-muted-foreground block">QR Code Image</label>
+      <label className="text-xs text-muted-foreground block">{label}</label>
       
-      {/* Preview */}
       {currentUrl && (
         <div className="flex items-center gap-3">
-          <div className="bg-white p-2 rounded-lg flex-shrink-0">
+          <div className="bg-white/10 border border-white/10 p-2 rounded-lg flex-shrink-0">
             <img
               src={currentUrl}
-              alt="QR Preview"
-              className="h-24 w-24 object-contain"
+              alt={label}
+              className={cn(previewClass, 'object-contain')}
               onError={(e) => (e.currentTarget.parentElement!.style.display = 'none')}
             />
           </div>
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">Current QR code</p>
+            <p className="text-xs text-muted-foreground">Current {label.toLowerCase()}</p>
             <button
               type="button"
               onClick={async () => {
                 if (currentUrl) await deleteFromStorage(currentUrl)
                 onChange('')
-                toast.success('QR code removed')
+                toast.success(`${label} removed`)
               }}
               className="inline-flex items-center gap-1 text-xs text-destructive hover:text-destructive/80 transition-colors"
             >
@@ -123,7 +127,6 @@ function QrUploader({
         </div>
       )}
 
-      {/* Upload area */}
       <div
         className={cn(
           'upload-zone relative cursor-pointer transition-all',
@@ -157,7 +160,7 @@ function QrUploader({
               <Upload className="h-5 w-5 text-primary" />
             </div>
             <p className="text-sm font-medium text-foreground">
-              {currentUrl ? 'Replace QR Code' : 'Upload QR Code'}
+              {currentUrl ? `Replace ${label}` : `Upload ${label}`}
             </p>
             <p className="text-xs text-muted-foreground">Drag & drop or click — PNG, JPG up to 5MB</p>
           </div>
@@ -219,11 +222,23 @@ function PaymentMethodForm({
         </div>
       </div>
 
-      {/* QR Code Upload */}
-      <QrUploader
-        currentUrl={form.qr_code_url || ''}
-        onChange={(url) => set('qr_code_url', url)}
-      />
+      {/* Logo + QR Code side by side */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <ImageUploader
+          label="Payment Method Logo"
+          currentUrl={form.logo_url || ''}
+          onChange={(url) => set('logo_url', url)}
+          previewClass="h-12 w-24"
+          path="payment-logos"
+        />
+        <ImageUploader
+          label="QR Code Image"
+          currentUrl={form.qr_code_url || ''}
+          onChange={(url) => set('qr_code_url', url)}
+          previewClass="h-24 w-24"
+          path="qr-codes"
+        />
+      </div>
 
       <div>
         <label className="text-xs text-muted-foreground mb-1 block">Payment Instructions</label>
@@ -288,11 +303,110 @@ function PaymentMethodForm({
   )
 }
 
+/* ─────── Payment Method Card ─────── */
+function PaymentMethodCard({
+  m,
+  editingId,
+  setEditingId,
+  setAddingNew,
+  toggleActive,
+  reorder,
+  updateMutation,
+}: any) {
+  return (
+    <div className={cn('glass-card overflow-hidden transition-all', !m.is_active && 'opacity-60')}>
+      {/* Header */}
+      <div className="p-5 flex items-center gap-4">
+        {/* Logo or initials */}
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 border border-white/10 flex-shrink-0 overflow-hidden">
+          {m.logo_url ? (
+            <img src={m.logo_url} alt={m.name} className="h-10 w-10 object-contain" />
+          ) : (
+            <span className="font-bold text-primary text-lg">{m.name.substring(0, 2).toUpperCase()}</span>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-bold text-white">{m.name}</p>
+            <span className={cn(
+              'text-xs px-2 py-0.5 rounded-full font-medium',
+              m.is_active ? 'bg-neon-green/15 text-neon-green' : 'bg-muted text-muted-foreground'
+            )}>
+              {m.is_active ? 'Active' : 'Inactive'}
+            </span>
+            {m.is_agent && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-neon-gold/15 text-neon-gold">
+                Agent Method
+              </span>
+            )}
+          </div>
+          {m.tag && <p className="text-sm text-primary font-mono mt-0.5">{m.tag}</p>}
+          {m.account_name && <p className="text-xs text-muted-foreground">{m.account_name}</p>}
+        </div>
+
+        {/* QR thumb */}
+        {m.qr_code_url ? (
+          <div className="bg-white p-1.5 rounded-lg flex-shrink-0 hidden sm:block">
+            <img src={m.qr_code_url} alt="QR" className="h-12 w-12 object-contain" />
+          </div>
+        ) : (
+          <div className="h-12 w-12 rounded-lg border border-dashed border-border flex items-center justify-center flex-shrink-0 hidden sm:flex">
+            <QrCode className="h-5 w-5 text-muted-foreground/40" />
+          </div>
+        )}
+
+        {/* Controls */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex flex-col gap-1">
+            <button onClick={() => reorder(m, 'up')} className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
+              <ChevronUp className="h-3 w-3" />
+            </button>
+            <button onClick={() => reorder(m, 'down')} className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </div>
+          <button
+            onClick={() => { setEditingId(editingId === m.id ? null : m.id); setAddingNew(false) }}
+            className={cn(
+              'h-9 w-9 flex items-center justify-center rounded-lg border transition-all',
+              editingId === m.id
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border text-muted-foreground hover:text-foreground hover:bg-white/10'
+            )}
+          >
+            {editingId === m.id ? <X className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
+          </button>
+          <button onClick={() => toggleActive(m)} className="transition-all">
+            {m.is_active
+              ? <ToggleRight className="h-8 w-8 text-neon-green" />
+              : <ToggleLeft className="h-8 w-8 text-muted-foreground" />
+            }
+          </button>
+        </div>
+      </div>
+
+      {/* Expandable Edit Form */}
+      {editingId === m.id && (
+        <div className="border-t border-border p-6 bg-card/50">
+          <PaymentMethodForm
+            initial={m}
+            onSave={(data) => updateMutation.mutate({ id: m.id, updates: data })}
+            onCancel={() => setEditingId(null)}
+            isSaving={updateMutation.isPending}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ─────── Main Page ─────── */
 export default function AdminPaymentMethodsPage() {
   const qc = useQueryClient()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [addingNew, setAddingNew] = useState(false)
+  const [activeTab, setActiveTab] = useState<'active' | 'inactive'>('active')
 
   const { data: methods = [], isLoading } = useQuery({
     queryKey: ['admin-payment-methods'],
@@ -326,12 +440,16 @@ export default function AdminPaymentMethodsPage() {
   const reorder = (m: PaymentMethod, dir: 'up' | 'down') =>
     updateMutation.mutate({ id: m.id, updates: { sort_order: (m.sort_order ?? 0) + (dir === 'up' ? -1 : 1) } })
 
+  const activeMethods = (methods as PaymentMethod[]).filter(m => m.is_active)
+  const inactiveMethods = (methods as PaymentMethod[]).filter(m => !m.is_active)
+  const displayedMethods = activeTab === 'active' ? activeMethods : inactiveMethods
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-gaming font-bold text-white">Payment Methods</h1>
-          <p className="text-sm text-muted-foreground">Manage QR codes, tags, and payment links shown to customers</p>
+          <p className="text-sm text-muted-foreground">Manage QR codes, logos, tags, and payment links shown to customers</p>
         </div>
         <button
           onClick={() => { setAddingNew(true); setEditingId(null) }}
@@ -356,95 +474,67 @@ export default function AdminPaymentMethodsPage() {
         </div>
       )}
 
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 bg-black/30 rounded-xl border border-white/5 w-fit">
+        <button
+          onClick={() => setActiveTab('active')}
+          className={cn(
+            'px-5 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2',
+            activeTab === 'active'
+              ? 'bg-neon-green/20 text-neon-green border border-neon-green/30'
+              : 'text-muted-foreground hover:text-white'
+          )}
+        >
+          Active
+          <span className={cn(
+            'text-xs px-2 py-0.5 rounded-full font-bold',
+            activeTab === 'active' ? 'bg-neon-green/20 text-neon-green' : 'bg-white/10 text-muted-foreground'
+          )}>
+            {activeMethods.length}
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab('inactive')}
+          className={cn(
+            'px-5 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2',
+            activeTab === 'inactive'
+              ? 'bg-white/10 text-white border border-white/20'
+              : 'text-muted-foreground hover:text-white'
+          )}
+        >
+          Inactive
+          <span className={cn(
+            'text-xs px-2 py-0.5 rounded-full font-bold',
+            activeTab === 'inactive' ? 'bg-white/20 text-white' : 'bg-white/10 text-muted-foreground'
+          )}>
+            {inactiveMethods.length}
+          </span>
+        </button>
+      </div>
+
       {isLoading ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => <div key={i} className="h-24 skeleton rounded-xl" />)}
         </div>
+      ) : displayedMethods.length === 0 ? (
+        <div className="glass-card p-12 text-center">
+          <p className="text-muted-foreground">
+            {activeTab === 'active' ? 'No active payment methods.' : 'No inactive payment methods.'}
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
-          {(methods as PaymentMethod[]).map((m) => (
-            <div
+          {displayedMethods.map((m) => (
+            <PaymentMethodCard
               key={m.id}
-              className={cn('glass-card overflow-hidden transition-all', !m.is_active && 'opacity-60')}
-            >
-              {/* Header */}
-              <div className="p-5 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 font-bold text-primary text-lg flex-shrink-0">
-                  {m.name.substring(0, 2)}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold text-white">{m.name}</p>
-                    <span className={cn(
-                      'text-xs px-2 py-0.5 rounded-full font-medium',
-                      m.is_active ? 'bg-neon-green/15 text-neon-green' : 'bg-muted text-muted-foreground'
-                    )}>
-                      {m.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                    {m.is_agent && (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-neon-gold/15 text-neon-gold">
-                        Agent Method
-                      </span>
-                    )}
-                  </div>
-                  {m.tag && <p className="text-sm text-primary font-mono mt-0.5">{m.tag}</p>}
-                  {m.account_name && <p className="text-xs text-muted-foreground">{m.account_name}</p>}
-                </div>
-
-                {/* QR thumb */}
-                {m.qr_code_url ? (
-                  <div className="bg-white p-1.5 rounded-lg flex-shrink-0 hidden sm:block">
-                    <img src={m.qr_code_url} alt="QR" className="h-12 w-12 object-contain" />
-                  </div>
-                ) : (
-                  <div className="h-12 w-12 rounded-lg border border-dashed border-border flex items-center justify-center flex-shrink-0 hidden sm:flex">
-                    <QrCode className="h-5 w-5 text-muted-foreground/40" />
-                  </div>
-                )}
-
-                {/* Controls */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <div className="flex flex-col gap-1">
-                    <button onClick={() => reorder(m, 'up')} className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
-                      <ChevronUp className="h-3 w-3" />
-                    </button>
-                    <button onClick={() => reorder(m, 'down')} className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
-                      <ChevronDown className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => { setEditingId(editingId === m.id ? null : m.id); setAddingNew(false) }}
-                    className={cn(
-                      'h-9 w-9 flex items-center justify-center rounded-lg border transition-all',
-                      editingId === m.id
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border text-muted-foreground hover:text-foreground hover:bg-white/10'
-                    )}
-                  >
-                    {editingId === m.id ? <X className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
-                  </button>
-                  <button onClick={() => toggleActive(m)} className="transition-all">
-                    {m.is_active
-                      ? <ToggleRight className="h-8 w-8 text-neon-green" />
-                      : <ToggleLeft className="h-8 w-8 text-muted-foreground" />
-                    }
-                  </button>
-                </div>
-              </div>
-
-              {/* Expandable Edit Form */}
-              {editingId === m.id && (
-                <div className="border-t border-border p-6 bg-card/50">
-                  <PaymentMethodForm
-                    initial={m}
-                    onSave={(data) => updateMutation.mutate({ id: m.id, updates: data })}
-                    onCancel={() => setEditingId(null)}
-                    isSaving={updateMutation.isPending}
-                  />
-                </div>
-              )}
-            </div>
+              m={m}
+              editingId={editingId}
+              setEditingId={setEditingId}
+              setAddingNew={setAddingNew}
+              toggleActive={toggleActive}
+              reorder={reorder}
+              updateMutation={updateMutation}
+            />
           ))}
         </div>
       )}
