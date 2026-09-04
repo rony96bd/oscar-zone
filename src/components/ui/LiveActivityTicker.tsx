@@ -21,7 +21,7 @@ export function LiveActivityTicker() {
           100% { transform: translateX(-50%); }
         }
         .animate-ticker {
-          animation: ticker-marquee 30s linear infinite;
+          animation: ticker-marquee 80s linear infinite;
         }
         .animate-ticker:hover {
           animation-play-state: paused;
