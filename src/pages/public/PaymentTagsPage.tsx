@@ -125,12 +125,14 @@ export default function PaymentTagsPage() {
                 </header>
 
                   {pm.tag && (
-                    <div className="mb-6 flex items-center justify-between rounded-xl bg-black/40 border border-white/5 p-4">
-                      <div>
+                    <div className="mb-6 flex items-center justify-between rounded-xl bg-black/40 border border-white/5 p-4 gap-4">
+                      <div className="flex-1 min-w-0">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                          Payment Tag
+                          Payment Tag / Address / Email
                         </div>
-                        <div className="font-mono text-lg text-white font-bold">{pm.tag}</div>
+                        <div className="font-mono text-base sm:text-lg text-white font-bold break-all">
+                          {pm.tag}
+                        </div>
                       </div>
                       <button
                         onClick={() => handleCopy(pm.tag || '', pm.id)}
