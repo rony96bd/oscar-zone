@@ -64,6 +64,7 @@
     "@vitejs/plugin-legacy": "^8.2.3",
     "@vitejs/plugin-react": "^6.0.4",
     "autoprefixer": "^10.5.4",
+    "dotenv": "^17.4.2",
     "oxlint": "^1.75.0",
     "postcss": "^8.5.26",
     "supabase": "^2.114.0",
