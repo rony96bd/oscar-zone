@@ -78,7 +78,7 @@ BEGIN
       cr.created_at
     FROM cashout_requests cr
     JOIN profiles p ON p.id = cr.user_id
-    WHERE cr.status = 'completed' AND p.is_hidden_from_public = false
+    WHERE cr.status = 'approved' AND p.is_hidden_from_public = false
   ) combined_activities
   ORDER BY created_at DESC
   LIMIT limit_count;

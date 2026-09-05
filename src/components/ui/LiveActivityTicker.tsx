@@ -63,7 +63,7 @@ export function LiveActivityTicker() {
             <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-[#0d1117] to-transparent z-10 pointer-events-none" />
             <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-[#0d1117] to-transparent z-10 pointer-events-none" />
 
-            <div className="flex w-max animate-ticker whitespace-nowrap" style={{ animationDirection: 'reverse' }}>
+            <div className="flex w-max animate-ticker-reverse whitespace-nowrap">
               {[...cashouts, ...cashouts].map((activity, index) => (
                 <div key={`cashout-${activity.created_at}-${index}`} className="flex items-center mx-4 md:mx-8">
                   <Link to="/winners-circle" className="flex items-center gap-2 text-xs md:text-sm font-medium text-white/80 hover:text-white transition-colors">
