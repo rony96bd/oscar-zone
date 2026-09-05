@@ -53,7 +53,7 @@ serve(async (req) => {
     })
   }
 
-  const { order_id, status, note } = await req.json()
+  const { order_id, status, note, staff_id } = await req.json()
 
   // Get current order with user info
   const { data: order } = await supabase
@@ -81,6 +81,9 @@ serve(async (req) => {
   const updates: any = { status }
   if (note) updates.admin_note = note
   if (status === 'rejected') updates.rejection_reason = note
+  if (staff_id && (status === 'completed' || status === 'rejected')) {
+    updates.processed_by = staff_id
+  }
 
   const { error } = await supabase
     .from('orders')

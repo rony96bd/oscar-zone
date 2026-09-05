@@ -72,26 +72,13 @@ export async function updateOrderStatus(
   note?: string,
   staffId?: string
 ): Promise<void> {
-  const updates: any = { status }
-  if (note) updates.admin_note = note
-  if (status === 'rejected') updates.rejection_reason = note
-  if (staffId && (status === 'completed' || status === 'rejected')) {
-    updates.processed_by = staffId
-  }
-
-  const { error } = await supabase
-    .from('orders')
-    .update(updates)
-    .eq('id', orderId)
-    
-  if (error) throw error
-
-  // Log status history
-  await supabase.from('order_status_history').insert({
-    order_id: orderId,
-    status,
-    note
+  // Call the edge function — this is the single source of truth for order status changes.
+  // It handles DB update, status history, notifications, AND referral qualification.
+  const { data, error } = await supabase.functions.invoke('update-order-status', {
+    body: { order_id: orderId, status, note, staff_id: staffId },
   })
+  if (error) throw error
+  if (data?.error) throw new Error(data.error)
 }
 
 export async function assignOrderToAgent(orderId: string, agentId: string): Promise<void> {
