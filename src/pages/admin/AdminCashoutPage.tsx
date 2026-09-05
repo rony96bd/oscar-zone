@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowDownToLine, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react'
+import { ArrowDownToLine, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Image as ImageIcon, Plus } from 'lucide-react'
 import { fetchAllCashoutRequests, updateCashoutStatus } from '@/services/cashout'
 import { sendNotificationToUser } from '@/services/notifications'
 import { getScreenshotUrl } from '@/services/payments'
@@ -8,6 +8,7 @@ import { formatCurrency, formatRelativeTime, cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuthStore } from '@/stores/authStore'
+import { CreateCashoutModal } from '@/components/admin/CreateCashoutModal'
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected'
 
@@ -19,6 +20,7 @@ export default function AdminCashoutPage() {
   const [qrUrls, setQrUrls] = useState<Record<string, string>>({})
   const qc = useQueryClient()
   const { profile } = useAuthStore()
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   const [previewQrUrl, setPreviewQrUrl] = useState<string | null>(null)
 
@@ -72,12 +74,25 @@ export default function AdminCashoutPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-gaming font-bold text-white flex items-center gap-2">
-          <ArrowDownToLine className="h-6 w-6" /> Cashout Requests
-        </h1>
-        <p className="text-sm text-muted-foreground">Review and process customer cashout requests</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-gaming font-bold text-white flex items-center gap-2">
+            <ArrowDownToLine className="h-6 w-6" /> Cashout Requests
+          </h1>
+          <p className="text-sm text-muted-foreground">Review and process customer cashout requests</p>
+        </div>
+        {canManage && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-neon-gold px-4 py-2 text-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Manual Entry
+          </button>
+        )}
       </div>
+
+      <CreateCashoutModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
 
       <div className="flex gap-2 flex-wrap">
         {filterTabs.map((tab) => (
