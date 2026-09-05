@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { fetchReferralLevels } from '@/services/referrals'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
-import { Users, TrendingUp, Gift, CheckCircle, Settings, Edit2, Save, X } from 'lucide-react'
+import { Users, TrendingUp, Gift, CheckCircle, Settings, Edit2, Save, X, UserPlus, Search, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Navigate } from 'react-router-dom'
@@ -53,6 +53,16 @@ export default function AdminReferralsPage() {
   const [editSettings, setEditSettings] = useState(false)
   const [settingsForm, setSettingsForm] = useState({ min_amount: 5 })
 
+  // Manual referral assignment state
+  const [referrerSearch, setReferrerSearch] = useState('')
+  const [referredSearch, setReferredSearch] = useState('')
+  const [referrerResults, setReferrerResults] = useState<any[]>([])
+  const [referredResults, setReferredResults] = useState<any[]>([])
+  const [selectedReferrer, setSelectedReferrer] = useState<any | null>(null)
+  const [selectedReferred, setSelectedReferred] = useState<any | null>(null)
+  const [isSearchingReferrer, setIsSearchingReferrer] = useState(false)
+  const [isSearchingReferred, setIsSearchingReferred] = useState(false)
+
   const { data: referrals = [] } = useQuery({ queryKey: ['admin-all-referrals'], queryFn: fetchAllReferrals })
   const { data: earnings = [] } = useQuery({ queryKey: ['admin-all-earnings'], queryFn: fetchAllEarnings })
   const { data: levels = [] } = useQuery({ queryKey: ['referral-levels'], queryFn: fetchReferralLevels })
@@ -89,6 +99,64 @@ export default function AdminReferralsPage() {
     onError: (e: any) => toast.error(e.message),
   })
 
+  // Search customers by name/username/email/phone
+  async function searchUsers(term: string, type: 'referrer' | 'referred') {
+    if (!term.trim()) {
+      type === 'referrer' ? setReferrerResults([]) : setReferredResults([])
+      return
+    }
+    type === 'referrer' ? setIsSearchingReferrer(true) : setIsSearchingReferred(true)
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name, username, email, phone, referral_code, referred_by')
+      .eq('role', 'customer')
+      .or(`full_name.ilike.%${term}%,username.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%,referral_code.ilike.%${term}%`)
+      .limit(8)
+    type === 'referrer' ? setIsSearchingReferrer(false) : setIsSearchingReferred(false)
+    type === 'referrer' ? setReferrerResults(data || []) : setReferredResults(data || [])
+  }
+
+  const assignReferralMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedReferrer || !selectedReferred) throw new Error('Both referrer and referred must be selected')
+      if (selectedReferrer.id === selectedReferred.id) throw new Error('Referrer and referred cannot be the same person')
+      if (selectedReferred.referred_by) throw new Error('This customer already has a referrer set. Remove existing referral first.')
+
+      // Check if referral already exists in referrals table
+      const { data: existing } = await supabase
+        .from('referrals')
+        .select('id')
+        .eq('referrer_id', selectedReferrer.id)
+        .eq('referred_id', selectedReferred.id)
+        .maybeSingle()
+      if (existing) throw new Error('A referral record already exists between these two users.')
+
+      // Insert into referrals table
+      const { error: refError } = await supabase
+        .from('referrals')
+        .insert({ referrer_id: selectedReferrer.id, referred_id: selectedReferred.id, status: 'pending' })
+      if (refError) throw refError
+
+      // Update referred_by on the referred user's profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ referred_by: selectedReferrer.id })
+        .eq('id', selectedReferred.id)
+      if (profileError) throw profileError
+    },
+    onSuccess: () => {
+      toast.success(`রেফারেল সেট হয়েছে: ${selectedReferred?.full_name || selectedReferred?.username} → ${selectedReferrer?.full_name || selectedReferrer?.username}`)
+      setSelectedReferrer(null)
+      setSelectedReferred(null)
+      setReferrerSearch('')
+      setReferredSearch('')
+      setReferrerResults([])
+      setReferredResults([])
+      qc.invalidateQueries({ queryKey: ['admin-all-referrals'] })
+    },
+    onError: (e: any) => toast.error(e.message),
+  })
+
   return (
     <div className="space-y-6">
       <div>
@@ -112,6 +180,141 @@ export default function AdminReferralsPage() {
             <div className="stat-label">{label}</div>
           </div>
         ))}
+      </div>
+
+      {/* ===== Manual Referral Assignment ===== */}
+      <div className="glass-card p-6 border border-primary/20">
+        <h2 className="font-semibold text-white mb-1 flex items-center gap-2">
+          <UserPlus className="h-4 w-4 text-primary" /> Manual Referral Assignment
+        </h2>
+        <p className="text-xs text-muted-foreground mb-5">
+          কোনো কাস্টমার রেফার কোড ছাড়াই সাইনআপ করলে এখান থেকে ম্যানুয়ালি রেফারেল সেট করুন।
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Referrer Search */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">① রেফারকারী (Referrer)</p>
+            {selectedReferrer ? (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-primary/10 border border-primary/30">
+                <div>
+                  <p className="text-sm font-semibold text-white">{selectedReferrer.full_name || selectedReferrer.username}</p>
+                  <p className="text-xs text-muted-foreground">@{selectedReferrer.username} · Code: <span className="font-mono text-primary">{selectedReferrer.referral_code}</span></p>
+                </div>
+                <button onClick={() => { setSelectedReferrer(null); setReferrerSearch(''); setReferrerResults([]) }}
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="relative flex items-center">
+                  <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="নাম, ইউজারনেম, ফোন, ইমেইল..."
+                    className="game-input pl-9 w-full"
+                    value={referrerSearch}
+                    onChange={e => { setReferrerSearch(e.target.value); searchUsers(e.target.value, 'referrer') }}
+                  />
+                  {isSearchingReferrer && <span className="absolute right-3 text-xs text-muted-foreground animate-pulse">Searching...</span>}
+                </div>
+                {referrerResults.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full rounded-xl border border-border bg-background/95 backdrop-blur shadow-xl overflow-hidden">
+                    {referrerResults.map(u => (
+                      <button key={u.id} onClick={() => { setSelectedReferrer(u); setReferrerResults([]); setReferrerSearch('') }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-primary/10 transition-colors border-b border-border/50 last:border-0">
+                        <p className="text-sm text-white font-medium">{u.full_name || u.username}</p>
+                        <p className="text-xs text-muted-foreground">@{u.username} · {u.phone || u.email} · Code: {u.referral_code}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Referred Search */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">② যাকে রেফার করা হয়েছে (Referred)</p>
+            {selectedReferred ? (
+              <div className={cn(
+                'flex items-center justify-between p-3 rounded-xl border',
+                selectedReferred.referred_by ? 'bg-destructive/10 border-destructive/30' : 'bg-neon-green/10 border-neon-green/30'
+              )}>
+                <div>
+                  <p className="text-sm font-semibold text-white">{selectedReferred.full_name || selectedReferred.username}</p>
+                  <p className="text-xs text-muted-foreground">@{selectedReferred.username} · {selectedReferred.phone || selectedReferred.email}</p>
+                  {selectedReferred.referred_by && (
+                    <p className="text-xs text-destructive mt-0.5 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> ইতোমধ্যে রেফারার আছে
+                    </p>
+                  )}
+                </div>
+                <button onClick={() => { setSelectedReferred(null); setReferredSearch(''); setReferredResults([]) }}
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="relative flex items-center">
+                  <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="নাম, ইউজারনেম, ফোন, ইমেইল..."
+                    className="game-input pl-9 w-full"
+                    value={referredSearch}
+                    onChange={e => { setReferredSearch(e.target.value); searchUsers(e.target.value, 'referred') }}
+                  />
+                  {isSearchingReferred && <span className="absolute right-3 text-xs text-muted-foreground animate-pulse">Searching...</span>}
+                </div>
+                {referredResults.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full rounded-xl border border-border bg-background/95 backdrop-blur shadow-xl overflow-hidden">
+                    {referredResults.map(u => (
+                      <button key={u.id} onClick={() => { setSelectedReferred(u); setReferredResults([]); setReferredSearch('') }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-primary/10 transition-colors border-b border-border/50 last:border-0">
+                        <p className="text-sm text-white font-medium">{u.full_name || u.username}</p>
+                        <p className="text-xs text-muted-foreground">@{u.username} · {u.phone || u.email}
+                          {u.referred_by && <span className="ml-2 text-destructive">⚠ already referred</span>}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Confirmation summary & submit */}
+        {selectedReferrer && selectedReferred && (
+          <div className={cn(
+            'mt-5 p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4',
+            selectedReferred.referred_by ? 'bg-destructive/5 border-destructive/20' : 'bg-primary/5 border-primary/20'
+          )}>
+            <div className="text-sm">
+              <p className="text-white">
+                <span className="font-semibold text-neon-green">{selectedReferred.full_name || selectedReferred.username}</span>
+                {' '}<span className="text-muted-foreground">কে</span>{' '}
+                <span className="font-semibold text-primary">{selectedReferrer.full_name || selectedReferrer.username}</span>
+                {' '}<span className="text-muted-foreground">রেফার করেছেন — এটি সেট করা হবে।</span>
+              </p>
+              {selectedReferred.referred_by && (
+                <p className="text-destructive text-xs mt-1 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" /> এই কাস্টমারের ইতোমধ্যে একজন রেফারার আছে, সেভ করা সম্ভব হবে না।
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => assignReferralMutation.mutate()}
+              disabled={assignReferralMutation.isPending || !!selectedReferred.referred_by}
+              className="btn-neon px-5 py-2 text-sm whitespace-nowrap shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {assignReferralMutation.isPending ? 'সেট করা হচ্ছে...' : 'রেফারেল সেট করুন'}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
