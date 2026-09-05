@@ -5,9 +5,10 @@ import { fetchCustomerDetail, updateCustomerStatus, assignCustomerGame, updateCu
 import { fetchGames } from '@/services/games'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
-import { Shield, ShoppingBag, Star, Lock, Edit2, X, Check, Trophy } from 'lucide-react'
+import { Shield, ShoppingBag, Star, Lock, Edit2, X, Check, Trophy, ArrowDownCircle, ArrowUpCircle, Activity, TrendingDown, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { cn } from '@/lib/utils'
 
 export default function AdminCustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -32,6 +33,20 @@ export default function AdminCustomerDetailPage() {
   const { data: games } = useQuery({
     queryKey: ['games-active'],
     queryFn: fetchGames,
+  })
+
+  const { data: cashouts = [] } = useQuery({
+    queryKey: ['admin-customer-cashouts', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cashout_requests')
+        .select('*')
+        .eq('user_id', id!)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!id,
   })
 
   const statusMutation = useMutation({
@@ -220,29 +235,139 @@ export default function AdminCustomerDetailPage() {
         </div>
       </div>
 
-      {/* Recent Orders */}
-      <div className="glass-card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-white flex items-center gap-2"><ShoppingBag className="h-4 w-4" /> Recent Orders</h2>
-          <Link to={`/admin/orders?user=${id}`} className="text-xs text-primary">View All</Link>
-        </div>
-        <div className="space-y-2">
-          {(c.orders || []).slice(0, 5).map((order: any) => (
-            <Link key={order.id} to={`/admin/orders/${order.id}`}
-              className="flex justify-between items-center py-2 border-b border-border hover:text-primary transition-colors"
-            >
-              <div>
-                <p className="text-sm text-foreground">{order.game?.name} — {order.username}</p>
-                <p className="text-xs text-muted-foreground">{order.order_number} • {formatRelativeTime(order.created_at)}</p>
+      {/* ===== Transaction History ===== */}
+      {(() => {
+        const orders = (c.orders || []) as any[]
+        const allCashouts = cashouts as any[]
+
+        // Summary stats
+        const totalLoaded = orders
+          .filter(o => o.status === 'completed')
+          .reduce((s, o) => s + parseFloat(o.base_amount || 0), 0)
+        const totalCashedOut = allCashouts
+          .filter(co => co.status === 'approved')
+          .reduce((s, co) => s + parseFloat(co.amount || 0), 0)
+        const net = totalLoaded - totalCashedOut
+
+        // Merge and sort all transactions newest first
+        const merged = [
+          ...orders.map(o => ({ ...o, _type: 'order' })),
+          ...allCashouts.map(co => ({ ...co, _type: 'cashout' })),
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+        return (
+          <div className="glass-card p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-semibold text-white flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" /> Transaction History
+              </h2>
+              <Link to={`/admin/orders?user=${id}`} className="text-xs text-primary hover:text-primary/80">
+                View All Orders →
+              </Link>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="rounded-xl bg-neon-green/10 border border-neon-green/20 p-3 text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <ArrowDownCircle className="h-3.5 w-3.5 text-neon-green" />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Loaded</span>
+                </div>
+                <p className="text-base font-bold text-neon-green">{formatCurrency(totalLoaded)}</p>
+                <p className="text-[10px] text-muted-foreground">{orders.filter(o => o.status === 'completed').length} orders</p>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-bold text-white">{formatCurrency(order.final_game_credit)}</p>
-                <span className={getOrderStatusClass(order.status)}>{getOrderStatusLabel(order.status)}</span>
+              <div className="rounded-xl bg-destructive/10 border border-destructive/20 p-3 text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <ArrowUpCircle className="h-3.5 w-3.5 text-destructive" />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Cashed Out</span>
+                </div>
+                <p className="text-base font-bold text-destructive">{formatCurrency(totalCashedOut)}</p>
+                <p className="text-[10px] text-muted-foreground">{allCashouts.filter(co => co.status === 'approved').length} cashouts</p>
               </div>
-            </Link>
-          ))}
-        </div>
-      </div>
+              <div className={cn(
+                'rounded-xl border p-3 text-center',
+                net >= 0 ? 'bg-primary/10 border-primary/20' : 'bg-yellow-500/10 border-yellow-500/20'
+              )}>
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  {net >= 0
+                    ? <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                    : <TrendingDown className="h-3.5 w-3.5 text-yellow-400" />}
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Net Deposit</span>
+                </div>
+                <p className={cn('text-base font-bold', net >= 0 ? 'text-primary' : 'text-yellow-400')}>{formatCurrency(net)}</p>
+                <p className="text-[10px] text-muted-foreground">{merged.length} total txns</p>
+              </div>
+            </div>
+
+            {/* Transaction List */}
+            <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+              {merged.length === 0 && (
+                <p className="text-center text-muted-foreground text-sm py-8">No transactions yet.</p>
+              )}
+              {merged.map((txn: any) => {
+                const isOrder = txn._type === 'order'
+                return (
+                  <div key={txn.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-border hover:border-primary/30 transition-colors">
+                    {/* Icon */}
+                    <div className={cn(
+                      'h-8 w-8 rounded-lg flex items-center justify-center shrink-0',
+                      isOrder ? 'bg-neon-green/15' : 'bg-destructive/15'
+                    )}>
+                      {isOrder
+                        ? <ArrowDownCircle className="h-4 w-4 text-neon-green" />
+                        : <ArrowUpCircle className="h-4 w-4 text-destructive" />}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      {isOrder ? (
+                        <>
+                          <p className="text-sm text-white font-medium truncate">
+                            {txn.game?.name || 'Load'} — <span className="font-mono text-xs text-muted-foreground">{txn.order_number}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">{txn.username} · {formatRelativeTime(txn.created_at)}</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-white font-medium truncate">
+                            Cashout — <span className="text-xs text-muted-foreground font-mono">{txn.request_number || txn.id?.slice(0, 8)}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">{txn.game_name} · {txn.payment_method_name} · {formatRelativeTime(txn.created_at)}</p>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Amount + Status */}
+                    <div className="text-right shrink-0">
+                      <p className={cn('text-sm font-bold', isOrder ? 'text-neon-green' : 'text-destructive')}>
+                        {isOrder ? '+' : '-'}{formatCurrency(isOrder ? txn.base_amount : txn.amount)}
+                      </p>
+                      {isOrder ? (
+                        <span className={getOrderStatusClass(txn.status)}>{getOrderStatusLabel(txn.status)}</span>
+                      ) : (
+                        <span className={cn(
+                          'text-[10px] px-1.5 py-0.5 rounded-full border font-medium',
+                          txn.status === 'approved' ? 'bg-neon-green/20 text-neon-green border-neon-green/30' :
+                          txn.status === 'rejected' ? 'bg-destructive/20 text-destructive border-destructive/30' :
+                          'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                        )}>{txn.status}</span>
+                      )}
+                    </div>
+
+                    {/* Link for orders */}
+                    {isOrder && (
+                      <Link to={`/admin/orders/${txn.id}`} className="text-muted-foreground hover:text-primary transition-colors shrink-0">
+                        <ShoppingBag className="h-3.5 w-3.5" />
+                      </Link>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Profile Info */}
       <div className="glass-card p-6">
