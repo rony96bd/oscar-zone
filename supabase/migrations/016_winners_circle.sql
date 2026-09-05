@@ -54,22 +54,23 @@ RETURNS TABLE (
 BEGIN
   RETURN QUERY
   SELECT * FROM (
-    -- Completed Orders (Loads)
+    -- Completed Orders (Loads) — own limit so cashouts are never crowded out
     SELECT 
       'load'::TEXT as activity_type,
       o.base_amount as amount,
       g.name as game_name,
-      -- Mask logic: First 2 chars + ***
       (substring(COALESCE(p.username, p.full_name, 'Player') from 1 for 2) || '***')::TEXT as masked_name,
       o.created_at
     FROM orders o
     JOIN profiles p ON p.id = o.user_id
     JOIN games g ON g.id = o.game_id
     WHERE o.status = 'completed' AND p.is_hidden_from_public = false
+    ORDER BY o.created_at DESC
+    LIMIT limit_count
 
     UNION ALL
 
-    -- Completed Cashouts
+    -- Approved Cashouts — own limit
     SELECT 
       'cashout'::TEXT as activity_type,
       cr.amount as amount,
@@ -79,8 +80,9 @@ BEGIN
     FROM cashout_requests cr
     JOIN profiles p ON p.id = cr.user_id
     WHERE cr.status = 'approved' AND p.is_hidden_from_public = false
+    ORDER BY cr.created_at DESC
+    LIMIT limit_count
   ) combined_activities
-  ORDER BY created_at DESC
-  LIMIT limit_count;
+  ORDER BY created_at DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
