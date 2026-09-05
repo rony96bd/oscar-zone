@@ -109,11 +109,11 @@ export default function RegisterPage() {
         setRefCodeValid(true)
       } else {
         setRefCodeValid(false)
-        setRefCodeError('এই রেফার কোডটি বৈধ নয়।')
+        setRefCodeError('Invalid referral code. Please check and try again.')
       }
     } catch {
       setRefCodeValid(false)
-      setRefCodeError('রেফার কোড যাচাই করা যায়নি।')
+      setRefCodeError('Could not verify referral code. Please try again.')
     } finally {
       setIsCheckingRefCode(false)
     }
@@ -134,7 +134,7 @@ export default function RegisterPage() {
       return
     }
     if (isRefCodeBlocking) {
-      toast.error('রেফার কোডটি সঠিক নয়।')
+      toast.error('Invalid referral code.')
       return
     }
 
@@ -271,7 +271,7 @@ export default function RegisterPage() {
                       setRefCodeError('')
                     }}
                     onBlur={handleRefCodeBlur}
-                    placeholder="কারো রেফার কোড থাকলে দিন"
+                    placeholder="Enter referral code"
                     className={cn(
                       'game-input pr-10 font-mono tracking-widest',
                       refCodeValid === false && 'border-destructive',
@@ -293,7 +293,7 @@ export default function RegisterPage() {
                 </div>
                 {refCodeValid === true && (
                   <p className="text-xs text-neon-green mt-1 flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3" /> বৈধ রেফার কোড!
+                    <CheckCircle className="h-3 w-3" /> Valid referral code!
                   </p>
                 )}
                 {refCodeError && (

@@ -145,7 +145,7 @@ export default function AdminReferralsPage() {
       if (profileError) throw profileError
     },
     onSuccess: () => {
-      toast.success(`রেফারেল সেট হয়েছে: ${selectedReferred?.full_name || selectedReferred?.username} → ${selectedReferrer?.full_name || selectedReferrer?.username}`)
+      toast.success(`Referral assigned: ${selectedReferred?.full_name || selectedReferred?.username} → ${selectedReferrer?.full_name || selectedReferrer?.username}`)
       setSelectedReferrer(null)
       setSelectedReferred(null)
       setReferrerSearch('')
@@ -188,13 +188,13 @@ export default function AdminReferralsPage() {
           <UserPlus className="h-4 w-4 text-primary" /> Manual Referral Assignment
         </h2>
         <p className="text-xs text-muted-foreground mb-5">
-          কোনো কাস্টমার রেফার কোড ছাড়াই সাইনআপ করলে এখান থেকে ম্যানুয়ালি রেফারেল সেট করুন।
+          Manually link a referrer to a customer who signed up without using a referral code or link.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Referrer Search */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">① রেফারকারী (Referrer)</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">① Referrer</p>
             {selectedReferrer ? (
               <div className="flex items-center justify-between p-3 rounded-xl bg-primary/10 border border-primary/30">
                 <div>
@@ -212,7 +212,7 @@ export default function AdminReferralsPage() {
                   <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
                     type="text"
-                    placeholder="নাম, ইউজারনেম, ফোন, ইমেইল..."
+                    placeholder="Search by name, username, phone, email..."
                     className="game-input pl-9 w-full"
                     value={referrerSearch}
                     onChange={e => { setReferrerSearch(e.target.value); searchUsers(e.target.value, 'referrer') }}
@@ -236,7 +236,7 @@ export default function AdminReferralsPage() {
 
           {/* Referred Search */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">② যাকে রেফার করা হয়েছে (Referred)</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">② Referred Customer</p>
             {selectedReferred ? (
               <div className={cn(
                 'flex items-center justify-between p-3 rounded-xl border',
@@ -247,7 +247,7 @@ export default function AdminReferralsPage() {
                   <p className="text-xs text-muted-foreground">@{selectedReferred.username} · {selectedReferred.phone || selectedReferred.email}</p>
                   {selectedReferred.referred_by && (
                     <p className="text-xs text-destructive mt-0.5 flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" /> ইতোমধ্যে রেফারার আছে
+                      <AlertTriangle className="h-3 w-3" /> Already has a referrer
                     </p>
                   )}
                 </div>
@@ -262,7 +262,7 @@ export default function AdminReferralsPage() {
                   <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
                     type="text"
-                    placeholder="নাম, ইউজারনেম, ফোন, ইমেইল..."
+                    placeholder="Search by name, username, phone, email..."
                     className="game-input pl-9 w-full"
                     value={referredSearch}
                     onChange={e => { setReferredSearch(e.target.value); searchUsers(e.target.value, 'referred') }}
@@ -296,13 +296,13 @@ export default function AdminReferralsPage() {
             <div className="text-sm">
               <p className="text-white">
                 <span className="font-semibold text-neon-green">{selectedReferred.full_name || selectedReferred.username}</span>
-                {' '}<span className="text-muted-foreground">কে</span>{' '}
+                {' '}<span className="text-muted-foreground">was referred by</span>{' '}
                 <span className="font-semibold text-primary">{selectedReferrer.full_name || selectedReferrer.username}</span>
-                {' '}<span className="text-muted-foreground">রেফার করেছেন — এটি সেট করা হবে।</span>
+                {' '}<span className="text-muted-foreground">— this will be recorded.</span>
               </p>
               {selectedReferred.referred_by && (
                 <p className="text-destructive text-xs mt-1 flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" /> এই কাস্টমারের ইতোমধ্যে একজন রেফারার আছে, সেভ করা সম্ভব হবে না।
+                  <AlertTriangle className="h-3 w-3" /> This customer already has a referrer. Cannot overwrite.
                 </p>
               )}
             </div>
@@ -311,7 +311,7 @@ export default function AdminReferralsPage() {
               disabled={assignReferralMutation.isPending || !!selectedReferred.referred_by}
               className="btn-neon px-5 py-2 text-sm whitespace-nowrap shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {assignReferralMutation.isPending ? 'সেট করা হচ্ছে...' : 'রেফারেল সেট করুন'}
+              {assignReferralMutation.isPending ? 'Assigning...' : 'Assign Referral'}
             </button>
           </div>
         )}
