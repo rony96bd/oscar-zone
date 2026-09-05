@@ -98,14 +98,9 @@ export default function RegisterPage() {
     setIsCheckingRefCode(true)
     setRefCodeError('')
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', 'customer')
-        .ilike('referral_code', code)
-        .maybeSingle()
+      const { data, error } = await supabase.rpc('check_referral_code', { code })
       if (error) throw error
-      if (data) {
+      if (data === true) {
         setRefCodeValid(true)
       } else {
         setRefCodeValid(false)
