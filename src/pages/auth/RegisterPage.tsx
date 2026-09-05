@@ -32,6 +32,12 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isCheckingUsername, setIsCheckingUsername] = useState(false)
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
+
+  // Referral code state (manual entry — only when not coming via ref link)
+  const [manualRefCode, setManualRefCode] = useState('')
+  const [isCheckingRefCode, setIsCheckingRefCode] = useState(false)
+  const [refCodeValid, setRefCodeValid] = useState<boolean | null>(null)
+  const [refCodeError, setRefCodeError] = useState('')
   
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -81,9 +87,54 @@ export default function RegisterPage() {
     }
   }
 
+  // Validate referral code against DB on blur
+  const handleRefCodeBlur = async () => {
+    const code = manualRefCode.trim()
+    if (!code) {
+      setRefCodeValid(null)
+      setRefCodeError('')
+      return
+    }
+    setIsCheckingRefCode(true)
+    setRefCodeError('')
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'customer')
+        .ilike('referral_code', code)
+        .maybeSingle()
+      if (error) throw error
+      if (data) {
+        setRefCodeValid(true)
+      } else {
+        setRefCodeValid(false)
+        setRefCodeError('এই রেফার কোডটি বৈধ নয়।')
+      }
+    } catch {
+      setRefCodeValid(false)
+      setRefCodeError('রেফার কোড যাচাই করা যায়নি।')
+    } finally {
+      setIsCheckingRefCode(false)
+    }
+  }
+
+  // Determine the final referral code to submit
+  const effectiveRefCode = refCode || manualRefCode.trim()
+
+  // Submit is blocked if a manual code was typed but is invalid / still being checked
+  const isRefCodeBlocking =
+    !refCode &&
+    manualRefCode.trim() !== '' &&
+    (refCodeValid === false || isCheckingRefCode)
+
   const onSubmit = async (data: FormData) => {
     if (usernameAvailable === false) {
       toast.error('This username is already taken')
+      return
+    }
+    if (isRefCodeBlocking) {
+      toast.error('রেফার কোডটি সঠিক নয়।')
       return
     }
 
@@ -101,7 +152,7 @@ export default function RegisterPage() {
             full_name: data.full_name,
             username: data.username,
             telegram: data.telegram,
-            referral_code_used: refCode || null,
+            referral_code_used: effectiveRefCode || null,
           },
         },
       })
@@ -203,6 +254,54 @@ export default function RegisterPage() {
               {errors.telegram && <p className="text-xs text-destructive mt-1">{errors.telegram.message}</p>}
             </div>
 
+            {/* Referral Code — locked if from ref link, manual input otherwise */}
+            {!refCode && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Referral Code{' '}
+                  <span className="text-muted-foreground font-normal text-xs">(Optional)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={manualRefCode}
+                    onChange={e => {
+                      setManualRefCode(e.target.value.toUpperCase())
+                      setRefCodeValid(null)
+                      setRefCodeError('')
+                    }}
+                    onBlur={handleRefCodeBlur}
+                    placeholder="কারো রেফার কোড থাকলে দিন"
+                    className={cn(
+                      'game-input pr-10 font-mono tracking-widest',
+                      refCodeValid === false && 'border-destructive',
+                      refCodeValid === true && 'border-neon-green'
+                    )}
+                    maxLength={20}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    {isCheckingRefCode ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : refCodeValid === true ? (
+                      <CheckCircle className="h-4 w-4 text-neon-green" />
+                    ) : refCodeValid === false ? (
+                      <XIcon className="h-4 w-4 text-destructive" />
+                    ) : null}
+                  </div>
+                </div>
+                {refCodeValid === true && (
+                  <p className="text-xs text-neon-green mt-1 flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" /> বৈধ রেফার কোড!
+                  </p>
+                )}
+                {refCodeError && (
+                  <p className="text-xs text-destructive mt-1">{refCodeError}</p>
+                )}
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">Password</label>
               <div className="relative">
@@ -236,7 +335,7 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={isLoading || usernameAvailable === false}
+              disabled={isLoading || usernameAvailable === false || isRefCodeBlocking}
               className="btn-neon w-full py-3 mt-2"
             >
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
