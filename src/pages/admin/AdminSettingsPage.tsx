@@ -517,6 +517,57 @@ export default function AdminSettingsPage() {
         </div>
       </div>
       
+      {/* Ticker Settings */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+              <Layout className="h-5 w-5 text-yellow-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Live Ticker Position</h2>
+              <p className="text-sm text-muted-foreground">Choose where the Live Activity Ticker should appear</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSaveTicker}
+            disabled={isSavingTicker || selectedTickerPos === tickerPosition}
+            className="btn-neon px-6 py-2 text-sm"
+          >
+            {isSavingTicker ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Ticker
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            { id: 'header', label: 'Fixed Header', desc: 'Stays pinned at the top of the screen' },
+            { id: 'banner', label: 'Hero Banner', desc: 'Shows inside the homepage hero section' },
+            { id: 'hidden', label: 'Hidden', desc: 'Disable the ticker completely' }
+          ].map(pos => (
+            <div
+              key={pos.id}
+              onClick={() => setSelectedTickerPos(pos.id as any)}
+              className={cn(
+                "relative p-4 rounded-xl border-2 cursor-pointer transition-all",
+                selectedTickerPos === pos.id 
+                  ? "border-neon-gold bg-neon-gold/10 shadow-[0_0_15px_rgba(255,215,0,0.2)]" 
+                  : "border-border bg-card hover:border-neon-gold/50"
+              )}
+            >
+              <h3 className="font-bold text-white mb-1">{pos.label}</h3>
+              <p className="text-xs text-muted-foreground">{pos.desc}</p>
+              
+              {selectedTickerPos === pos.id && (
+                <div className="absolute top-4 right-4 h-6 w-6 rounded-full bg-neon-gold flex items-center justify-center">
+                  <Check className="h-4 w-4 text-black" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      
       {/* Contact Settings */}
       <div className="glass-card p-6">
         <div className="flex items-center justify-between mb-6">
