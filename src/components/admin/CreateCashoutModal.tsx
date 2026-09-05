@@ -185,7 +185,7 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
               <option value="">-- Select a customer --</option>
               {filteredCustomers.map(c => (
                 <option key={c.id} value={c.id}>
-                  {c.full_name || 'N/A'} — @{c.username || '?'} {c.email ? `(${c.email})` : c.phone ? `(${c.phone})` : ''}
+                  {c.full_name || 'N/A'} — @{c.username || '?'}
                 </option>
               ))}
             </select>
