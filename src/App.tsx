@@ -20,6 +20,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 const HomePage = lazy(() => import('@/pages/public/HomePage'))
 const PaymentTagsPage = lazy(() => import('@/pages/public/PaymentTagsPage'))
 const WinnersCirclePage = lazy(() => import('@/pages/public/WinnersCirclePage'))
+const TransactionBoardPage = lazy(() => import('@/pages/public/TransactionBoardPage'))
 const PendingApprovalPage = lazy(() => import('@/pages/public/PendingApprovalPage'))
 const GamesPage = lazy(() => import('@/pages/public/GamesPage'))
 const PromotionsPage = lazy(() => import('@/pages/public/PromotionsPage'))
@@ -147,6 +148,7 @@ function AppContent() {
         <Route element={<CustomerLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/payment-tags" element={<PaymentTagsPage />} />
+          <Route path="/transaction-board" element={<TransactionBoardPage />} />
           <Route path="/winners-circle" element={<WinnersCirclePage />} />
           <Route path="/games" element={<GamesPage />} />
           <Route path="/promotions" element={<PromotionsPage />} />

@@ -45,12 +45,12 @@ export function LiveActivityTicker() {
             <div className="flex w-max animate-ticker whitespace-nowrap">
               {[...loads, ...loads].map((activity, index) => (
                 <div key={`load-${activity.created_at}-${index}`} className="flex items-center mx-4 md:mx-8">
-                  <span className="flex items-center gap-2 text-xs md:text-sm font-medium text-white/80">
+                  <Link to="/transaction-board" className="flex items-center gap-2 text-xs md:text-sm font-medium text-white/80 hover:text-white transition-colors">
                     <ArrowDownToLine className="h-3.5 w-3.5 md:h-4 md:w-4 text-neon-green" />
                     <span><span className="text-white">{activity.masked_name}</span> loaded <span className="text-neon-green">{formatCurrency(activity.amount)}</span> on {activity.game_name}</span>
                     <span className="text-white/40 text-[10px] md:text-xs">({formatRelativeTime(activity.created_at)})</span>
-                  </span>
-                  <span className="mx-4 md:mx-8 text-white/20">•</span>
+                  </Link>
+                  <span className="mx-4 md:mx-8 text-white/20">⬥</span>
                 </div>
               ))}
             </div>
@@ -66,7 +66,7 @@ export function LiveActivityTicker() {
             <div className="flex w-max animate-ticker-reverse whitespace-nowrap">
               {[...cashouts, ...cashouts].map((activity, index) => (
                 <div key={`cashout-${activity.created_at}-${index}`} className="flex items-center mx-4 md:mx-8">
-                  <Link to="/winners-circle" className="flex items-center gap-2 text-xs md:text-sm font-medium text-white/80 hover:text-white transition-colors">
+                  <Link to="/transaction-board" className="flex items-center gap-2 text-xs md:text-sm font-medium text-white/80 hover:text-white transition-colors">
                     <ArrowUpFromLine className="h-3.5 w-3.5 md:h-4 md:w-4 text-neon-gold" />
                     <span><span className="text-white">{activity.masked_name}</span> cashed out <span className="text-neon-gold font-bold">{formatCurrency(activity.amount)}</span> {activity.amount >= 500 && <Flame className="inline h-3.5 w-3.5 text-orange-500 mb-1" />}</span>
                     <span className="text-white/40 text-[10px] md:text-xs">({formatRelativeTime(activity.created_at)})</span>

@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home, Gamepad2, Star, HelpCircle, Users, Phone,
   LayoutDashboard, Joystick, ShoppingBag, DollarSign,
-  Bell, MessageCircle, User, Settings, LogOut, Menu, X, Zap, Shield, ArrowDownToLine, Gift, MoreHorizontal, Trophy
+  Bell, MessageCircle, User, Settings, LogOut, Menu, X, Zap, Shield, ArrowDownToLine, Gift, MoreHorizontal, Trophy, Activity
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
@@ -20,6 +20,7 @@ const publicNavLinks = [
   { href: '/promotions', label: 'Promotions', icon: Star },
   { href: '/payment-tags', label: 'Payment Tags', icon: Zap },
   { href: '/contact', label: 'Support', icon: Phone },
+  { href: '/transaction-board', label: 'Transaction Board', icon: Activity },
   { href: '/winners-circle', label: "Winner's Circle", icon: Trophy },
   { href: '/how-it-works', label: 'How It Works', icon: HelpCircle },
   { href: '/referral', label: 'Refer & Earn', icon: Users },
