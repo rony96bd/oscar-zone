@@ -7,8 +7,8 @@ const corsHeaders = {
 }
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  pending_payment_review: ['payment_verified', 'rejected', 'cancelled'],
-  payment_verified: ['processing', 'rejected'],
+  pending_payment_review: ['payment_verified', 'processing', 'completed', 'rejected', 'cancelled'],
+  payment_verified: ['processing', 'completed', 'rejected'],
   processing: ['completed', 'rejected'],
   completed: ['refunded'],
   rejected: [],

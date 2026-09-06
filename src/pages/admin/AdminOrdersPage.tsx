@@ -115,21 +115,34 @@ export default function AdminOrdersPage() {
 
                 {/* Quick Actions */}
                 <div className="flex gap-1 flex-wrap flex-col sm:flex-row">
-                  {canManage && QUICK_ACTIONS.filter(a => {
-                    const allowed: Record<string, string[]> = {
-                      pending_payment_review: ['completed', 'rejected'],
-                    }
-                    return allowed[order.status]?.includes(a.status)
-                  }).map(({ label, status: s, icon: Icon, color }) => (
-                    <button
-                      key={s}
-                      onClick={() => statusMutation.mutate({ orderId: order.id, newStatus: s })}
-                      disabled={statusMutation.isPending}
-                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted/30 transition-colors ${color}`}
-                    >
-                      <Icon className="h-3.5 w-3.5" /> {label}
-                    </button>
-                  ))}
+                  {canManage && order.status === 'pending_payment_review' && (
+                    <>
+                      {order.game?.name?.toLowerCase().includes('juwa') ? (
+                        <button
+                          onClick={() => statusMutation.mutate({ orderId: order.id, newStatus: 'payment_verified' })}
+                          disabled={statusMutation.isPending}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted/30 transition-colors text-neon-blue"
+                        >
+                          <CheckCircle className="h-3.5 w-3.5" /> Verify & Auto-Load
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => statusMutation.mutate({ orderId: order.id, newStatus: 'completed' })}
+                          disabled={statusMutation.isPending}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted/30 transition-colors text-neon-green"
+                        >
+                          <CheckCircle className="h-3.5 w-3.5" /> Approve
+                        </button>
+                      )}
+                      <button
+                        onClick={() => statusMutation.mutate({ orderId: order.id, newStatus: 'rejected' })}
+                        disabled={statusMutation.isPending}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted/30 transition-colors text-destructive"
+                      >
+                        <XCircle className="h-3.5 w-3.5" /> Reject
+                      </button>
+                    </>
+                  )}
                   <Link to={`/admin/orders/${order.id}`}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted/30 transition-colors text-muted-foreground"
                   >
