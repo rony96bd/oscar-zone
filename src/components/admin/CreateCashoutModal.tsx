@@ -319,7 +319,7 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
             <div className="relative w-10 h-5 bg-muted rounded-full peer peer-checked:bg-neon-green transition-colors">
               <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5" />
             </div>
-            <span className="text-sm text-muted-foreground">কাস্টমারকে নোটিফিকেশন পাঠাও</span>
+            <span className="text-sm text-muted-foreground">Send notification to customer</span>
           </label>
         </div>
 
