@@ -117,23 +117,13 @@ export default function AdminOrdersPage() {
                 <div className="flex gap-1 flex-wrap flex-col sm:flex-row">
                   {canManage && order.status === 'pending_payment_review' && (
                     <>
-                      {order.game?.name?.toLowerCase().includes('juwa') ? (
-                        <button
-                          onClick={() => statusMutation.mutate({ orderId: order.id, newStatus: 'payment_verified' })}
-                          disabled={statusMutation.isPending}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted/30 transition-colors text-neon-blue"
-                        >
-                          <CheckCircle className="h-3.5 w-3.5" /> Verify & Auto-Load
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => statusMutation.mutate({ orderId: order.id, newStatus: 'completed' })}
-                          disabled={statusMutation.isPending}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted/30 transition-colors text-neon-green"
-                        >
-                          <CheckCircle className="h-3.5 w-3.5" /> Approve
-                        </button>
-                      )}
+                      <button
+                        onClick={() => statusMutation.mutate({ orderId: order.id, newStatus: 'completed' })}
+                        disabled={statusMutation.isPending}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted/30 transition-colors text-neon-green"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5" /> Approve
+                      </button>
                       <button
                         onClick={() => statusMutation.mutate({ orderId: order.id, newStatus: 'rejected' })}
                         disabled={statusMutation.isPending}
