@@ -217,15 +217,15 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
               <div className="p-3 rounded-lg bg-white/5 border border-white/10 space-y-1 text-sm">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Base Amount:</span>
-                  <span className="text-white"></span>
+                  <span className="text-white">${parseFloat(amount).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-neon-gold">
                   <span>Bonus:</span>
-                  <span>+</span>
+                  <span>+${bonusData.total_bonus.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-neon-green pt-1 border-t border-white/10">
                   <span>Final Credit:</span>
-                  <span></span>
+                  <span>${bonusData.final_credit.toFixed(2)}</span>
                 </div>
               </div>
             )}
