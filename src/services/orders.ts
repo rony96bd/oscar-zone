@@ -228,6 +228,7 @@ export async function adminCreateOrder(payload: {
   username: string
   base_amount: number
   payment_method_id?: string
+  customer_payment_tag?: string
   total_bonus?: number
   final_credit?: number
   status?: OrderStatus
@@ -252,8 +253,8 @@ export async function adminCreateOrder(payload: {
       total_bonus_amount: payload.total_bonus || 0,
       final_game_credit: payload.final_credit || payload.base_amount,
       payment_method_id: payload.payment_method_id || null,
+      customer_payment_tag: payload.customer_payment_tag || null,
       status: payload.status || 'completed', // Default to completed if created by admin
-      payment_screenshot_path: null, // Admin created usually doesn't need screenshot
       admin_note: 'Created manually by admin',
     })
     .select('*, game:games(*), profile:profiles!user_id(*)')

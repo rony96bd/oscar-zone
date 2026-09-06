@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Loader2, Search } from 'lucide-react'
 import { fetchGames, fetchCustomerGames } from '@/services/games'
@@ -15,6 +15,7 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
   const [userId, setUserId] = useState('')
   const [status, setStatus] = useState('completed')
   const [paymentMethodId, setPaymentMethodId] = useState('')
+  const [customerPaymentTag, setCustomerPaymentTag] = useState('')
   
   const [userSearch, setUserSearch] = useState('')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -78,7 +79,8 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
         total_bonus: bonusData?.total_bonus || 0,
         final_credit: bonusData?.final_credit || parseFloat(amount),
         status: status as any,
-        payment_method_id: paymentMethodId || undefined
+        payment_method_id: paymentMethodId || undefined,
+        customer_payment_tag: customerPaymentTag || undefined
       })
     },
     onSuccess: () => {
@@ -91,6 +93,7 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
       setUserId('')
       setUserSearch('')
       setPaymentMethodId('')
+      setCustomerPaymentTag('')
     },
     onError: (err: any) => toast.error(err.message || 'Failed to create order')
   })
@@ -202,6 +205,13 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
                   ))}
                 </select>
               </div>
+
+              {paymentMethodId && (
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Customer Payment Tag / Number</label>
+                  <input type="text" value={customerPaymentTag} onChange={e => setCustomerPaymentTag(e.target.value)} placeholder="e.g.  or Bkash Number" className="game-input w-full" />
+                </div>
+              )}
               
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Status</label>
@@ -241,4 +251,5 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
     </div>
   )
 }
+
 
