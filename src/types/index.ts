@@ -395,6 +395,7 @@ export interface LiveActivity {
   amount: number
   game_name: string
   masked_name: string
+  status: string
   created_at: string
 }
 

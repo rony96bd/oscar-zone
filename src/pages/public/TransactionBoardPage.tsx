@@ -1,28 +1,45 @@
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowDownToLine, ArrowUpFromLine, Activity, Flame, RefreshCw } from 'lucide-react'
+import { ArrowDownToLine, ArrowUpFromLine, Activity, Flame, RefreshCw, Clock, CheckCircle, Loader2, AlertCircle } from 'lucide-react'
 import { getTransactionBoard } from '@/services/engagement'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { useSettingsStore } from '@/stores/settingsStore'
 import type { LiveActivity } from '@/types'
 
-function statusBadge(type: 'load' | string) {
-  if (type === 'load') {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-neon-green/10 text-neon-green border border-neon-green/20">
-        ✓ Completed
-      </span>
-    )
-  }
+// Status config for Cash In (orders)
+const LOAD_STATUS: Record<string, { label: string; color: string; icon: any; dotColor: string }> = {
+  pending_payment_review: { label: 'Payment Review', color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20', icon: Clock, dotColor: 'bg-yellow-400' },
+  payment_verified:       { label: 'Payment Verified', color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',   icon: CheckCircle, dotColor: 'bg-blue-400' },
+  processing:             { label: 'Processing', color: 'text-purple-400 bg-purple-400/10 border-purple-400/20',   icon: Loader2, dotColor: 'bg-purple-400' },
+  completed:              { label: 'Completed', color: 'text-neon-green bg-neon-green/10 border-neon-green/20',    icon: CheckCircle, dotColor: 'bg-neon-green' },
+}
+
+// Status config for Cash Out (cashout_requests)
+const CASHOUT_STATUS: Record<string, { label: string; color: string; icon: any; dotColor: string }> = {
+  pending:  { label: 'Pending', color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20', icon: Clock, dotColor: 'bg-yellow-400' },
+  approved: { label: 'Approved', color: 'text-neon-gold bg-neon-gold/10 border-neon-gold/20',   icon: CheckCircle, dotColor: 'bg-neon-gold' },
+}
+
+function StatusBadge({ activity }: { activity: LiveActivity }) {
+  const map = activity.activity_type === 'load' ? LOAD_STATUS : CASHOUT_STATUS
+  const cfg = map[activity.status] ?? { label: activity.status, color: 'text-white/50 bg-white/5 border-white/10', icon: AlertCircle, dotColor: 'bg-white/50' }
+  const Icon = cfg.icon
+  const isPulsing = activity.status === 'pending_payment_review' || activity.status === 'pending' || activity.status === 'processing'
+
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-neon-gold/10 text-neon-gold border border-neon-gold/20">
-      ✓ Approved
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${cfg.color}`}>
+      {isPulsing
+        ? <span className={`inline-block w-1.5 h-1.5 rounded-full ${cfg.dotColor} animate-pulse`} />
+        : <Icon className="h-2.5 w-2.5" />
+      }
+      {cfg.label}
     </span>
   )
 }
 
 function ActivityCard({ activity, index }: { activity: LiveActivity; index: number }) {
   const isLoad = activity.activity_type === 'load'
+  const isDone = activity.status === 'completed' || activity.status === 'approved'
 
   return (
     <div
@@ -41,9 +58,9 @@ function ActivityCard({ activity, index }: { activity: LiveActivity; index: numb
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-sm text-white">{activity.masked_name}</span>
-          <span className="text-muted-foreground text-xs">{isLoad ? 'loaded on' : 'cashed out from'}</span>
+          <span className="text-muted-foreground text-xs">{isLoad ? 'requested load on' : 'cashout from'}</span>
           <span className="text-xs font-medium text-white/70 truncate">{activity.game_name}</span>
-          {!isLoad && activity.amount >= 500 && (
+          {!isLoad && isDone && activity.amount >= 500 && (
             <Flame className="h-3.5 w-3.5 text-orange-400 flex-shrink-0" />
           )}
         </div>
@@ -56,13 +73,14 @@ function ActivityCard({ activity, index }: { activity: LiveActivity; index: numb
         </div>
       </div>
 
-      {/* Badge */}
+      {/* Status Badge */}
       <div className="flex-shrink-0">
-        {statusBadge(activity.activity_type)}
+        <StatusBadge activity={activity} />
       </div>
     </div>
   )
 }
+
 
 function ColumnSkeleton() {
   return (
