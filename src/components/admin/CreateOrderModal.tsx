@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Loader2, Search } from 'lucide-react'
 import { fetchGames, fetchCustomerGames } from '@/services/games'
@@ -209,7 +209,7 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
               {paymentMethodId && (
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Customer Payment Tag / Number</label>
-                  <input type="text" value={customerPaymentTag} onChange={e => setCustomerPaymentTag(e.target.value)} placeholder="e.g.  or Bkash Number" className="game-input w-full" />
+                  <input type="text" value={customerPaymentTag} onChange={e => setCustomerPaymentTag(e.target.value)} placeholder="e.g. $cashtag, Chime handle, or PayPal email" className="game-input w-full" />
                 </div>
               )}
               
