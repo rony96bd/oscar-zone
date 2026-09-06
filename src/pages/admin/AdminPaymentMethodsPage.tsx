@@ -491,11 +491,11 @@ export default function AdminPaymentMethodsPage() {
 
     // Optimistically update all sort_orders for items in this tab
     // Save all changed items to DB
-    const updates = reordered.map((m, idx) => ({ id: m.id, sort_order: idx + 1 }))
+    const updates = reordered.map((m: PaymentMethod, idx: number) => ({ id: m.id, sort_order: idx + 1 }))
     
     // Fire all updates in parallel (fire and forget)
     toast.promise(
-      Promise.all(updates.map(u => updatePaymentMethod(u.id, { sort_order: u.sort_order }))),
+      Promise.all(updates.map((u: any) => updatePaymentMethod(u.id, { sort_order: u.sort_order }))),
       {
         loading: 'Saving order...',
         success: () => {

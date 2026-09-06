@@ -1,11 +1,12 @@
-﻿import { useState } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Loader2 } from 'lucide-react'
-import { fetchGames } from '@/services/games'
+import { X, Loader2, Search } from 'lucide-react'
+import { fetchGames, fetchCustomerGames } from '@/services/games'
 import { fetchPaymentMethods } from '@/services/payments'
 import { fetchCustomers } from '@/services/admin'
 import { calculateBonusPreview, adminCreateOrder } from '@/services/orders'
 import { toast } from 'sonner'
+
 
 export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [selectedGameId, setSelectedGameId] = useState('')
@@ -14,11 +15,48 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
   const [userId, setUserId] = useState('')
   const [status, setStatus] = useState('completed')
   const [paymentMethodId, setPaymentMethodId] = useState('')
+  
+  const [userSearch, setUserSearch] = useState('')
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [dropdownRef])
+
   const qc = useQueryClient()
 
   const { data: games } = useQuery({ queryKey: ['games'], queryFn: fetchGames, enabled: isOpen })
   const { data: paymentMethods } = useQuery({ queryKey: ['payment-methods'], queryFn: fetchPaymentMethods, enabled: isOpen })
   const { data: customers } = useQuery({ queryKey: ['customers'], queryFn: () => fetchCustomers({ role: 'customer' }), enabled: isOpen })
+  
+  const { data: customerGames } = useQuery({
+    queryKey: ['customer-games', userId],
+    queryFn: () => fetchCustomerGames(userId),
+    enabled: !!userId && isOpen
+  })
+
+  // Auto-fill username when game or user changes
+  useEffect(() => {
+    if (selectedGameId && userId && customerGames) {
+      const cg = customerGames.find(g => g.game_id === selectedGameId)
+      if (cg) {
+        setUsername(cg.username)
+      } else if (!username) {
+        // Fallback to customer's full name if no specific game username exists
+        const c = customers?.find(c => c.id === userId)
+        if (c) setUsername(c.full_name || '')
+      }
+    }
+  }, [selectedGameId, userId, customerGames])
 
   const { data: bonusData } = useQuery({
     queryKey: ['bonus', selectedGameId, parseFloat(amount), userId],
@@ -51,10 +89,17 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
       setUsername('')
       setAmount('')
       setUserId('')
+      setUserSearch('')
       setPaymentMethodId('')
     },
     onError: (err: any) => toast.error(err.message || 'Failed to create order')
   })
+
+  const filteredCustomers = customers?.filter(c => 
+    c.full_name?.toLowerCase().includes(userSearch.toLowerCase()) || 
+    c.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+    c.phone?.toLowerCase().includes(userSearch.toLowerCase())
+  )
 
   if (!isOpen) return null
 
@@ -69,25 +114,65 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
         </div>
         <div className="p-4 overflow-y-auto">
           <form id="create-order-form" onSubmit={createMutation.mutate} className="space-y-4">
-            <div>
+            <div ref={dropdownRef} className="relative">
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Registered Customer (Optional)</label>
-              <select 
-                value={userId} 
-                onChange={e => {
-                  setUserId(e.target.value)
-                  // Auto-fill username if empty
-                  if (e.target.value && !username) {
-                    const c = customers?.find(c => c.id === e.target.value)
-                    if (c) setUsername(c.full_name || '')
-                  }
-                }} 
-                className="game-input w-full"
-              >
-                <option value="">-- Guest Order (No User) --</option>
-                {customers?.map(c => (
-                  <option key={c.id} value={c.id}>{c.full_name} ({c.email || c.phone || 'No Email'})</option>
-                ))}
-              </select>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search by name, email, or phone..."
+                  value={userSearch}
+                  onChange={e => {
+                    setUserSearch(e.target.value)
+                    setIsDropdownOpen(true)
+                    setUserId('') // Clear user id if they start typing
+                  }}
+                  onFocus={() => setIsDropdownOpen(true)}
+                  className="game-input w-full pl-9"
+                />
+                {userSearch && (
+                   <button 
+                     type="button"
+                     onClick={() => {
+                        setUserSearch('')
+                        setUserId('')
+                     }}
+                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
+                   >
+                     <X className="h-4 w-4" />
+                   </button>
+                )}
+              </div>
+              
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 z-50 max-h-60 overflow-y-auto bg-popover border border-border rounded-lg shadow-xl mt-1">
+                  <div 
+                    onClick={() => { setUserId(''); setUserSearch(''); setIsDropdownOpen(false) }}
+                    className="p-3 text-sm cursor-pointer hover:bg-white/5 border-b border-border text-muted-foreground"
+                  >
+                    -- Guest Order (No User) --
+                  </div>
+                  {filteredCustomers?.length === 0 ? (
+                    <div className="p-3 text-sm text-muted-foreground text-center">No customers found</div>
+                  ) : (
+                    filteredCustomers?.map(c => (
+                      <div 
+                        key={c.id} 
+                        onClick={() => { 
+                          setUserId(c.id)
+                          setUserSearch(c.full_name || c.email || '')
+                          setIsDropdownOpen(false)
+                          if (!username) setUsername(c.full_name || '')
+                        }}
+                        className="p-3 text-sm cursor-pointer hover:bg-white/5 border-b border-border last:border-0"
+                      >
+                        <div className="font-medium text-white">{c.full_name}</div>
+                        <div className="text-xs text-muted-foreground">{c.email || c.phone || 'No Email'}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
               <p className="text-[10px] text-muted-foreground mt-1">If selected, the order will appear in their dashboard.</p>
             </div>
 
@@ -104,7 +189,7 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
             </div>
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Amount ($) *</label>
-              <input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className="game-input w-full" required />
+              <input type="number" step="1" value={amount} onChange={e => setAmount(e.target.value)} className="game-input w-full" required />
             </div>
             
             <div className="p-3 border border-border rounded-lg bg-black/20 space-y-3">
@@ -132,15 +217,15 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
               <div className="p-3 rounded-lg bg-white/5 border border-white/10 space-y-1 text-sm">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Base Amount:</span>
-                  <span className="text-white">${parseFloat(amount).toFixed(2)}</span>
+                  <span className="text-white"></span>
                 </div>
                 <div className="flex justify-between text-neon-gold">
                   <span>Bonus:</span>
-                  <span>+${bonusData.total_bonus.toFixed(2)}</span>
+                  <span>+</span>
                 </div>
                 <div className="flex justify-between font-bold text-neon-green pt-1 border-t border-white/10">
                   <span>Final Credit:</span>
-                  <span>${bonusData.final_credit.toFixed(2)}</span>
+                  <span></span>
                 </div>
               </div>
             )}
@@ -156,3 +241,4 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
     </div>
   )
 }
+
