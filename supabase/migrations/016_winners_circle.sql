@@ -59,7 +59,7 @@ BEGIN
         'load'::TEXT as activity_type,
         o.base_amount as amount,
         g.name as game_name,
-        (substring(COALESCE(p.username, p.full_name, 'Player') from 1 for 2) || '***')::TEXT as masked_name,
+        (substring(COALESCE(p.username, p.full_name, 'Player') from 1 for 3) || '***')::TEXT as masked_name,
         o.created_at
       FROM orders o
       JOIN profiles p ON p.id = o.user_id
@@ -76,7 +76,7 @@ BEGIN
         'cashout'::TEXT as activity_type,
         cr.amount as amount,
         cr.game_name as game_name,
-        (substring(COALESCE(p.username, p.full_name, 'Player') from 1 for 2) || '***')::TEXT as masked_name,
+        (substring(COALESCE(p.username, p.full_name, 'Player') from 1 for 3) || '***')::TEXT as masked_name,
         cr.created_at
       FROM cashout_requests cr
       JOIN profiles p ON p.id = cr.user_id
