@@ -184,7 +184,7 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
         {/* Body */}
         <div className="p-4 overflow-y-auto space-y-4">
           <p className="text-xs text-muted-foreground bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
-            এই এন্ট্রিটি সরাসরি <strong className="text-yellow-400">Approved</strong> হিসেবে সেভ হবে এবং Live Ticker-এ দেখা যাবে।
+            This entry will be saved directly as <strong className="text-yellow-400">Approved</strong> and will be visible on the Live Ticker.
           </p>
 
           {/* Customer Search & Select */}
