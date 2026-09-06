@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Loader2, Search, ArrowDownToLine } from 'lucide-react'
 import { fetchCustomers } from '@/services/admin'
@@ -74,6 +74,30 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
     queryFn: fetchGames,
     enabled: isOpen,
   })
+
+  const selectedGame = games.find(g => g.name === gameName)
+  
+  const { data: customerUsernames = [] } = useQuery({
+    queryKey: ['customer-game-usernames', userId, selectedGame?.id],
+    queryFn: async () => {
+      if (!userId || !selectedGame?.id) return []
+      const { data, error } = await supabase
+        .from('customer_games')
+        .select('username')
+        .eq('customer_id', userId)
+        .eq('game_id', selectedGame.id)
+      
+      if (error) throw error
+      return data.map(d => d.username)
+    },
+    enabled: !!userId && !!selectedGame?.id,
+  })
+
+  useEffect(() => {
+    if (customerUsernames.length === 1 && !gameUsername) {
+      setGameUsername(customerUsernames[0])
+    }
+  }, [customerUsernames, gameUsername])
 
   const filteredCustomers = customers.filter(c => {
     if (!search) return true
@@ -211,13 +235,26 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
             </div>
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Game Username *</label>
-              <input
-                type="text"
-                placeholder="In-game username"
-                value={gameUsername}
-                onChange={e => setGameUsername(e.target.value)}
-                className="game-input w-full"
-              />
+              {customerUsernames.length > 0 ? (
+                <select
+                  value={gameUsername}
+                  onChange={e => setGameUsername(e.target.value)}
+                  className="game-input w-full"
+                >
+                  <option value="">Select username</option>
+                  {customerUsernames.map(u => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="In-game username"
+                  value={gameUsername}
+                  onChange={e => setGameUsername(e.target.value)}
+                  className="game-input w-full"
+                />
+              )}
             </div>
           </div>
 
