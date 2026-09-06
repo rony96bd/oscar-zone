@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Loader2, Search } from 'lucide-react'
 import { fetchGames, fetchCustomerGames } from '@/services/games'
@@ -97,7 +97,7 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
 
   const filteredCustomers = customers?.filter(c => 
     c.full_name?.toLowerCase().includes(userSearch.toLowerCase()) || 
-    c.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+    c.username?.toLowerCase().includes(userSearch.toLowerCase()) ||
     c.phone?.toLowerCase().includes(userSearch.toLowerCase())
   )
 
@@ -120,7 +120,7 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Search by name, email, or phone..."
+                  placeholder="Search by name, username, or phone..."
                   value={userSearch}
                   onChange={e => {
                     setUserSearch(e.target.value)
@@ -160,14 +160,14 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
                         key={c.id} 
                         onClick={() => { 
                           setUserId(c.id)
-                          setUserSearch(c.full_name || c.email || '')
+                          setUserSearch(c.full_name || c.username || '')
                           setIsDropdownOpen(false)
                           if (!username) setUsername(c.full_name || '')
                         }}
                         className="p-3 text-sm cursor-pointer hover:bg-white/5 border-b border-border last:border-0"
                       >
                         <div className="font-medium text-white">{c.full_name}</div>
-                        <div className="text-xs text-muted-foreground">{c.email || c.phone || 'No Email'}</div>
+                        <div className="text-xs text-muted-foreground">@{c.username || 'unknown'}</div>
                       </div>
                     ))
                   )}
