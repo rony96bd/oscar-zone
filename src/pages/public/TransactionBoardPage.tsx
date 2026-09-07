@@ -17,7 +17,7 @@ const LOAD_STATUS: Record<string, { label: string; color: string; icon: any; dot
 // Status config for Cash Out (cashout_requests)
 const CASHOUT_STATUS: Record<string, { label: string; color: string; icon: any; dotColor: string }> = {
   pending:  { label: 'Pending', color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20', icon: Clock, dotColor: 'bg-yellow-400' },
-  approved: { label: 'Approved', color: 'text-neon-gold bg-neon-gold/10 border-neon-gold/20',   icon: CheckCircle, dotColor: 'bg-neon-gold' },
+  approved: { label: 'Approved', color: 'text-neon-green bg-neon-green/10 border-neon-green/20',   icon: CheckCircle, dotColor: 'bg-neon-green' },
 }
 
 function StatusBadge({ activity }: { activity: LiveActivity }) {
