@@ -20,6 +20,7 @@ export function formatDate(dateString: string): string {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+    timeZone: 'America/New_York', // Forcing US Eastern Time
   }).format(new Date(dateString.replace(' ', 'T')))
 }
 
@@ -32,6 +33,7 @@ export function formatDateTime(dateString: string): string {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
+    timeZone: 'America/New_York', // Forcing US Eastern Time
   }).format(new Date(dateString.replace(' ', 'T')))
 }
 
@@ -41,6 +43,7 @@ export function formatTime(dateString: string): string {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
+    timeZone: 'America/New_York', // Forcing US Eastern Time
   }).format(new Date(dateString.replace(' ', 'T')))
 }
 
