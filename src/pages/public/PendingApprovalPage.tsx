@@ -9,7 +9,7 @@ export default function PendingApprovalPage() {
 
   // Initialize settings if not already loaded
   useEffect(() => {
-    settings.initialize()
+    settings.fetchSettings()
   }, [])
 
   // Auto-refresh profile every 10 seconds to check if approved
