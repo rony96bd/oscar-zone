@@ -8,7 +8,7 @@ export async function getLiveActivities(): Promise<LiveActivity[]> {
 }
 
 export async function getTransactionBoard(): Promise<{ loads: LiveActivity[]; cashouts: LiveActivity[] }> {
-  const { data, error } = await supabase.rpc('get_live_activities', { limit_count: 10 })
+  const { data, error } = await supabase.rpc('get_live_activities', { limit_count: 20 })
   if (error) throw error
   const all = data as LiveActivity[]
   return {
