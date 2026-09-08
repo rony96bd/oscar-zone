@@ -224,7 +224,10 @@ export function CustomerLayout() {
       </header>
 
       {tickerPosition === 'header' && (
-        <div className="fixed top-[64px] left-0 right-0 z-40">
+        <div className={cn(
+          "fixed top-[64px] left-0 right-0 z-40 transition-all duration-300 ease-in-out",
+          scrolled ? "-translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
+        )}>
           <LiveActivityTicker />
         </div>
       )}
