@@ -307,7 +307,7 @@ export function CustomerLayout() {
       </div>
 
       {/* Main Content Area */}
-      <main className={cn("flex-1 relative z-10", tickerPosition === 'header' ? 'pt-32' : 'pt-16')}>
+      <main className={cn("flex-1 relative z-10 transition-all duration-300", tickerPosition === 'header' ? 'pt-36' : 'pt-16')}>
         <Outlet />
       </main>
       
