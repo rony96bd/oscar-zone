@@ -66,7 +66,7 @@ serve(async (req) => {
   const allowedTransitions = VALID_TRANSITIONS[order.status] || []
   if (!allowedTransitions.includes(status)) {
     return new Response(
-      JSON.stringify({ error: \Cannot transition from \ to \\ }),
+      JSON.stringify({ error: `Cannot transition from ${order.status} to ${status}` }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -92,7 +92,7 @@ serve(async (req) => {
   parallelTasks.push(
     supabase.from('audit_logs').insert({
       admin_id: adminId,
-      action: \order_status_changed_to_\\,
+      action: `order_status_changed_to_${status}`,
       target_type: 'order',
       target_id: order_id,
       previous_value: { status: order.status },
@@ -102,11 +102,11 @@ serve(async (req) => {
 
   if (order.user_id) {
     const statusMessages: Record<string, string> = {
-      payment_verified: \Payment verified for order \! We're processing your load now.\,
-      processing: \Order \ is being processed. Almost there!\,
-      completed: \Order \ completed! Your game has been loaded. Enjoy!\,
-      rejected: \Order \ was rejected. \\,
-      refunded: \Order \ has been refunded.\,
+      payment_verified: `Payment verified for order ${order.order_number}! We're processing your load now.`,
+      processing: `Order ${order.order_number} is being processed. Almost there!`,
+      completed: `Order ${order.order_number} completed! Your game has been loaded. Enjoy!`,
+      rejected: `Order ${order.order_number} was rejected. ${note ? 'Reason: ' + note : 'Please contact support.'}`,
+      refunded: `Order ${order.order_number} has been refunded.`,
     }
 
     const message = statusMessages[status]
@@ -114,10 +114,10 @@ serve(async (req) => {
       parallelTasks.push(
         supabase.from('notifications').insert({
           user_id: order.user_id,
-          title: \Order \\,
+          title: `Order ${status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}`,
           message,
           category: 'orders',
-          action_url: \/orders/\\,
+          action_url: `/orders/${order_id}`,
         })
       )
     }
@@ -156,7 +156,7 @@ serve(async (req) => {
                 supabase.from('notifications').insert({
                   user_id: referrerId,
                   title: '🎉 New Qualified Referral!',
-                  message: \\ you referred just completed their first qualifying load! You earned a referral commission.\,
+                  message: `${referredProfile?.full_name || referredProfile?.username || 'A user'} you referred just completed their first qualifying load! You earned a referral commission.`,
                   category: 'referral',
                   action_url: '/earnings',
                 })
@@ -193,7 +193,7 @@ serve(async (req) => {
                   supabase.from('notifications').insert({
                     user_id: referrerId,
                     title: '💰 Commission Earned!',
-                    message: \You earned $\ commission (\%) from a referral load of $\.\,
+                    message: `You earned $${commissionAmount.toFixed(2)} commission (${commissionPct}%) from a referral load of $${orderAmount.toFixed(2)}.`,
                     category: 'referral',
                     action_url: '/earnings',
                   })
