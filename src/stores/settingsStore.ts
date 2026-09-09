@@ -13,6 +13,8 @@ interface SettingsState {
   metaTitle: string
   metaDescription: string
   tickerPosition: 'header' | 'banner' | 'hidden'
+  showCashinTicker: boolean
+  showCashoutTicker: boolean
   isLoading: boolean
   fetchSettings: () => Promise<void>
   setSiteLogoUrl: (url: string) => void
@@ -20,6 +22,7 @@ interface SettingsState {
   updateSupportSettings: (updates: Partial<SettingsState>) => void
   updateMetaSettings: (updates: Partial<SettingsState>) => void
   updateTickerPosition: (position: 'header' | 'banner' | 'hidden') => void
+  updateTickerVisibilities: (cashin: boolean, cashout: boolean) => void
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -34,6 +37,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   metaTitle: import.meta.env.VITE_APP_NAME || 'GameZone',
   metaDescription: import.meta.env.VITE_APP_DESCRIPTION || 'Premium game top-up service.',
   tickerPosition: 'banner',
+  showCashinTicker: true,
+  showCashoutTicker: true,
   isLoading: true,
 
   fetchSettings: async () => {
@@ -72,6 +77,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         const tPosition = data.find(d => d.key === 'ticker_position')?.value
         const sName = data.find(d => d.key === 'site_name')?.value
         const sTagline = data.find(d => d.key === 'site_tagline')?.value
+        
+        const sCashinTicker = data.find(d => d.key === 'show_cashin_ticker')?.value
+        const sCashoutTicker = data.find(d => d.key === 'show_cashout_ticker')?.value
 
         const defaultAppName = import.meta.env.VITE_APP_NAME || 'GameZone'
         const defaultAppDesc = import.meta.env.VITE_APP_DESCRIPTION || 'Premium game top-up service.'
@@ -85,6 +93,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
             parsedPosition = rawPos
           }
         }
+        
+        let parsedCashin = true;
+        if (sCashinTicker !== undefined) parsedCashin = sCashinTicker === 'true' || sCashinTicker === true;
+        
+        let parsedCashout = true;
+        if (sCashoutTicker !== undefined) parsedCashout = sCashoutTicker === 'true' || sCashoutTicker === true;
 
         set({ 
           siteName: sName ? cleanValue(sName) : defaultAppName,
@@ -98,6 +112,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           metaTitle: title,
           metaDescription: desc,
           tickerPosition: parsedPosition,
+          showCashinTicker: parsedCashin,
+          showCashoutTicker: parsedCashout,
           isLoading: false 
         })
 
@@ -143,5 +159,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   
   updateTickerPosition: (position: 'header' | 'banner' | 'hidden') => {
     set({ tickerPosition: position })
+  },
+  
+  updateTickerVisibilities: (cashin: boolean, cashout: boolean) => {
+    set({ showCashinTicker: cashin, showCashoutTicker: cashout })
   }
 }))
+

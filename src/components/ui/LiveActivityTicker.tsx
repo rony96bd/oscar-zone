@@ -3,9 +3,12 @@ import { ArrowDownToLine, ArrowUpFromLine, Flame } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getLiveActivities } from '@/services/engagement'
 import { formatRelativeTime, formatCurrency } from '@/lib/utils'
+import { useSettingsStore } from '@/stores/settingsStore'
 import type { LiveActivity } from '@/types'
 
 export function LiveActivityTicker() {
+  const { showCashinTicker, showCashoutTicker } = useSettingsStore()
+
   const { data: activities = [] } = useQuery({
     queryKey: ['live-activities'],
     queryFn: getLiveActivities,
@@ -13,6 +16,7 @@ export function LiveActivityTicker() {
   })
 
   if (!activities || activities.length === 0) return null
+  if (!showCashinTicker && !showCashoutTicker) return null
 
   const loads = activities.filter(a => a.activity_type === 'load')
   const cashouts = activities.filter(a => a.activity_type !== 'load')
@@ -37,7 +41,7 @@ export function LiveActivityTicker() {
       
       <div className="w-full flex flex-col">
         {/* Game Loads Ticker */}
-        {loads.length > 0 && (
+        {showCashinTicker && loads.length > 0 && (
           <div className="w-full bg-black/60 border-t border-white/5 py-2 overflow-hidden relative flex items-center">
             <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-[#0d1117] to-transparent z-10 pointer-events-none" />
             <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-[#0d1117] to-transparent z-10 pointer-events-none" />
@@ -50,7 +54,7 @@ export function LiveActivityTicker() {
                     <span><span className="text-white">{activity.masked_name}</span> loaded <span className="text-neon-green">{formatCurrency(activity.amount)}</span> on {activity.game_name}</span>
                     <span className="text-white/40 text-[10px] md:text-xs">({formatRelativeTime(activity.created_at)})</span>
                   </Link>
-                  <span className="mx-4 md:mx-8 text-white/20">⬥</span>
+                  <span className="mx-4 md:mx-8 text-white/20"></span>
                 </div>
               ))}
             </div>
@@ -58,7 +62,7 @@ export function LiveActivityTicker() {
         )}
 
         {/* Cashouts Ticker */}
-        {cashouts.length > 0 && (
+        {showCashoutTicker && cashouts.length > 0 && (
           <div className="w-full bg-black/40 border-y border-white/5 py-2 overflow-hidden relative flex items-center">
             <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-[#0d1117] to-transparent z-10 pointer-events-none" />
             <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-[#0d1117] to-transparent z-10 pointer-events-none" />

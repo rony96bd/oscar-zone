@@ -52,8 +52,10 @@ export default function AdminSettingsPage() {
   const [isSavingReg, setIsSavingReg] = useState(false)
 
   // Ticker Settings
-  const { tickerPosition, updateTickerPosition } = useSettingsStore()
+  const { tickerPosition, updateTickerPosition, showCashinTicker, showCashoutTicker, updateTickerVisibilities } = useSettingsStore()
   const [selectedTickerPos, setSelectedTickerPos] = useState<'header'|'banner'|'hidden'>(tickerPosition)
+  const [selectedCashin, setSelectedCashin] = useState(showCashinTicker)
+  const [selectedCashout, setSelectedCashout] = useState(showCashoutTicker)
   const [isSavingTicker, setIsSavingTicker] = useState(false)
 
   // Contact Support Settings
@@ -207,13 +209,13 @@ export default function AdminSettingsPage() {
         .upsert({
           key: 'allow_registration',
           value: selectedAllowReg ? 'true' : 'false',
-          description: 'Allow or block new public user registrations'
+          description: 'Allow new user registrations'
         }, { onConflict: 'key' })
         
       if (error) throw error
-
+      
       setAllowRegistration(selectedAllowReg)
-      toast.success(selectedAllowReg ? 'Public registration enabled.' : 'Public registration blocked.')
+      toast.success('Registration settings updated.')
     } catch (err: any) {
       console.error(err)
       toast.error('Failed to update registration settings')
@@ -227,15 +229,16 @@ export default function AdminSettingsPage() {
     try {
       const { error } = await supabase
         .from('system_settings')
-        .upsert({
-          key: 'ticker_position',
-          value: selectedTickerPos,
-          description: 'Live ticker position'
-        }, { onConflict: 'key' })
+        .upsert([
+          { key: 'ticker_position', value: selectedTickerPos, description: 'Live ticker position' },
+          { key: 'show_cashin_ticker', value: String(selectedCashin), description: 'Show Cash In Ticker' },
+          { key: 'show_cashout_ticker', value: String(selectedCashout), description: 'Show Cash Out Ticker' }
+        ], { onConflict: 'key' })
         
       if (error) throw error
   
       updateTickerPosition(selectedTickerPos)
+      updateTickerVisibilities(selectedCashin, selectedCashout)
       toast.success('Ticker settings updated.')
     } catch (err: any) {
       console.error(err)
@@ -531,7 +534,7 @@ export default function AdminSettingsPage() {
           </div>
           <button
             onClick={handleSaveTicker}
-            disabled={isSavingTicker || selectedTickerPos === tickerPosition}
+            disabled={isSavingTicker || (selectedTickerPos === tickerPosition && selectedCashin === showCashinTicker && selectedCashout === showCashoutTicker)}
             className="btn-neon px-6 py-2 text-sm"
           >
             {isSavingTicker ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -539,7 +542,7 @@ export default function AdminSettingsPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {[
             { id: 'header', label: 'Fixed Header', desc: 'Stays pinned at the top of the screen' },
             { id: 'banner', label: 'Hero Banner', desc: 'Shows inside the homepage hero section' },
@@ -566,6 +569,44 @@ export default function AdminSettingsPage() {
             </div>
           ))}
         </div>
+
+        {selectedTickerPos !== 'hidden' && (
+          <div className="flex flex-col gap-4 mt-6 pt-6 border-t border-white/10">
+            <h3 className="text-sm font-bold text-white mb-2">Display Preferences</h3>
+            
+            <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-black/20">
+              <div className="flex-1">
+                <h3 className="font-bold text-white">Show Cash In (Loads)</h3>
+                <p className="text-xs text-muted-foreground">Show recent player top-ups in the live ticker</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={selectedCashin}
+                  onChange={(e) => setSelectedCashin(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-green shadow-[0_0_10px_rgba(0,255,136,0.2)] peer-checked:shadow-[0_0_15px_rgba(0,255,136,0.5)]"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-black/20">
+              <div className="flex-1">
+                <h3 className="font-bold text-white">Show Cash Out (Redeems)</h3>
+                <p className="text-xs text-muted-foreground">Show recent player withdrawals in the live ticker</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={selectedCashout}
+                  onChange={(e) => setSelectedCashout(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-gold shadow-[0_0_10px_rgba(255,215,0,0.2)] peer-checked:shadow-[0_0_15px_rgba(255,215,0,0.5)]"></div>
+              </label>
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Contact Settings */}
