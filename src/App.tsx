@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import React, { lazy, Suspense } from 'react'
@@ -138,14 +138,17 @@ function AppContent() {
   const { fetchTheme } = useThemeStore()
   const { fetchSettings, maintenanceMode } = useSettingsStore()
   const { isAdmin } = useAuthStore()
+  const location = useLocation()
 
   useEffect(() => {
     fetchTheme()
     fetchSettings()
   }, [fetchTheme, fetchSettings])
 
-  // Show maintenance page to all non-admin users when maintenance mode is ON
-  if (maintenanceMode && !isAdmin()) {
+  // Maintenance gate: block all non-admin users EXCEPT on /login and /admin/* routes
+  // so admins can always log back in and access the admin panel.
+  const isAdminOrLoginPath = location.pathname === '/login' || location.pathname.startsWith('/admin')
+  if (maintenanceMode && !isAdmin() && !isAdminOrLoginPath) {
     return <MaintenancePage />
   }
 
