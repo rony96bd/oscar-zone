@@ -6,6 +6,7 @@ interface SettingsState {
   siteTagline: string
   siteLogoUrl: string | null
   allowRegistration: boolean
+  maintenanceMode: boolean
   supportEmail: string
   supportPhone: string
   supportTelegram: string
@@ -19,6 +20,7 @@ interface SettingsState {
   fetchSettings: () => Promise<void>
   setSiteLogoUrl: (url: string) => void
   setAllowRegistration: (allow: boolean) => void
+  setMaintenanceMode: (enabled: boolean) => void
   updateSupportSettings: (updates: Partial<SettingsState>) => void
   updateMetaSettings: (updates: Partial<SettingsState>) => void
   updateTickerPosition: (position: 'header' | 'banner' | 'hidden') => void
@@ -30,6 +32,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   siteTagline: import.meta.env.VITE_APP_TAGLINE || 'Top Up. Play More. Win Big.',
   siteLogoUrl: null,
   allowRegistration: true,
+  maintenanceMode: false,
+
   supportEmail: import.meta.env.VITE_DEFAULT_SUPPORT_EMAIL || '',
   supportPhone: '',
   supportTelegram: import.meta.env.VITE_DEFAULT_SUPPORT_TELEGRAM || '',
@@ -58,6 +62,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         let allowReg = true
         if (regSetting) {
           allowReg = regSetting.value === 'true' || regSetting.value === true
+        }
+
+        const maintSetting = data.find(d => d.key === 'maintenance_mode')
+        let maintenanceMode = false
+        if (maintSetting) {
+          maintenanceMode = maintSetting.value === 'true' || maintSetting.value === true
         }
 
         const cleanValue = (val: any) => {
@@ -104,7 +114,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           siteName: sName ? cleanValue(sName) : defaultAppName,
           siteTagline: sTagline ? cleanValue(sTagline) : (import.meta.env.VITE_APP_TAGLINE || 'Top Up. Play More. Win Big.'),
           siteLogoUrl: url, 
-          allowRegistration: allowReg, 
+          allowRegistration: allowReg,
+          maintenanceMode,
           supportEmail: sEmail ? cleanValue(sEmail) : (import.meta.env.VITE_DEFAULT_SUPPORT_EMAIL || ''),
           supportPhone: sPhone ? cleanValue(sPhone) : '',
           supportTelegram: sTelegram ? cleanValue(sTelegram) : (import.meta.env.VITE_DEFAULT_SUPPORT_TELEGRAM || ''),
@@ -141,6 +152,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   
   setAllowRegistration: (allow: boolean) => {
     set({ allowRegistration: allow })
+  },
+
+  setMaintenanceMode: (enabled: boolean) => {
+    set({ maintenanceMode: enabled })
   },
 
   updateSupportSettings: (updates: Partial<SettingsState>) => {

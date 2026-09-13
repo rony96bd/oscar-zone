@@ -11,10 +11,12 @@ import { useAuth } from '@/hooks/useAuth'
 import { useRealtimeNotifications } from '@/hooks/useRealtime'
 import { useThemeStore } from '@/stores/themeStore'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useAuthStore } from '@/stores/authStore'
 import { useEffect } from 'react'
 import { LiveChatWidget } from '@/components/ui/LiveChatWidget'
 import { ScrollToTop } from '@/components/shared/ScrollToTop'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
+import MaintenancePage from '@/components/shared/MaintenancePage'
 
 // Public Pages
 const HomePage = lazy(() => import('@/pages/public/HomePage'))
@@ -134,12 +136,18 @@ function AppContent() {
   useAuth() // Initialize auth
   useRealtimeNotifications() // Subscribe to realtime notifications
   const { fetchTheme } = useThemeStore()
-  const { fetchSettings } = useSettingsStore()
+  const { fetchSettings, maintenanceMode } = useSettingsStore()
+  const { isAdmin } = useAuthStore()
 
   useEffect(() => {
     fetchTheme()
     fetchSettings()
   }, [fetchTheme, fetchSettings])
+
+  // Show maintenance page to all non-admin users when maintenance mode is ON
+  if (maintenanceMode && !isAdmin()) {
+    return <MaintenancePage />
+  }
 
   return (
     <Suspense fallback={<PageLoader />}>

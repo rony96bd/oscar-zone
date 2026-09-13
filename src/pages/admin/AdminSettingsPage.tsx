@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users, Phone, Share2, Layout } from 'lucide-react'
+import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users, Phone, Share2, Layout, Wrench } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useThemeStore, ThemeName } from '@/stores/themeStore'
@@ -75,6 +75,11 @@ export default function AdminSettingsPage() {
   })
   const [isSavingMeta, setIsSavingMeta] = useState(false)
 
+  // Maintenance Mode
+  const { maintenanceMode, setMaintenanceMode } = useSettingsStore()
+  const [selectedMaintenance, setSelectedMaintenance] = useState(maintenanceMode)
+  const [isSavingMaintenance, setIsSavingMaintenance] = useState(false)
+
   // Keep local state in sync with global state initially
   useEffect(() => {
     setSelectedTheme(currentTheme)
@@ -96,6 +101,10 @@ export default function AdminSettingsPage() {
       supportFacebook
     })
   }, [supportEmail, supportPhone, supportTelegram, supportFacebook])
+
+  useEffect(() => {
+    setSelectedMaintenance(maintenanceMode)
+  }, [maintenanceMode])
 
   useEffect(() => {
     setMetaData({
@@ -299,6 +308,34 @@ export default function AdminSettingsPage() {
   }
 
 
+  const handleSaveMaintenance = async () => {
+    setIsSavingMaintenance(true)
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          key: 'maintenance_mode',
+          value: selectedMaintenance ? 'true' : 'false',
+          description: 'Put the site into maintenance mode'
+        }, { onConflict: 'key' })
+
+      if (error) throw error
+
+      setMaintenanceMode(selectedMaintenance)
+      toast.success(
+        selectedMaintenance
+          ? '🔧 Maintenance mode is now ON. Only admins can access the site.'
+          : '✅ Maintenance mode is OFF. The site is live for all users.'
+      )
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Failed to update maintenance mode')
+    } finally {
+      setIsSavingMaintenance(false)
+    }
+  }
+
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -481,6 +518,55 @@ export default function AdminSettingsPage() {
         </div>
       </div>
       
+      {/* Maintenance Mode */}
+      <div className={`glass-card p-6 border-2 transition-colors ${selectedMaintenance ? 'border-red-500/50 bg-red-500/5' : 'border-border'}`}>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${selectedMaintenance ? 'bg-red-500/20' : 'bg-slate-500/20'}`}>
+              <Wrench className={`h-5 w-5 ${selectedMaintenance ? 'text-red-400' : 'text-slate-400'}`} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Maintenance Mode</h2>
+              <p className="text-sm text-muted-foreground">Take the site offline for all non-admin users</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSaveMaintenance}
+            disabled={isSavingMaintenance || selectedMaintenance === maintenanceMode}
+            className={`px-6 py-2 text-sm rounded-lg font-semibold flex items-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${selectedMaintenance ? 'bg-red-600 hover:bg-red-700 text-white shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'btn-neon'}`}
+          >
+            {isSavingMaintenance ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Status
+          </button>
+        </div>
+
+        {selectedMaintenance && (
+          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-3">
+            <span className="text-red-400 text-lg mt-0.5">⚠️</span>
+            <div>
+              <p className="text-red-300 text-sm font-semibold">Site is currently in Maintenance Mode</p>
+              <p className="text-red-400/80 text-xs mt-0.5">All visitors and logged-in customers will see the maintenance page. Admins can still access the site normally.</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-black/20">
+          <div className="flex-1">
+            <h3 className="font-bold text-white">Enable Maintenance Mode</h3>
+            <p className="text-xs text-muted-foreground">When enabled, guests and customers will see a "Under Maintenance" page. Admin accounts bypass this restriction.</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={selectedMaintenance}
+              onChange={(e) => setSelectedMaintenance(e.target.checked)}
+            />
+            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600 shadow-[0_0_10px_rgba(239,68,68,0.1)] peer-checked:shadow-[0_0_15px_rgba(239,68,68,0.5)]"></div>
+          </label>
+        </div>
+      </div>
+
       {/* Registration Settings */}
       <div className="glass-card p-6">
         <div className="flex items-center justify-between mb-6">
