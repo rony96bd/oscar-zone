@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { toast } from 'sonner'
 import type { Notification, ChatMessage } from '@/types'
 
@@ -137,4 +138,35 @@ export function useRealtimeOrders(
 
     return () => { supabase.removeChannel(channel) }
   }, [userId, onOrderUpdate])
+}
+
+/**
+ * Subscribes to real-time changes on system_settings table.
+ * When maintenance_mode (or any setting) changes in the DB, all active
+ * browser sessions immediately re-fetch settings — so customers who are
+ * already on the site get redirected to the maintenance page instantly
+ * without needing to refresh.
+ */
+export function useRealtimeSettings() {
+  const { fetchSettings } = useSettingsStore()
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('system_settings_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'system_settings',
+        },
+        () => {
+          // Re-fetch all settings whenever any row changes
+          fetchSettings()
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [fetchSettings])
 }

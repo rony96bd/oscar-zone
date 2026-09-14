@@ -8,7 +8,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout'
 import { ProtectedRoute, AdminRoute } from '@/components/layout/ProtectedRoute'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
 import { useAuth } from '@/hooks/useAuth'
-import { useRealtimeNotifications } from '@/hooks/useRealtime'
+import { useRealtimeNotifications, useRealtimeSettings } from '@/hooks/useRealtime'
 import { useThemeStore } from '@/stores/themeStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -135,6 +135,7 @@ class GlobalErrorBoundary extends React.Component<{children: React.ReactNode}, {
 function AppContent() {
   useAuth() // Initialize auth
   useRealtimeNotifications() // Subscribe to realtime notifications
+  useRealtimeSettings() // Re-fetch settings instantly when DB changes (e.g. maintenance mode)
   const { fetchTheme } = useThemeStore()
   const { fetchSettings, maintenanceMode } = useSettingsStore()
   const { isAdmin } = useAuthStore()
