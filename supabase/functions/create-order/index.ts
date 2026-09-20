@@ -67,6 +67,20 @@ Deno.serve(async (req) => {
       })
     }
 
+    // --- System Maintenance Check ---
+    const { data: maintSetting } = await adminClient
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'maintenance_mode')
+      .single()
+      
+    if (maintSetting && (maintSetting.value === 'true' || maintSetting.value === true)) {
+      return new Response(JSON.stringify({ error: 'System is currently under maintenance. New orders are temporarily disabled.' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    // --------------------------------
+
     const turnstileSecret = Deno.env.get('TURNSTILE_SECRET_KEY') ?? '0x4AAAAAAEVMeYWGXlcs-pcFslQ8T9AMNY4'
     const formData = new FormData()
     formData.append('secret', turnstileSecret)
