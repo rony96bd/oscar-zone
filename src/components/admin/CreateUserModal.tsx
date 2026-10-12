@@ -44,13 +44,26 @@ export function CreateUserModal({ isOpen, onClose, defaultRole = 'customer' }: C
     try {
       const { data: { session } } = await supabase.auth.getSession()
       
+      const cleanUsername = data.username.trim()
+      const cleanPassword = data.password.trim()
+      const authDomain = import.meta.env.VITE_AUTH_DOMAIN || 'users.oscarzone.com'
+      const finalEmail = data.email?.trim() || `${cleanUsername.toLowerCase()}@${authDomain}`
+
+      const payload = {
+        ...data,
+        full_name: data.full_name.trim(),
+        username: cleanUsername,
+        password: cleanPassword,
+        email: finalEmail
+      }
+
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
       })
 
       const result = await res.json()

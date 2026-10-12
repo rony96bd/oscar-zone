@@ -1,4 +1,4 @@
-﻿import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -40,23 +40,27 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Username and password are required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Check if username is already taken
-    const { data: existingUser } = await supabaseAdmin.from('profiles').select('id').eq('username', username).maybeSingle()
+    const cleanUsername = username.trim()
+    const cleanPassword = password.trim()
+
+    // Check if username is already taken (case-insensitive)
+    const { data: existingUser } = await supabaseAdmin.from('profiles').select('id').ilike('username', cleanUsername).maybeSingle()
     if (existingUser) {
       return new Response(JSON.stringify({ error: 'Username is already taken' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Use provided email or generate a dummy one
-    const userEmail = email || `${username.toLowerCase()}@users.oscarzone.com`
+    // Use provided email or generate a dummy one with fallback domain
+    const authDomain = Deno.env.get('AUTH_DOMAIN') || 'users.oscarzone.com'
+    const userEmail = (email && email.trim() !== '') ? email.trim() : `${cleanUsername.toLowerCase()}@${authDomain}`
 
     // Create user in Supabase Auth
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: userEmail,
-      password: password,
+      password: cleanPassword,
       email_confirm: true,
       user_metadata: {
         full_name,
-        username,
+        username: cleanUsername,
         role,
         phone,
         telegram

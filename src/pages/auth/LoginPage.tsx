@@ -36,27 +36,79 @@ export default function LoginPage() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true)
     try {
-      // Reconstruct the dummy email used during registration
+      const cleanInput = data.username.trim()
+      const cleanPassword = data.password.trim()
+      const isEmail = cleanInput.includes('@')
       const authDomain = import.meta.env.VITE_AUTH_DOMAIN || 'users.oscarzone.com'
-      const dummyEmail = `${data.username.toLowerCase()}@${authDomain}`
-      
-      const { error } = await supabase.auth.signInWithPassword({
-        email: dummyEmail,
-        password: data.password,
-      })
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
+
+      // Strategy 1: Resolve exact email from database via RPC
+      let targetEmail: string | null = null
+      try {
+        const { data: resolvedEmail } = await supabase.rpc('get_user_auth_email', {
+          login_input: cleanInput,
+        })
+        if (resolvedEmail) {
+          targetEmail = resolvedEmail
+        }
+      } catch {
+        // RPC might not be present on older migrations, proceed to fallback strategies
+      }
+
+      // Candidate emails to try in order
+      const candidateEmails: string[] = []
+      if (targetEmail) {
+        candidateEmails.push(targetEmail)
+      }
+
+      if (isEmail) {
+        candidateEmails.push(cleanInput.toLowerCase())
+      } else {
+        const baseUsername = cleanInput.toLowerCase()
+        const primaryCandidate = `${baseUsername}@${authDomain}`
+        const fallbackCandidate = `${baseUsername}@users.oscarzone.com`
+        
+        if (!candidateEmails.includes(primaryCandidate)) {
+          candidateEmails.push(primaryCandidate)
+        }
+        if (!candidateEmails.includes(fallbackCandidate)) {
+          candidateEmails.push(fallbackCandidate)
+        }
+      }
+
+      let lastError: any = null
+      let signInSuccess = false
+
+      for (const email of candidateEmails) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password: cleanPassword,
+        })
+
+        if (!error) {
+          signInSuccess = true
+          break
+        }
+
+        lastError = error
+        // If error is not invalid credentials (e.g. rate limit, unconfirmed), don't keep guessing
+        if (!error.message?.toLowerCase().includes('invalid login credentials')) {
+          break
+        }
+      }
+
+      if (!signInSuccess) {
+        if (lastError?.message?.toLowerCase().includes('invalid login credentials')) {
           throw new Error('Incorrect username or password')
         }
-        throw error
+        throw lastError || new Error('Failed to sign in')
       }
-      
+
       // Refresh profile to get latest role from DB
       await refreshProfile()
       const { profile } = useAuthStore.getState()
       const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
       const destination = from || (isAdmin ? '/admin' : '/dashboard')
-      
+
       toast.success('Welcome back!')
       navigate(destination, { replace: true })
     } catch (err: any) {
