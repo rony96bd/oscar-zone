@@ -25,6 +25,7 @@ export default function LoadGamePage() {
   const stateGameId = location.state?.gameId
   const initialGameId = stateGameId || searchParams.get('game') || ''
   const [selectedGameId, setSelectedGameId] = useState(initialGameId)
+  const [showAllGames, setShowAllGames] = useState(false)
   
   const [username, setUsername] = useState(profile?.username || profile?.full_name || '')
   const [amount, setAmount] = useState<string>('')
@@ -301,21 +302,45 @@ export default function LoadGamePage() {
                 
                 {/* 1. Select Game */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">1</span>
-                    Select Game
-                  </label>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium text-foreground flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">1</span>
+                      Select Game
+                    </label>
+                    {selectedGame && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllGames(!showAllGames)}
+                        className="inline-flex items-center gap-1.5 text-xs text-primary hover:text-white bg-primary/10 hover:bg-primary/20 border border-primary/30 px-3 py-1.5 rounded-xl font-medium transition-all"
+                      >
+                        <Gamepad2 className="h-3.5 w-3.5" />
+                        {showAllGames ? 'Hide other games' : 'Show all games'}
+                      </button>
+                    )}
+                  </div>
                   
                   {loadingGames ? (
                     <div className="h-24 skeleton rounded-xl" />
+                  ) : selectedGame && !showAllGames ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-fade-in">
+                      <GameCard
+                        game={selectedGame}
+                        selected={true}
+                        onClick={() => setShowAllGames(true)}
+                        showDownload={false}
+                      />
+                    </div>
                   ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 animate-fade-in">
                       {games?.map((game) => (
                         <GameCard
                           key={game.id}
                           game={game}
                           selected={selectedGameId === game.id}
-                          onClick={() => setSelectedGameId(game.id)}
+                          onClick={() => {
+                            setSelectedGameId(game.id)
+                            setShowAllGames(false)
+                          }}
                           showDownload={false}
                         />
                       ))}
