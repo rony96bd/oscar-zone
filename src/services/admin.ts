@@ -166,10 +166,37 @@ export async function updateCustomerProfile(customerId: string, data: { full_nam
 }
 
 export async function deleteCustomer(customerId: string): Promise<void> {
+  // 1. Try direct atomic RPC first (fast, reliable, no edge function deployment required)
+  const { error: rpcError } = await supabase.rpc('delete_customer_completely', {
+    target_user_id: customerId
+  })
+
+  if (!rpcError) {
+    import('./audit').then(m => m.logAuditAction(
+      null,
+      'delete_user',
+      'profile',
+      customerId
+    ))
+    return
+  }
+
+  // 2. Fallback to Edge Function if RPC is not present
   const { data, error } = await supabase.functions.invoke('admin-delete-user', {
     body: { userId: customerId }
   })
-  if (error) throw error
+
+  if (error) {
+    let msg = error.message
+    try {
+      if ('context' in error && (error as any).context) {
+        const body = await (error as any).context.json()
+        if (body?.error) msg = body.error
+      }
+    } catch {}
+    throw new Error(msg)
+  }
+
   if (data?.error) throw new Error(data.error)
 
   import('./audit').then(m => m.logAuditAction(
@@ -179,3 +206,4 @@ export async function deleteCustomer(customerId: string): Promise<void> {
     customerId
   ))
 }
+
