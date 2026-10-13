@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchCustomers } from '@/services/admin'
-import { Search, Plus } from 'lucide-react'
+import { Search, Plus, LineChart } from 'lucide-react'
 import { formatRelativeTime, cn } from '@/lib/utils'
 import { CreateUserModal } from '@/components/admin/CreateUserModal'
 
@@ -17,14 +17,19 @@ export default function AdminCustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-gaming font-bold text-white">Customers</h1>
           <p className="text-muted-foreground text-sm">{customers.length} users found</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn-neon text-sm px-4 py-2">
-          <Plus className="h-4 w-4" /> Add Customer
-        </button>
+        <div className="flex items-center gap-2">
+          <Link to="/admin/customer-reports" className="btn-ghost-neon text-sm px-3.5 py-2 flex items-center gap-1.5">
+            <LineChart className="h-4 w-4" /> Customer Report
+          </Link>
+          <button onClick={() => setIsModalOpen(true)} className="btn-neon text-sm px-4 py-2 flex items-center gap-1.5">
+            <Plus className="h-4 w-4" /> Add Customer
+          </button>
+        </div>
       </div>
       <div className="flex gap-3">
         <div className="relative flex-1">

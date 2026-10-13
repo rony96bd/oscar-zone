@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, Gamepad2, Joystick,
   Gift, CreditCard, UserCheck, MessageCircle, Bell, Send,
   Image, Megaphone, BarChart3, Shield, ClipboardList, ShieldCheck,
-  Settings, LogOut, Menu, X, ChevronRight, Zap, Bot, ArrowDownToLine, DollarSign, Coins, Trophy, Activity
+  Settings, LogOut, Menu, X, ChevronRight, Zap, Bot, ArrowDownToLine, DollarSign, Coins, Trophy, Activity, LineChart
 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/authStore'
@@ -29,6 +29,7 @@ const navSections = [
       { href: '/admin/cashout', label: 'Cashout', icon: ArrowDownToLine, permission: 'view_cashout' },
       { href: '/admin/cashout-rules', label: 'Cashout Rules', icon: ShieldCheck, permission: 'manage_cashout' },
       { href: '/admin/customers', label: 'Customers', icon: Users, permission: 'view_customers' },
+      { href: '/admin/customer-reports', label: 'Customer Report', icon: LineChart, permission: 'view_customers' },
       { href: '/admin/chat', label: 'Live Chat', icon: MessageCircle, permission: 'view_chat' },
     ],
   },

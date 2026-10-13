@@ -72,6 +72,7 @@ const AdminTelegramPage = lazy(() => import('@/pages/admin/AdminTelegramPage'))
 const AdminBannersPage = lazy(() => import('@/pages/admin/AdminBannersPage'))
 const AdminAnnouncementsPage = lazy(() => import('@/pages/admin/AdminAnnouncementsPage'))
 const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'))
+const AdminCustomerReportsPage = lazy(() => import('@/pages/admin/AdminCustomerReportsPage'))
 const AdminStaffPerformancePage = lazy(() => import('@/pages/admin/AdminStaffPerformancePage'))
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
 const AdminAuditLogsPage = lazy(() => import('@/pages/admin/AdminAuditLogsPage'))
@@ -235,6 +236,7 @@ function AppContent() {
           <Route path="banners" element={<AdminBannersPage />} />
           <Route path="announcements" element={<AdminAnnouncementsPage />} />
           <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="customer-reports" element={<AdminCustomerReportsPage />} />
           <Route path="staff-performance" element={<AdminStaffPerformancePage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="audit-logs" element={<AdminAuditLogsPage />} />
