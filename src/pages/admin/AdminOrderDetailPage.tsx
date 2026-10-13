@@ -109,14 +109,17 @@ export default function AdminOrderDetailPage() {
           {[
             { label: 'Game', value: o.game?.name },
             { label: 'Username', value: o.username },
-            { label: 'Payment', value: o.payment_method?.name },
+            { label: 'Payment Method', value: (o.is_free_play || o.admin_note?.includes('Free Play') || (o.base_amount === 0 && o.final_game_credit > 0)) ? '🎁 Free Play (No Payment Method)' : (o.payment_method?.name || '—') },
             { label: 'Payment Tag / Name', value: o.customer_payment_tag },
-            { label: 'Type', value: o.is_guest ? 'Guest Order' : 'Registered User' },
+            { label: 'Type', value: (o.is_free_play || o.admin_note?.includes('Free Play')) ? '🎁 Free Play' : (o.is_guest ? 'Guest Order' : 'Registered User') },
             ...(o.is_guest ? [
               { label: 'Guest Username', value: o.username },
             ] : [
               { label: 'Customer', value: o.profile?.full_name },
             ]),
+            ...(o.admin_note ? [
+              { label: 'Admin Note', value: o.admin_note },
+            ] : []),
           ].map(({ label, value }) => (
             <div key={label}>
               <p className="text-xs text-muted-foreground">{label}</p>
@@ -129,7 +132,12 @@ export default function AdminOrderDetailPage() {
       {/* Bonus */}
       <div className="bonus-preview">
         <h2 className="font-semibold text-white mb-4">Bonus Breakdown</h2>
-        <div className="bonus-line"><span className="text-muted-foreground">Paid</span><span>{formatCurrency(o.base_amount)}</span></div>
+        <div className="bonus-line">
+          <span className="text-muted-foreground">
+            {(o.is_free_play || o.admin_note?.includes('Free Play') || (o.base_amount === 0 && o.final_game_credit > 0)) ? 'Deposit Paid' : 'Paid'}
+          </span>
+          <span>{formatCurrency(o.base_amount)}</span>
+        </div>
         {o.regular_bonus_pct > 0 && <div className="bonus-line"><span className="text-muted-foreground">Regular Bonus ({o.regular_bonus_pct}%)</span><span className="text-neon-green">+{formatCurrency(o.regular_bonus_amount)}</span></div>}
         {o.promo_bonus_pct > 0 && <div className="bonus-line"><span className="text-muted-foreground">Promo Bonus ({o.promo_bonus_pct}%)</span><span className="text-neon-gold">+{formatCurrency(o.promo_bonus_amount)}</span></div>}
         <div className="bonus-total"><span>Total Credit</span><span className="text-xl text-gradient-green">{Math.ceil(o.final_game_credit)}</span></div>

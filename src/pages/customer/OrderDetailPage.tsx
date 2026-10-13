@@ -1,4 +1,4 @@
-﻿import { useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { fetchOrderById } from '@/services/orders'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
@@ -49,18 +49,31 @@ export default function OrderDetailPage() {
         <div className="game-card p-6 mb-6">
           <h2 className="font-semibold text-white mb-4">Order Details</h2>
           <div className="space-y-2">
-            {[{ label: 'Game', value: (order as any).game?.name }, { label: 'Username', value: (order as any).username }, { label: 'Payment', value: (order as any).payment_method?.name }]
-              .map(({ label, value }) => (
-                <div key={label} className="flex justify-between py-2 border-b border-border text-sm">
-                  <span className="text-muted-foreground">{label}</span>
-                  <span className="font-medium text-foreground">{value}</span>
-                </div>
-              ))}
+            {[
+              { label: 'Game', value: (order as any).game?.name },
+              { label: 'Username', value: (order as any).username },
+              { 
+                label: 'Payment Method', 
+                value: ((order as any).is_free_play || (order as any).base_amount === 0 || (order as any).admin_note?.includes('Free Play')) 
+                  ? '🎁 Free Play' 
+                  : ((order as any).payment_method?.name || 'Manual / Direct') 
+              }
+            ].map(({ label, value }) => (
+              <div key={label} className="flex justify-between py-2 border-b border-border text-sm">
+                <span className="text-muted-foreground">{label}</span>
+                <span className="font-medium text-foreground">{value}</span>
+              </div>
+            ))}
           </div>
         </div>
         <div className="bonus-preview mb-6">
           <h2 className="font-semibold text-white mb-4">Bonus Breakdown</h2>
-          <div className="bonus-line"><span className="text-muted-foreground">You Paid</span><span className="font-semibold">{formatCurrency((order as any).base_amount)}</span></div>
+          <div className="bonus-line">
+            <span className="text-muted-foreground">
+              {((order as any).is_free_play || (order as any).base_amount === 0 || (order as any).admin_note?.includes('Free Play')) ? 'Deposit (Free Play)' : 'You Paid'}
+            </span>
+            <span className="font-semibold">{formatCurrency((order as any).base_amount)}</span>
+          </div>
           {(order as any).regular_bonus_pct > 0 && (
             <div className="bonus-line"><span className="text-muted-foreground">Regular Bonus ({(order as any).regular_bonus_pct}%)</span><span className="text-neon-green font-semibold">+{formatCurrency((order as any).regular_bonus_amount)}</span></div>
           )}

@@ -100,6 +100,11 @@ export default function AdminOrdersPage() {
                     <span className="font-gaming font-bold text-white text-sm">{order.game?.name}</span>
                     <span className={getOrderStatusClass(order.status)}>{getOrderStatusLabel(order.status)}</span>
                     {order.is_guest && <span className="badge text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">Guest</span>}
+                    {(order.is_free_play || order.admin_note?.includes('Free Play') || (order.base_amount === 0 && order.final_game_credit > 0)) && (
+                      <span className="badge text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full font-medium">
+                        🎁 Free Play
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {order.order_number} • {order.is_guest ? ` ${order.username}` : ` ${order.profile?.full_name || 'User'}`} •
@@ -109,8 +114,12 @@ export default function AdminOrdersPage() {
 
                 {/* Amount */}
                 <div className="text-right lg:min-w-[100px]">
-                  <p className="font-bold text-white">{Math.ceil(order.final_game_credit)}</p>
-                  <p className="text-xs text-muted-foreground">${order.base_amount} paid</p>
+                  <p className="font-bold text-white">{Math.ceil(order.final_game_credit)} cr</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(order.is_free_play || order.admin_note?.includes('Free Play') || (order.base_amount === 0 && order.final_game_credit > 0)) 
+                      ? '🎁 Free Play' 
+                      : `$${order.base_amount} paid`}
+                  </p>
                 </div>
 
                 {/* Quick Actions */}

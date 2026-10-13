@@ -232,6 +232,8 @@ export async function adminCreateOrder(payload: {
   total_bonus?: number
   final_credit?: number
   status?: OrderStatus
+  admin_note?: string
+  is_free_play?: boolean
 }): Promise<Order> {
   // Generate random order number
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -240,33 +242,59 @@ export async function adminCreateOrder(payload: {
     orderNumber += chars[Math.floor(Math.random() * chars.length)]
   }
 
-  const { data, error } = await supabase
+  const insertPayload: Record<string, any> = {
+    order_number: orderNumber,
+    user_id: payload.user_id || null,
+    game_id: payload.game_id,
+    username: payload.username,
+    guest_name: !payload.user_id ? payload.username : null,
+    is_guest: !payload.user_id,
+    base_amount: payload.base_amount,
+    total_bonus_amount: payload.total_bonus || 0,
+    final_game_credit: payload.final_credit ?? payload.base_amount,
+    payment_method_id: payload.payment_method_id || null,
+    customer_payment_tag: payload.customer_payment_tag || null,
+    status: payload.status || 'completed', // Default to completed if created by admin
+    admin_note: payload.admin_note || (payload.is_free_play ? '🎁 Free Play awarded by admin' : 'Created manually by admin'),
+  }
+
+  if (payload.is_free_play !== undefined) {
+    insertPayload.is_free_play = payload.is_free_play
+  }
+
+  let { data, error } = await supabase
     .from('orders')
-    .insert({
-      order_number: orderNumber,
-      user_id: payload.user_id || null,
-      game_id: payload.game_id,
-      username: payload.username,
-      guest_name: !payload.user_id ? payload.username : null,
-      is_guest: !payload.user_id,
-      base_amount: payload.base_amount,
-      total_bonus_amount: payload.total_bonus || 0,
-      final_game_credit: payload.final_credit || payload.base_amount,
-      payment_method_id: payload.payment_method_id || null,
-      customer_payment_tag: payload.customer_payment_tag || null,
-      status: payload.status || 'completed', // Default to completed if created by admin
-      admin_note: 'Created manually by admin',
-    })
+    .insert(insertPayload)
     .select('*, game:games(*), profile:profiles!user_id(*)')
     .single()
 
-  if (error) throw error
+  // Gracefully fallback if is_free_play column is not yet present on remote DB
+  if (error && (error.code === '42703' || error.message?.includes('is_free_play'))) {
+    delete insertPayload.is_free_play
+    const retry = await supabase
+      .from('orders')
+      .insert(insertPayload)
+      .select('*, game:games(*), profile:profiles!user_id(*)')
+      .single()
+    data = retry.data
+    error = retry.error
+  }
+
+  if (error) {
+    if (error.code === '23502' && error.message?.includes('payment_method_id')) {
+      throw new Error('Database schema requires payment method. Please run migration 035 in Supabase SQL Editor to allow Free Play without a payment method.')
+    }
+    if (error.code === '23514' && error.message?.includes('orders_base_amount_check')) {
+      throw new Error('Database constraint error. Please run migration 035 in Supabase SQL Editor to allow $0 Free Play orders.')
+    }
+    throw error
+  }
 
   // Log status history
   await supabase.from('order_status_history').insert({
     order_id: data.id,
     status: data.status,
-    note: 'Order created by admin'
+    note: payload.is_free_play ? '🎁 Free Play awarded by admin' : 'Order created by admin'
   })
 
   return data

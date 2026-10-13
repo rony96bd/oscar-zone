@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
@@ -65,12 +65,21 @@ export default function OrdersPage() {
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-gaming font-bold text-white text-sm">{order.game?.name}</span>
                   <span className={getOrderStatusClass(order.status)}>{getOrderStatusLabel(order.status)}</span>
+                  {(order.is_free_play || order.base_amount === 0 || order.admin_note?.includes('Free Play')) && (
+                    <span className="badge text-[11px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full font-medium">
+                      🎁 Free Play
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">{order.order_number} • {order.username} • {formatRelativeTime(order.created_at)}</p>
               </div>
               <div className="text-sm sm:text-right">
-                <div className="font-bold text-white">{Math.ceil(order.final_game_credit)}</div>
-                <div className="text-xs text-muted-foreground">Paid: {formatCurrency(order.base_amount)}</div>
+                <div className="font-bold text-white">{Math.ceil(order.final_game_credit)} cr</div>
+                <div className="text-xs text-muted-foreground">
+                  {(order.is_free_play || order.base_amount === 0 || order.admin_note?.includes('Free Play')) 
+                    ? '🎁 Free Play' 
+                    : `Paid: ${formatCurrency(order.base_amount)}`}
+                </div>
               </div>
             </Link>
           ))}

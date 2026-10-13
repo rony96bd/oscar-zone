@@ -176,7 +176,8 @@ export interface Order {
   promo_bonus_amount: number
   total_bonus_amount: number
   final_game_credit: number
-  payment_method_id: string
+  payment_method_id: string | null
+  is_free_play?: boolean
   payment_screenshot_path: string | null
   customer_payment_tag: string | null
   status: OrderStatus
