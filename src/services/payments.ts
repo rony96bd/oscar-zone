@@ -71,3 +71,65 @@ export async function getScreenshotUrl(path: string): Promise<string> {
     .createSignedUrl(path, 3600)
   return data?.signedUrl || ''
 }
+
+export async function fetchPaymentMethodDeposits(paymentMethodId: string) {
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      id,
+      order_number,
+      user_id,
+      username,
+      guest_name,
+      guest_email,
+      guest_phone,
+      is_guest,
+      base_amount,
+      total_bonus_amount,
+      final_game_credit,
+      customer_payment_tag,
+      payment_screenshot_path,
+      payment_screenshot_key,
+      status,
+      created_at,
+      admin_note,
+      rejection_reason,
+      game:games(id, name, slug, logo_url),
+      profile:profiles!user_id(id, full_name, username, email, phone)
+    `)
+    .eq('payment_method_id', paymentMethodId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+export async function fetchPaymentMethodsDepositStats(): Promise<Record<string, { count: number; totalAmount: number; completedCount: number; completedAmount: number }>> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('payment_method_id, base_amount, status')
+    .not('payment_method_id', 'is', null)
+
+  if (error) {
+    console.error('Failed to fetch deposit stats:', error)
+    return {}
+  }
+
+  const stats: Record<string, { count: number; totalAmount: number; completedCount: number; completedAmount: number }> = {}
+  data?.forEach((o: any) => {
+    const id = o.payment_method_id
+    if (!id) return
+    if (!stats[id]) {
+      stats[id] = { count: 0, totalAmount: 0, completedCount: 0, completedAmount: 0 }
+    }
+    stats[id].count++
+    stats[id].totalAmount += Number(o.base_amount || 0)
+    if (o.status === 'completed') {
+      stats[id].completedCount++
+      stats[id].completedAmount += Number(o.base_amount || 0)
+    }
+  })
+
+  return stats
+}
+

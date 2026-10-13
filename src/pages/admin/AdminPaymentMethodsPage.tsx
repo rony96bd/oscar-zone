@@ -1,16 +1,17 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchAllPaymentMethods, updatePaymentMethod, createPaymentMethod } from '@/services/payments'
+import { fetchAllPaymentMethods, updatePaymentMethod, createPaymentMethod, fetchPaymentMethodsDepositStats } from '@/services/payments'
 import { 
   CreditCard, ToggleLeft, ToggleRight, Edit2, X, Save, 
   Plus, Loader2, QrCode, Link as LinkIcon, Tag, User, 
-  AlignLeft, Upload, Trash2, GripVertical
+  AlignLeft, Upload, Trash2, GripVertical, Receipt, ArrowUpRight
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { GAME_ASSETS_BUCKET } from '@/lib/constants'
 import type { PaymentMethod } from '@/types'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
+import { PaymentMethodDepositsModal } from '@/components/admin/PaymentMethodDepositsModal'
 import {
   DndContext,
   closestCenter,
@@ -328,6 +329,8 @@ function PaymentMethodCard({
   setAddingNew,
   toggleActive,
   updateMutation,
+  onViewDeposits,
+  depositStats,
 }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: m.id })
 
@@ -342,7 +345,11 @@ function PaymentMethodCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={cn('glass-card overflow-hidden transition-all', !m.is_active && 'opacity-60', isDragging && 'shadow-2xl ring-2 ring-primary/50')}
+      className={cn(
+        'glass-card overflow-hidden transition-all',
+        !m.is_active && 'opacity-60',
+        isDragging && 'shadow-2xl ring-2 ring-primary/50'
+      )}
     >
       {/* Header */}
       <div className="p-5 flex items-center gap-4">
@@ -350,24 +357,38 @@ function PaymentMethodCard({
         <button
           {...attributes}
           {...listeners}
+          onClick={(e) => e.stopPropagation()}
           className="h-8 w-6 flex items-center justify-center text-muted-foreground hover:text-white cursor-grab active:cursor-grabbing transition-colors flex-shrink-0 touch-none"
           title="Drag to reorder"
         >
           <GripVertical className="h-5 w-5" />
         </button>
 
-        {/* Logo or initials */}
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 border border-white/10 flex-shrink-0 overflow-hidden">
+        {/* Logo or initials - clickable to view logs */}
+        <button
+          type="button"
+          onClick={() => onViewDeposits(m)}
+          className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 border border-white/10 hover:border-primary/50 transition-all flex-shrink-0 overflow-hidden cursor-pointer group/logo"
+          title="Click to view deposit logs"
+        >
           {m.logo_url ? (
-            <img src={m.logo_url} alt={m.name} className="h-10 w-10 object-contain" />
+            <img src={m.logo_url} alt={m.name} className="h-10 w-10 object-contain group-hover/logo:scale-105 transition-transform" />
           ) : (
-            <span className="font-bold text-primary text-lg">{m.name.substring(0, 2).toUpperCase()}</span>
+            <span className="font-bold text-primary text-lg group-hover/logo:scale-110 transition-transform">{m.name.substring(0, 2).toUpperCase()}</span>
           )}
-        </div>
+        </button>
 
-        <div className="flex-1 min-w-0">
+        {/* Clickable Info area */}
+        <div 
+          onClick={() => onViewDeposits(m)}
+          className="flex-1 min-w-0 cursor-pointer group/info select-none py-1"
+          title="Click to view all deposit logs for this payment method"
+        >
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-bold text-white">{m.name}</p>
+            <p className="font-bold text-white group-hover/info:text-primary transition-colors flex items-center gap-1.5">
+              {m.name}
+              <ArrowUpRight className="h-3.5 w-3.5 opacity-0 group-hover/info:opacity-100 transition-opacity text-primary" />
+            </p>
             <span className={cn(
               'text-xs px-2 py-0.5 rounded-full font-medium',
               m.is_active ? 'bg-neon-green/15 text-neon-green' : 'bg-muted text-muted-foreground'
@@ -382,7 +403,21 @@ function PaymentMethodCard({
           </div>
           {m.tag && <p className="text-sm text-primary font-mono mt-0.5">{m.tag}</p>}
           {m.account_name && <p className="text-xs text-muted-foreground">{m.account_name}</p>}
-          <p className="text-xs text-muted-foreground/50 mt-0.5">Order: {m.sort_order}</p>
+          
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 group-hover/info:bg-primary/20 group-hover/info:border-primary/40 transition-all font-semibold">
+              <Receipt className="h-3.5 w-3.5" />
+              {depositStats?.count ? (
+                <>
+                  {depositStats.count} {depositStats.count === 1 ? 'Deposit' : 'Deposits'}
+                  <span className="text-white font-mono">({formatCurrency(depositStats.totalAmount)})</span>
+                </>
+              ) : (
+                '0 Deposits'
+              )}
+            </span>
+            <span className="text-xs text-muted-foreground/50">Order: {m.sort_order}</span>
+          </div>
         </div>
 
         {/* QR thumb */}
@@ -397,7 +432,16 @@ function PaymentMethodCard({
         )}
 
         {/* Controls */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => onViewDeposits(m)}
+            className="h-9 px-3 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 hover:text-white transition-all text-xs font-semibold"
+            title="View all deposits sent to this payment method"
+          >
+            <Receipt className="h-4 w-4" />
+            <span className="hidden sm:inline">Deposits</span>
+          </button>
           <button
             onClick={() => { setEditingId(editingId === m.id ? null : m.id); setAddingNew(false) }}
             className={cn(
@@ -406,10 +450,11 @@ function PaymentMethodCard({
                 ? 'border-primary bg-primary/10 text-primary'
                 : 'border-border text-muted-foreground hover:text-foreground hover:bg-white/10'
             )}
+            title="Edit payment method"
           >
             {editingId === m.id ? <X className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
           </button>
-          <button onClick={() => toggleActive(m)} className="transition-all">
+          <button onClick={() => toggleActive(m)} className="transition-all" title="Toggle active status">
             {m.is_active
               ? <ToggleRight className="h-8 w-8 text-neon-green" />
               : <ToggleLeft className="h-8 w-8 text-muted-foreground" />
@@ -438,13 +483,20 @@ export default function AdminPaymentMethodsPage() {
   const qc = useQueryClient()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [addingNew, setAddingNew] = useState(false)
+  const [viewingDepositsMethod, setViewingDepositsMethod] = useState<PaymentMethod | null>(null)
   const [activeTab, setActiveTab] = useState<'active' | 'inactive'>('active')
-  const [localOrder, setLocalOrder] = useState<PaymentMethod[]>([])
 
   const { data: methods = [], isLoading } = useQuery({
     queryKey: ['admin-payment-methods'],
     queryFn: fetchAllPaymentMethods,
     select: (data) => [...data].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+  })
+
+  // Deposit stats for summary badges
+  const { data: depositStats = {} } = useQuery({
+    queryKey: ['admin-payment-methods-deposit-stats'],
+    queryFn: fetchPaymentMethodsDepositStats,
+    refetchInterval: 30000,
   })
 
   // Sync localOrder when server data changes
@@ -490,10 +542,8 @@ export default function AdminPaymentMethodsPage() {
     const reordered = arrayMove(currentList, oldIndex, newIndex)
 
     // Optimistically update all sort_orders for items in this tab
-    // Save all changed items to DB
     const updates = reordered.map((m: PaymentMethod, idx: number) => ({ id: m.id, sort_order: idx + 1 }))
     
-    // Fire all updates in parallel (fire and forget)
     toast.promise(
       Promise.all(updates.map((u: any) => updatePaymentMethod(u.id, { sort_order: u.sort_order }))),
       {
@@ -512,7 +562,7 @@ export default function AdminPaymentMethodsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-gaming font-bold text-white">Payment Methods</h1>
-          <p className="text-sm text-muted-foreground">Manage QR codes, logos, tags, and payment links shown to customers</p>
+          <p className="text-sm text-muted-foreground">Manage QR codes, logos, tags, and click any method to inspect its deposit logs</p>
         </div>
         <button
           onClick={() => { setAddingNew(true); setEditingId(null) }}
@@ -605,12 +655,23 @@ export default function AdminPaymentMethodsPage() {
                   setAddingNew={setAddingNew}
                   toggleActive={toggleActive}
                   updateMutation={updateMutation}
+                  onViewDeposits={setViewingDepositsMethod}
+                  depositStats={depositStats[m.id]}
                 />
               ))}
             </div>
           </SortableContext>
         </DndContext>
       )}
+
+      {/* Deposit Logs Modal */}
+      {viewingDepositsMethod && (
+        <PaymentMethodDepositsModal
+          method={viewingDepositsMethod}
+          onClose={() => setViewingDepositsMethod(null)}
+        />
+      )}
     </div>
   )
 }
+
