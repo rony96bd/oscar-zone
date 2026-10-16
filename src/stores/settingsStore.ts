@@ -1,6 +1,44 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 
+/**
+ * Dynamically overrides the PWA manifest's icons with the site logo URL.
+ * This ensures the PWA install prompt shows the correct branding for each
+ * deployed site (e.g. NatashaSweeps vs OscarZone) even though they share
+ * the same codebase and static build assets.
+ */
+function updatePwaManifestIcons(logoUrl: string, siteName: string) {
+  try {
+    const existingLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null
+    if (!existingLink) return
+
+    const manifestData = {
+      name: siteName,
+      short_name: siteName,
+      start_url: '/',
+      display: 'standalone',
+      background_color: '#09090b',
+      theme_color: '#09090b',
+      icons: [
+        { src: logoUrl, sizes: '192x192', type: 'image/png' },
+        { src: logoUrl, sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    }
+
+    const blob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' })
+    const newManifestUrl = URL.createObjectURL(blob)
+
+    // Revoke the previous dynamic manifest blob URL if any
+    const prevUrl = existingLink.getAttribute('data-dynamic-src')
+    if (prevUrl) URL.revokeObjectURL(prevUrl)
+
+    existingLink.setAttribute('href', newManifestUrl)
+    existingLink.setAttribute('data-dynamic-src', newManifestUrl)
+  } catch (e) {
+    console.warn('Failed to update PWA manifest icons:', e)
+  }
+}
+
 interface SettingsState {
   siteName: string
   siteTagline: string
@@ -134,7 +172,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         document.getElementById('og-desc')?.setAttribute('content', desc)
         if (url) {
           document.getElementById('og-image')?.setAttribute('content', url)
+          // Dynamically override PWA manifest icons so the browser install
+          // prompt shows this site's logo instead of the static build asset.
+          const resolvedSiteName = sName ? cleanValue(sName) : (import.meta.env.VITE_APP_NAME || 'GameZone')
+          updatePwaManifestIcons(url, resolvedSiteName)
         }
+
 
       } else {
         set({ isLoading: false })
@@ -146,7 +189,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
 
   setSiteLogoUrl: (url: string) => {
-    set({ siteLogoUrl: url })
+    set((state) => {
+      updatePwaManifestIcons(url, state.siteName)
+      return { siteLogoUrl: url }
+    })
     document.getElementById('og-image')?.setAttribute('content', url)
   },
   
