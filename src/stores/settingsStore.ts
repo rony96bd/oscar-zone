@@ -6,29 +6,63 @@ import { supabase } from '@/lib/supabase'
  * This ensures the PWA install prompt shows the correct branding for each
  * deployed site (e.g. NatashaSweeps vs OscarZone) even though they share
  * the same codebase and static build assets.
+ *
+ * Strategy: fetch the original static manifest first to preserve ALL required
+ * PWA installability fields (scope, lang, orientation, etc.), then merge in
+ * the dynamic logo. Falls back silently if anything goes wrong.
  */
-function updatePwaManifestIcons(logoUrl: string, siteName: string) {
+async function updatePwaManifestIcons(logoUrl: string, siteName: string) {
   try {
     const existingLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null
     if (!existingLink) return
 
+    // Persist the original static manifest href so we can always re-fetch it
+    if (!existingLink.getAttribute('data-original-href')) {
+      const currentHref = existingLink.getAttribute('href') || ''
+      // Only save if it's a real path, not a blob we already created
+      if (currentHref && !currentHref.startsWith('blob:')) {
+        existingLink.setAttribute('data-original-href', currentHref)
+      }
+    }
+
+    const originalHref = existingLink.getAttribute('data-original-href')
+    if (!originalHref) return // Can't build a valid manifest without the base
+
+    // Fetch the original manifest to inherit all required PWA fields
+    let baseManifest: Record<string, unknown> = {}
+    try {
+      const res = await fetch(originalHref)
+      if (res.ok) baseManifest = await res.json()
+    } catch {
+      // Network error – abort to avoid breaking the install prompt
+      return
+    }
+
+    // Detect MIME type from URL extension (strip query params first)
+    const cleanUrl = logoUrl.split('?')[0]
+    const ext = cleanUrl.split('.').pop()?.toLowerCase()
+    const mimeType =
+      ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+      : ext === 'webp' ? 'image/webp'
+      : ext === 'svg' ? 'image/svg+xml'
+      : 'image/png'
+
     const manifestData = {
+      // Spread ALL original fields first (preserves scope, lang, orientation, etc.)
+      ...baseManifest,
+      // Then override only what we want to change
       name: siteName,
       short_name: siteName,
-      start_url: '/',
-      display: 'standalone',
-      background_color: '#09090b',
-      theme_color: '#09090b',
       icons: [
-        { src: logoUrl, sizes: '192x192', type: 'image/png' },
-        { src: logoUrl, sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+        { src: logoUrl, sizes: '192x192', type: mimeType },
+        { src: logoUrl, sizes: '512x512', type: mimeType, purpose: 'any maskable' },
       ],
     }
 
     const blob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' })
     const newManifestUrl = URL.createObjectURL(blob)
 
-    // Revoke the previous dynamic manifest blob URL if any
+    // Revoke the previous dynamic manifest blob URL to free memory
     const prevUrl = existingLink.getAttribute('data-dynamic-src')
     if (prevUrl) URL.revokeObjectURL(prevUrl)
 
