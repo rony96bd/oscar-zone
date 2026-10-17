@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchOrders, updateOrderStatus, migrateGuestOrderToUser } from '@/services/orders'
 import { Search, Filter, RefreshCw, ChevronRight, Clock, CheckCircle, XCircle, UserCheck, Plus } from 'lucide-react'
-import { cn, formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
+import { cn, formatCurrency, formatPoints, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { OrderStatus } from '@/types'
 import { CreateOrderModal } from '@/components/admin/CreateOrderModal'
@@ -115,7 +115,7 @@ export default function AdminOrdersPage() {
 
                 {/* Amount */}
                 <div className="text-right lg:min-w-[100px]">
-                  <p className="font-bold text-white">{Math.ceil(order.final_game_credit)} cr</p>
+                  <p className="font-bold text-white font-mono">{formatPoints(order.final_game_credit)}</p>
                   <p className="text-xs text-muted-foreground">
                     {(order.is_free_play || order.admin_note?.includes('Free Play') || (order.base_amount === 0 && order.final_game_credit > 0)) 
                       ? '🎁 Free Play' 

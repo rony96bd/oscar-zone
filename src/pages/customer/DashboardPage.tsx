@@ -12,7 +12,7 @@ import { fetchReferralStats, fetchReferralLevels } from "@/services/referrals"
 import { fetchNotifications } from "@/services/notifications"
 import { useNotificationStore } from "@/stores/notificationStore"
 import { SavedGameCard } from "@/components/customer/GameCard"
-import { formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel, generateReferralUrl, copyToClipboard } from "@/lib/utils"
+import { formatCurrency, formatPoints, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel, generateReferralUrl, copyToClipboard } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -280,7 +280,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-muted-foreground">{order.order_number} • {formatRelativeTime(order.created_at)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-white text-sm">{Math.ceil(order.final_game_credit)}</p>
+                  <p className="font-semibold text-white text-sm font-mono">{formatPoints(order.final_game_credit)}</p>
                   <span className={getOrderStatusClass(order.status)}>{getOrderStatusLabel(order.status)}</span>
                 </div>
               </Link>

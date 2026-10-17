@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { fetchCustomerOrders } from '@/services/orders'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ShoppingBag, Search } from 'lucide-react'
-import { cn, formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
+import { cn, formatCurrency, formatPoints, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
 
 const STATUS_FILTERS = [
   { label: 'All', value: 'all' },
@@ -74,7 +74,7 @@ export default function OrdersPage() {
                 <p className="text-xs text-muted-foreground">{order.order_number} • {order.username} • {formatRelativeTime(order.created_at)}</p>
               </div>
               <div className="text-sm sm:text-right">
-                <div className="font-bold text-white">{Math.ceil(order.final_game_credit)} cr</div>
+                <div className="font-bold text-white font-mono">{formatPoints(order.final_game_credit)}</div>
                 <div className="text-xs text-muted-foreground">
                   {(order.is_free_play || order.base_amount === 0 || order.admin_note?.includes('Free Play')) 
                     ? '🎁 Free Play' 

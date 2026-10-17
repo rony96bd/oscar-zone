@@ -9,7 +9,7 @@ import {
 import { fetchPaymentMethodDeposits } from '@/services/payments'
 import { getScreenshotSignedUrl } from '@/services/r2'
 import { 
-  cn, formatCurrency, formatDateTime, formatRelativeTime, 
+  cn, formatCurrency, formatPoints, formatDateTime, formatRelativeTime, 
   getOrderStatusClass, getOrderStatusLabel 
 } from '@/lib/utils'
 import type { PaymentMethod } from '@/types'
@@ -423,8 +423,8 @@ export function PaymentMethodDepositsModal({
                           <p className="text-base font-bold text-white font-mono tracking-tight">
                             {formatCurrency(d.base_amount)}
                           </p>
-                          <p className="text-xs text-neon-green font-medium">
-                            +{Math.ceil(d.final_game_credit)} credits
+                          <p className="text-xs text-neon-green font-medium font-mono">
+                            +{formatPoints(d.final_game_credit)}
                           </p>
                         </div>
 
