@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { AccountingCycle, GamePointPurchase } from '@/types'
+import type { AccountingCycle, GamePointPurchase, GamePointBalance } from '@/types'
 
 export async function fetchActiveCycle(): Promise<AccountingCycle | null> {
   const { data, error } = await supabase
@@ -265,3 +265,59 @@ export async function createGamePointPurchase(purchase: Partial<GamePointPurchas
   if (error) throw error;
   return data;
 }
+
+export async function fetchGamePointBalances(): Promise<GamePointBalance[]> {
+  // 1. Fetch all games
+  const { data: games, error: gamesErr } = await supabase
+    .from('games')
+    .select('id, name, logo_url')
+    .order('name');
+  if (gamesErr) throw gamesErr;
+  if (!games || games.length === 0) return [];
+
+  // 2. Fetch all purchased points
+  const { data: purchases, error: purErr } = await supabase
+    .from('game_point_purchases')
+    .select('game_id, amount');
+  if (purErr) throw purErr;
+
+  // 3. Fetch all completed orders (both regular loads and free play)
+  const { data: orders, error: ordErr } = await supabase
+    .from('orders')
+    .select('game_id, final_game_credit, is_free_play')
+    .eq('status', 'completed');
+  if (ordErr) throw ordErr;
+
+  // Aggregate purchased points per game
+  const purchasedMap: Record<string, number> = {};
+  purchases?.forEach(p => {
+    purchasedMap[p.game_id] = (purchasedMap[p.game_id] || 0) + Number(p.amount || 0);
+  });
+
+  // Aggregate loaded points and free play points per game
+  const loadedMap: Record<string, number> = {};
+  const freePlayMap: Record<string, number> = {};
+  orders?.forEach(o => {
+    const credit = Number(o.final_game_credit || 0);
+    loadedMap[o.game_id] = (loadedMap[o.game_id] || 0) + credit;
+    if (o.is_free_play) {
+      freePlayMap[o.game_id] = (freePlayMap[o.game_id] || 0) + credit;
+    }
+  });
+
+  return games.map(g => {
+    const totalPurchased = purchasedMap[g.id] || 0;
+    const totalLoaded = loadedMap[g.id] || 0;
+    const totalFreePlay = freePlayMap[g.id] || 0;
+    return {
+      game_id: g.id,
+      game_name: g.name,
+      logo_url: g.logo_url,
+      total_purchased: totalPurchased,
+      total_loaded: totalLoaded,
+      total_free_play: totalFreePlay,
+      remaining_points: totalPurchased - totalLoaded
+    };
+  });
+}
+

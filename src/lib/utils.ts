@@ -14,6 +14,12 @@ export function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
+export function formatPoints(points: number | string | null | undefined): string {
+  const num = typeof points === 'number' ? points : parseFloat(String(points || 0))
+  if (isNaN(num)) return '0 pts'
+  return `${num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} pts`
+}
+
 export function formatDate(dateString: string): string {
   if (!dateString) return '';
   return new Intl.DateTimeFormat('en-US', {

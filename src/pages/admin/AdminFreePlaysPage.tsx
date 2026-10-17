@@ -22,6 +22,7 @@ export default function AdminFreePlaysPage() {
     onSuccess: (data) => {
       toast.success(`Request ${data.status} successfully`)
       queryClient.invalidateQueries({ queryKey: ['admin-free-plays'] })
+      queryClient.invalidateQueries({ queryKey: ['game-point-balances'] })
     },
     onError: (err: any) => toast.error(err.message)
   })

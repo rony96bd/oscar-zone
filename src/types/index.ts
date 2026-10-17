@@ -363,6 +363,16 @@ export interface GamePointPurchase {
   profile?: Profile
 }
 
+export interface GamePointBalance {
+  game_id: string
+  game_name: string
+  logo_url: string | null
+  total_purchased: number
+  total_loaded: number
+  total_free_play: number
+  remaining_points: number
+}
+
 export interface FreePlayRequest {
   id: string
   user_id: string

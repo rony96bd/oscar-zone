@@ -60,6 +60,7 @@ export default function AdminOrderDetailPage() {
       qc.invalidateQueries({ queryKey: ['admin-orders'] })
       qc.invalidateQueries({ queryKey: ['admin-stats'] })
       qc.invalidateQueries({ queryKey: ['active-accounting'] })
+      qc.invalidateQueries({ queryKey: ['game-point-balances'] })
     },
     onError: () => toast.error('Failed to update status'),
   })

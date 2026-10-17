@@ -91,6 +91,7 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
     onSuccess: () => {
       toast.success(isFreePlay ? '🎁 Free Play order created successfully' : 'Order created successfully')
       qc.invalidateQueries({ queryKey: ['admin-orders'] })
+      qc.invalidateQueries({ queryKey: ['game-point-balances'] })
       onClose()
       setSelectedGameId('')
       setUsername('')

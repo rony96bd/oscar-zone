@@ -1,9 +1,11 @@
 import { useState, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAllGames, createGame, updateGame } from '@/services/games'
+import { fetchGamePointBalances } from '@/services/accounting'
 import { supabase } from '@/lib/supabase'
-import { Gamepad2, Plus, X, Save, Loader2, ExternalLink, ToggleLeft, ToggleRight, Edit2, Upload, Image } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Gamepad2, Plus, X, Save, Loader2, ExternalLink, ToggleLeft, ToggleRight, Edit2, Upload, Image, Coins } from 'lucide-react'
+import { cn, formatPoints } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { Game } from '@/types'
 import { usePermission } from '@/hooks/usePermission'
@@ -193,6 +195,11 @@ export default function AdminGamesPage() {
     queryFn: fetchAllGames,
   })
 
+  const { data: pointBalances = [] } = useQuery({
+    queryKey: ['game-point-balances'],
+    queryFn: fetchGamePointBalances,
+  })
+
   const createMutation = useMutation({
     mutationFn: createGame,
     onSuccess: () => { toast.success('Game created'); setAddingNew(false); qc.invalidateQueries({ queryKey: ['admin-games'] }) },
@@ -252,11 +259,31 @@ export default function AdminGamesPage() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-gaming font-bold text-white">{game.name}</p>
                     <span className={cn('text-xs px-2 py-0.5 rounded-full border', game.is_active ? 'bg-neon-green/20 text-neon-green border-neon-green/30' : 'bg-muted text-muted-foreground border-border')}>
                       {game.is_active ? 'Active' : 'Inactive'}
                     </span>
+                    {pointBalances.find(b => b.game_id === game.id) && (() => {
+                      const pb = pointBalances.find(b => b.game_id === game.id)!
+                      return (
+                        <Link
+                          to="/admin/point-purchases"
+                          className={cn(
+                            'text-[11px] font-mono px-2 py-0.5 rounded-md border flex items-center gap-1 transition-colors',
+                            pb.remaining_points <= 0
+                              ? 'bg-destructive/20 text-destructive border-destructive/30 hover:bg-destructive/30'
+                              : pb.remaining_points <= 100
+                              ? 'bg-orange-500/20 text-orange-400 border-orange-500/30 hover:bg-orange-500/30'
+                              : 'bg-neon-gold/15 text-neon-gold border-neon-gold/30 hover:bg-neon-gold/25'
+                          )}
+                          title={`Stock: ${formatPoints(pb.remaining_points)} | Total Loaded: ${formatPoints(pb.total_purchased)} | Dispatched: ${formatPoints(pb.total_loaded)}`}
+                        >
+                          <Coins className="h-3 w-3" />
+                          <span>Stock: {formatPoints(pb.remaining_points)}</span>
+                        </Link>
+                      )
+                    })()}
                   </div>
                   <p className="text-xs text-muted-foreground">${game.minimum_amount} – ${game.maximum_amount} • {game.slug}</p>
                   <div className="flex items-center gap-3 mt-0.5 flex-wrap">

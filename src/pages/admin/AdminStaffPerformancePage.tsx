@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { fetchCustomers } from '@/services/admin'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency, formatPoints, cn } from '@/lib/utils'
 import { Activity, Search, Filter, ArrowUpDown } from 'lucide-react'
 import type { Profile } from '@/types'
 
@@ -298,7 +298,7 @@ export default function AdminStaffPerformancePage() {
                       {formatCurrency(stat.manualExpensesAmount)}
                     </td>
                     <td className="p-4 text-right font-mono text-blue-400">
-                      {formatCurrency(stat.pointsPurchasedAmount)}
+                      {formatPoints(stat.pointsPurchasedAmount)}
                     </td>
                   </tr>
                 ))}
