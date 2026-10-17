@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { getAuthDomain } from '@/lib/authDomain'
 
 const schema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -136,7 +137,7 @@ export default function RegisterPage() {
     setIsLoading(true)
     try {
       // Create a dummy email for Supabase Auth to work behind the scenes
-      const authDomain = import.meta.env.VITE_AUTH_DOMAIN || 'users.oscarzone.com'
+      const authDomain = getAuthDomain()
       const dummyEmail = `${data.username.toLowerCase()}@${authDomain}`
 
       const { error } = await supabase.auth.signUp({

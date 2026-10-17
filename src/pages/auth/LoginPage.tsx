@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
+import { getCandidateAuthDomains } from '@/lib/authDomain'
 
 const schema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -39,7 +40,6 @@ export default function LoginPage() {
       const cleanInput = data.username.trim()
       const cleanPassword = data.password.trim()
       const isEmail = cleanInput.includes('@')
-      const authDomain = import.meta.env.VITE_AUTH_DOMAIN || 'users.oscarzone.com'
 
       // Strategy 1: Resolve exact email from database via RPC
       let targetEmail: string | null = null
@@ -64,14 +64,12 @@ export default function LoginPage() {
         candidateEmails.push(cleanInput.toLowerCase())
       } else {
         const baseUsername = cleanInput.toLowerCase()
-        const primaryCandidate = `${baseUsername}@${authDomain}`
-        const fallbackCandidate = `${baseUsername}@users.oscarzone.com`
-        
-        if (!candidateEmails.includes(primaryCandidate)) {
-          candidateEmails.push(primaryCandidate)
-        }
-        if (!candidateEmails.includes(fallbackCandidate)) {
-          candidateEmails.push(fallbackCandidate)
+        const domains = getCandidateAuthDomains()
+        for (const dom of domains) {
+          const candidate = `${baseUsername}@${dom}`
+          if (!candidateEmails.includes(candidate)) {
+            candidateEmails.push(candidate)
+          }
         }
       }
 

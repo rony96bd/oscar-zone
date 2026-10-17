@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { getAuthDomain } from '@/lib/authDomain'
 
 const schema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -46,7 +47,7 @@ export function CreateUserModal({ isOpen, onClose, defaultRole = 'customer' }: C
       
       const cleanUsername = data.username.trim()
       const cleanPassword = data.password.trim()
-      const authDomain = import.meta.env.VITE_AUTH_DOMAIN || 'users.oscarzone.com'
+      const authDomain = getAuthDomain()
       const finalEmail = data.email?.trim() || `${cleanUsername.toLowerCase()}@${authDomain}`
 
       const payload = {
