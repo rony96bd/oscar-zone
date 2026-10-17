@@ -59,9 +59,9 @@ export default function ChatPage() {
         if (prev.some(m => m.id === msg.id)) return prev
         return [...prev, msg]
       })
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      import('sonner').then(({ toast }) => toast.error('Failed to send message'))
+      import('sonner').then(({ toast }) => toast.error(err?.message || 'Failed to send message'))
       setInput(content)
       setAttachment(currentAttachment)
     } finally {
@@ -136,8 +136,8 @@ export default function ChatPage() {
                   onChange={async (e) => {
                     const file = e.target.files?.[0]
                     if (file) {
-                      if (file.size > 2 * 1024 * 1024) {
-                        import('sonner').then(({ toast }) => toast.error('Image must be less than 2MB'))
+                      if (file.size > 5 * 1024 * 1024) {
+                        import('sonner').then(({ toast }) => toast.error('Image must be less than 5MB'))
                         return
                       }
                       setAttachment(file)

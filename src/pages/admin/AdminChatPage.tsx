@@ -134,9 +134,9 @@ export default function AdminChatPage() {
         if (prev.some(m => m.id === msg.id)) return prev
         return [...prev, msg]
       })
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      import('sonner').then(({ toast }) => toast.error('Failed to send message'))
+      import('sonner').then(({ toast }) => toast.error(err?.message || 'Failed to send message'))
       setInput(content)
       setAttachment(currentAttachment)
     } finally {

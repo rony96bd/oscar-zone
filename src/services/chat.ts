@@ -213,7 +213,7 @@ export async function closeConversation(conversationId: string): Promise<void> {
 }
 
 export async function uploadChatAttachment(file: File): Promise<string> {
-  if (file.size > 2 * 1024 * 1024) throw new Error('File size must be less than 2MB')
+  if (file.size > 5 * 1024 * 1024) throw new Error('File size must be less than 5MB')
   if (!file.type.startsWith('image/')) throw new Error('Only images are allowed')
 
   const fileExt = file.name.split('.').pop()
@@ -223,7 +223,12 @@ export async function uploadChatAttachment(file: File): Promise<string> {
     .from('chat_attachments')
     .upload(fileName, file)
     
-  if (uploadError) throw uploadError
+  if (uploadError) {
+    if (uploadError.message?.toLowerCase().includes('bucket not found') || (uploadError as any).statusCode === '404') {
+      throw new Error("Chat storage bucket 'chat_attachments' is missing in Supabase. Please create the bucket in Supabase Storage.")
+    }
+    throw uploadError
+  }
   
   const { data } = supabase.storage
     .from('chat_attachments')
