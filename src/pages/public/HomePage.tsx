@@ -33,7 +33,11 @@ export default function HomePage() {
   const activePromo = promotions.find(p => p.type !== 'regular')
 
   const handleLoadGame = (game: any) => {
-    navigate(`/load?game=${game.id}`)
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: { pathname: '/load', search: `?game=${game.id}` } } })
+    } else {
+      navigate(`/load?game=${game.id}`)
+    }
   }
 
   return (
@@ -211,14 +215,16 @@ export default function HomePage() {
             Ready to Load Your Game?
           </h2>
           <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-            No account needed! Select your game, enter your username, pay, and you're done.
+            {isAuthenticated
+              ? 'Select your game, enter your username, pay, and get loaded instantly.'
+              : 'Sign in to select your game, enter your username, pay, and get loaded instantly.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/load" className="btn-neon px-8 py-4">
               <Zap className="h-5 w-5" />
-              Quick Load (No Account)
+              {isAuthenticated ? 'Load Game Now' : 'Login to Load Game'}
             </Link>
-            {allowRegistration && (
+            {!isAuthenticated && allowRegistration && (
               <Link to="/register" className="btn-ghost-neon px-8 py-4">
                 Create Account for Bonuses
               </Link>

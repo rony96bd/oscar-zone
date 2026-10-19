@@ -28,7 +28,11 @@ export default function LoginPage() {
   const location = useLocation()
   
   const { refreshProfile } = useAuthStore()
-  const from = location.state?.from?.pathname || null
+  const from = location.state?.from
+    ? (typeof location.state.from === 'string'
+        ? location.state.from
+        : `${location.state.from.pathname || ''}${location.state.from.search || ''}`)
+    : null
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),

@@ -169,7 +169,6 @@ function AppContent() {
           <Route path="/referral" element={<ReferralInfoPage />} />
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/contact" element={<ContactPage />} />
-          <Route path="/load" element={<LoadGamePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -181,6 +180,9 @@ function AppContent() {
         {/* Protected Customer Routes */}
           <Route path="/dashboard" element={
             <ProtectedRoute><DashboardPage /></ProtectedRoute>
+          } />
+          <Route path="/load" element={
+            <ProtectedRoute><LoadGamePage /></ProtectedRoute>
           } />
           <Route path="/my-games" element={
             <ProtectedRoute><MyGamesPage /></ProtectedRoute>

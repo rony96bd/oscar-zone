@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
 
@@ -9,9 +9,10 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, redirectTo = '/login' }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, isAdmin, isSupportAgent } = useAuthStore()
+  const location = useLocation()
 
   if (isLoading) return <PageLoader />
-  if (!isAuthenticated) return <Navigate to={redirectTo} replace />
+  if (!isAuthenticated) return <Navigate to={redirectTo} state={{ from: location }} replace />
   if (isAdmin() || isSupportAgent()) return <Navigate to="/admin" replace />
 
   const { profile } = useAuthStore.getState()

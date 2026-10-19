@@ -16,7 +16,11 @@ export default function GamesPage() {
   })
 
   const handleLoadGame = (game: Game) => {
-    navigate(`/load?game=${game.id}`)
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: { pathname: '/load', search: `?game=${game.id}` } } })
+    } else {
+      navigate(`/load?game=${game.id}`)
+    }
   }
 
   return (
