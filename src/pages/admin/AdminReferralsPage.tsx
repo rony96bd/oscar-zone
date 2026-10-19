@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { fetchReferralLevels, awardCustomBonus } from '@/services/referrals'
+import { fetchGames } from '@/services/games'
+import { fetchGamePointBalances } from '@/services/accounting'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { 
   Users, TrendingUp, Gift, CheckCircle, Settings, Edit2, Save, X, 
   UserPlus, Search, AlertTriangle, Sparkles, ToggleLeft, ToggleRight,
-  DollarSign, Check, Loader2, ShieldCheck, Clock
+  DollarSign, Check, Loader2, ShieldCheck, Clock, Gamepad2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -88,12 +90,18 @@ export default function AdminReferralsPage() {
     amount: number
     notes: string
     markQualified: boolean
+    loadToGame: boolean
+    gameId: string
+    gameUsername: string
   }>({
     open: false,
     referral: null,
     amount: 10,
     notes: '',
     markQualified: true,
+    loadToGame: true,
+    gameId: '',
+    gameUsername: '',
   })
 
   // Manual referral assignment state
@@ -113,6 +121,46 @@ export default function AdminReferralsPage() {
     queryKey: ['referral-settings'], 
     queryFn: fetchReferralSettings 
   })
+  const { data: allGames = [] } = useQuery({ queryKey: ['games', 'active'], queryFn: fetchGames })
+  const { data: pointBalances = [] } = useQuery({ queryKey: ['game-point-balances'], queryFn: fetchGamePointBalances })
+  const { data: referrerGames = [] } = useQuery({
+    queryKey: ['referrer-customer-games', awardModal.referral?.referrer_id],
+    queryFn: async () => {
+      if (!awardModal.referral?.referrer_id) return []
+      const { data } = await supabase
+        .from('customer_games')
+        .select('*, game:games(*)')
+        .eq('customer_id', awardModal.referral.referrer_id)
+        .eq('status', 'active')
+      return data || []
+    },
+    enabled: !!awardModal.referral?.referrer_id && awardModal.open,
+  })
+
+  // Auto-populate target game & username when modal opens
+  useEffect(() => {
+    if (awardModal.open && awardModal.referral?.referrer_id) {
+      if (referrerGames && referrerGames.length > 0) {
+        setAwardModal(prev => {
+          if (prev.gameId && prev.gameUsername) return prev
+          return {
+            ...prev,
+            gameId: referrerGames[0].game_id,
+            gameUsername: referrerGames[0].username,
+          }
+        })
+      } else if (allGames.length > 0) {
+        setAwardModal(prev => {
+          if (prev.gameId) return prev
+          return {
+            ...prev,
+            gameId: allGames[0].id,
+            gameUsername: prev.gameUsername || prev.referral?.referrer?.username || '',
+          }
+        })
+      }
+    }
+  }, [awardModal.open, awardModal.referral?.referrer_id, referrerGames, allGames])
 
   // Resolved active modes
   const isCommActive = localCommEnabled !== null 
@@ -197,6 +245,11 @@ export default function AdminReferralsPage() {
       if (!awardModal.referral) throw new Error('No referral selected')
       if (awardModal.amount <= 0) throw new Error('Please enter a valid bonus amount greater than 0')
 
+      if (awardModal.loadToGame) {
+        if (!awardModal.gameId) throw new Error('Please select a game to load points into')
+        if (!awardModal.gameUsername?.trim()) throw new Error("Please enter player's game username")
+      }
+
       const ref = awardModal.referral
       await awardCustomBonus({
         referralId: ref.id,
@@ -205,13 +258,28 @@ export default function AdminReferralsPage() {
         amount: awardModal.amount,
         notes: awardModal.notes,
         markQualified: awardModal.markQualified,
+        gameId: awardModal.loadToGame ? awardModal.gameId : undefined,
+        gameUsername: awardModal.loadToGame ? awardModal.gameUsername.trim() : undefined,
       })
     },
     onSuccess: () => {
-      toast.success(`Successfully awarded $${awardModal.amount} bonus to ${awardModal.referral?.referrer?.full_name || awardModal.referral?.referrer?.username}!`)
-      setAwardModal({ open: false, referral: null, amount: activeDefaultBonus, notes: '', markQualified: true })
+      const recipientName = awardModal.referral?.referrer?.full_name || awardModal.referral?.referrer?.username || 'customer'
+      toast.success(`Successfully awarded $${awardModal.amount} bonus to ${recipientName}${awardModal.loadToGame ? ' and loaded to game!' : '!'}`)
+      setAwardModal({
+        open: false,
+        referral: null,
+        amount: activeDefaultBonus,
+        notes: '',
+        markQualified: true,
+        loadToGame: true,
+        gameId: '',
+        gameUsername: '',
+      })
       qc.invalidateQueries({ queryKey: ['admin-all-referrals'] })
       qc.invalidateQueries({ queryKey: ['admin-all-earnings'] })
+      qc.invalidateQueries({ queryKey: ['game-point-balances'] })
+      qc.invalidateQueries({ queryKey: ['admin-orders'] })
+      qc.invalidateQueries({ queryKey: ['orders'] })
     },
     onError: (e: any) => toast.error(e.message || 'Failed to award bonus'),
   })
@@ -803,6 +871,9 @@ export default function AdminReferralsPage() {
                                 amount: activeDefaultBonus,
                                 notes: '',
                                 markQualified: true,
+                                loadToGame: true,
+                                gameId: '',
+                                gameUsername: '',
                               })
                             }}
                             className="btn-ghost-neon text-xs px-2.5 py-1 text-neon-gold border-neon-gold/30 hover:bg-neon-gold/10"
@@ -914,142 +985,258 @@ export default function AdminReferralsPage() {
       </div>
 
       {/* ===== Award Custom Bonus Modal ===== */}
-      {awardModal.open && awardModal.referral && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="glass-card p-6 max-w-md w-full border border-neon-gold/40 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Gift className="h-5 w-5 text-neon-gold" /> Award Referral Bonus
-              </h3>
-              <button
-                onClick={() => setAwardModal({ open: false, referral: null, amount: 10, notes: '', markQualified: true })}
-                className="text-muted-foreground hover:text-white p-1 rounded-lg"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      {awardModal.open && awardModal.referral && (() => {
+        const selectedGameBalance = (pointBalances as any[]).find(p => p.game_id === awardModal.gameId)
+        const selectedGameStock = selectedGameBalance ? selectedGameBalance.remaining_points : null
 
-            <div className="space-y-4">
-              {/* Recipient Details */}
-              <div className="p-3 rounded-xl bg-white/5 border border-border space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Referrer (Recipient):</span>
-                  <span className="font-bold text-white">
-                    {awardModal.referral.referrer?.full_name || awardModal.referral.referrer?.username}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Referred Friend:</span>
-                  <span className="text-primary font-medium">
-                    {awardModal.referral.referred?.full_name || awardModal.referral.referred?.username}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Current Status:</span>
-                  <span className={cn(
-                    'font-medium capitalize',
-                    awardModal.referral.status === 'qualified' ? 'text-neon-green' : 'text-yellow-400'
-                  )}>
-                    {awardModal.referral.status}
-                  </span>
-                </div>
-              </div>
-
-              {/* Bonus Amount Selector */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                  Bonus Amount ($)
-                </label>
-                {/* Preset Pills */}
-                <div className="grid grid-cols-4 gap-2 mb-3">
-                  {[5, 10, 15, 20].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setAwardModal((m) => ({ ...m, amount: preset }))}
-                      className={cn(
-                        'py-2 rounded-lg text-sm font-bold border transition-all',
-                        awardModal.amount === preset
-                          ? 'bg-neon-gold text-black border-neon-gold shadow-lg shadow-neon-gold/20'
-                          : 'bg-white/5 text-white border-border hover:border-neon-gold/50'
-                      )}
-                    >
-                      ${preset}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="number"
-                    min="1"
-                    step="0.5"
-                    value={awardModal.amount}
-                    onChange={(e) => setAwardModal((m) => ({ ...m, amount: parseFloat(e.target.value) || 0 }))}
-                    placeholder="Enter custom amount..."
-                    className="game-input pl-9 w-full text-base font-bold text-neon-gold"
-                  />
-                </div>
-              </div>
-
-              {/* Admin Note */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
-                  Admin Note (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Welcome referral bonus, first deposit reward"
-                  value={awardModal.notes}
-                  onChange={(e) => setAwardModal((m) => ({ ...m, notes: e.target.value }))}
-                  className="game-input w-full text-xs"
-                />
-              </div>
-
-              {/* Mark Qualified checkbox */}
-              {awardModal.referral.status !== 'qualified' && (
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-white">
-                  <input
-                    type="checkbox"
-                    checked={awardModal.markQualified}
-                    onChange={(e) => setAwardModal((m) => ({ ...m, markQualified: e.target.checked }))}
-                    className="rounded border-border bg-white/5 text-primary focus:ring-primary h-4 w-4"
-                  />
-                  <span>Mark this referral as <strong>Qualified</strong> upon awarding bonus</span>
-                </label>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-2">
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+            <div className="glass-card p-6 max-w-md w-full border border-neon-gold/40 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Gift className="h-5 w-5 text-neon-gold" /> Award Referral Bonus
+                </h3>
                 <button
-                  type="button"
-                  onClick={() => setAwardModal({ open: false, referral: null, amount: 10, notes: '', markQualified: true })}
-                  className="btn-ghost-neon flex-1 text-xs py-2.5"
+                  onClick={() => setAwardModal({ open: false, referral: null, amount: activeDefaultBonus, notes: '', markQualified: true, loadToGame: true, gameId: '', gameUsername: '' })}
+                  className="text-muted-foreground hover:text-white p-1 rounded-lg"
                 >
-                  Cancel
+                  <X className="h-4 w-4" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => awardBonusMutation.mutate()}
-                  disabled={awardBonusMutation.isPending || awardModal.amount <= 0}
-                  className="btn-neon-gold flex-1 text-xs py-2.5 flex items-center justify-center gap-1.5 font-bold"
-                >
-                  {awardBonusMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" /> Awarding...
-                    </>
-                  ) : (
-                    <>
-                      <Gift className="h-4 w-4" /> Award ${awardModal.amount}
-                    </>
+              </div>
+
+              <div className="space-y-4">
+                {/* Recipient Details */}
+                <div className="p-3 rounded-xl bg-white/5 border border-border space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Referrer (Recipient):</span>
+                    <span className="font-bold text-white">
+                      {awardModal.referral.referrer?.full_name || awardModal.referral.referrer?.username}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Referred Friend:</span>
+                    <span className="text-primary font-medium">
+                      {awardModal.referral.referred?.full_name || awardModal.referral.referred?.username}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Current Status:</span>
+                    <span className={cn(
+                      'font-medium capitalize',
+                      awardModal.referral.status === 'qualified' ? 'text-neon-green' : 'text-yellow-400'
+                    )}>
+                      {awardModal.referral.status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bonus Amount Selector */}
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Bonus Amount ($)
+                  </label>
+                  {/* Preset Pills */}
+                  <div className="grid grid-cols-4 gap-2 mb-3">
+                    {[5, 10, 15, 20].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setAwardModal((m) => ({ ...m, amount: preset }))}
+                        className={cn(
+                          'py-2 rounded-lg text-sm font-bold border transition-all',
+                          awardModal.amount === preset
+                            ? 'bg-neon-gold text-black border-neon-gold shadow-lg shadow-neon-gold/20'
+                            : 'bg-white/5 text-white border-border hover:border-neon-gold/50'
+                        )}
+                      >
+                        ${preset}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.5"
+                      value={awardModal.amount}
+                      onChange={(e) => setAwardModal((m) => ({ ...m, amount: parseFloat(e.target.value) || 0 }))}
+                      placeholder="Enter custom amount..."
+                      className="game-input pl-9 w-full text-base font-bold text-neon-gold"
+                    />
+                  </div>
+                </div>
+
+                {/* Direct Game Loading Section */}
+                <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Gamepad2 className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-semibold text-white">Load Directly to Game Account</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={awardModal.loadToGame}
+                        onChange={(e) => setAwardModal((m) => ({ ...m, loadToGame: e.target.checked }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-8 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                  </div>
+
+                  {awardModal.loadToGame && (
+                    <div className="space-y-3 pt-1 border-t border-border/50">
+                      {/* Game Selector */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                            Target Game
+                          </label>
+                          {selectedGameStock !== null && (
+                            <span className={cn(
+                              'text-[11px] font-mono font-bold',
+                              selectedGameStock >= awardModal.amount ? 'text-neon-green' : 'text-destructive'
+                            )}>
+                              Stock: {selectedGameStock.toLocaleString()} pts
+                            </span>
+                          )}
+                        </div>
+                        <select
+                          value={awardModal.gameId}
+                          onChange={(e) => {
+                            const newGameId = e.target.value
+                            const matched = (referrerGames as any[]).find(g => g.game_id === newGameId)
+                            setAwardModal((m) => ({
+                              ...m,
+                              gameId: newGameId,
+                              gameUsername: matched ? matched.username : m.gameUsername,
+                            }))
+                          }}
+                          className="game-input w-full text-xs"
+                        >
+                          <option value="" disabled>Choose a game...</option>
+                          {(allGames as any[]).map((g) => {
+                            const bal = (pointBalances as any[]).find(p => p.game_id === g.id)
+                            const stock = bal ? bal.remaining_points : null
+                            const hasAcc = (referrerGames as any[]).some(rg => rg.game_id === g.id)
+                            return (
+                              <option key={g.id} value={g.id}>
+                                {g.name} {hasAcc ? '★ (Player Account Linked)' : ''} {stock !== null ? `— [Stock: ${stock.toLocaleString()} pts]` : ''}
+                              </option>
+                            )
+                          })}
+                        </select>
+                      </div>
+
+                      {/* Game Username / ID */}
+                      <div>
+                        <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                          Player Game Username / ID
+                        </label>
+                        <input
+                          type="text"
+                          value={awardModal.gameUsername}
+                          onChange={(e) => setAwardModal((m) => ({ ...m, gameUsername: e.target.value }))}
+                          placeholder="Enter player's game username"
+                          className="game-input w-full text-xs"
+                        />
+                        {(referrerGames as any[]).length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                            <span className="text-[10px] text-muted-foreground">Linked Accounts:</span>
+                            {(referrerGames as any[]).map((rg: any) => (
+                              <button
+                                key={rg.id}
+                                type="button"
+                                onClick={() => setAwardModal((m) => ({
+                                  ...m,
+                                  gameId: rg.game_id,
+                                  gameUsername: rg.username,
+                                }))}
+                                className={cn(
+                                  'text-[10px] px-2 py-0.5 rounded-full border transition-colors',
+                                  awardModal.gameId === rg.game_id && awardModal.gameUsername === rg.username
+                                    ? 'bg-primary/20 border-primary text-primary font-bold'
+                                    : 'bg-white/5 border-border text-muted-foreground hover:text-white'
+                                )}
+                              >
+                                {rg.game?.name || 'Game'}: {rg.username}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Point inventory deduction notice */}
+                      <div className="p-2.5 rounded-lg bg-black/40 border border-primary/20 text-[11px] text-muted-foreground flex items-start gap-2">
+                        <TrendingUp className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <span>
+                          Awarding will load <strong>{awardModal.amount} pts</strong> directly into the player's account and automatically deduct <strong>{awardModal.amount} pts</strong> from <strong>{selectedGameBalance?.game_name || 'the game'}</strong>'s point stock inventory.
+                        </span>
+                      </div>
+                    </div>
                   )}
-                </button>
+                </div>
+
+                {/* Admin Note */}
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                    Admin Note (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Welcome referral bonus, first deposit reward"
+                    value={awardModal.notes}
+                    onChange={(e) => setAwardModal((m) => ({ ...m, notes: e.target.value }))}
+                    className="game-input w-full text-xs"
+                  />
+                </div>
+
+                {/* Mark Qualified checkbox */}
+                {awardModal.referral.status !== 'qualified' && (
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-white">
+                    <input
+                      type="checkbox"
+                      checked={awardModal.markQualified}
+                      onChange={(e) => setAwardModal((m) => ({ ...m, markQualified: e.target.checked }))}
+                      className="rounded border-border bg-white/5 text-primary focus:ring-primary h-4 w-4"
+                    />
+                    <span>Mark this referral as <strong>Qualified</strong> upon awarding bonus</span>
+                  </label>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setAwardModal({ open: false, referral: null, amount: activeDefaultBonus, notes: '', markQualified: true, loadToGame: true, gameId: '', gameUsername: '' })}
+                    className="btn-ghost-neon flex-1 text-xs py-2.5"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => awardBonusMutation.mutate()}
+                    disabled={awardBonusMutation.isPending || awardModal.amount <= 0 || (awardModal.loadToGame && (!awardModal.gameId || !awardModal.gameUsername.trim()))}
+                    className="btn-neon-gold flex-1 text-xs py-2.5 flex items-center justify-center gap-1.5 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {awardBonusMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Awarding & Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Gift className="h-4 w-4" /> Award ${awardModal.amount}
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { Referral, ReferralLevel, ReferralStats } from '@/types'
+import { adminCreateOrder } from '@/services/orders'
 
 export async function fetchReferralStats(userId: string): Promise<ReferralStats> {
   const [referralsRes, earningsRes, levelsRes] = await Promise.all([
@@ -101,6 +102,8 @@ export async function awardCustomBonus({
   referredName,
   amount,
   notes,
+  gameId,
+  gameUsername,
   markQualified = true,
 }: {
   referralId: string
@@ -108,20 +111,65 @@ export async function awardCustomBonus({
   referredName?: string
   amount: number
   notes?: string
+  gameId?: string
+  gameUsername?: string
   markQualified?: boolean
 }): Promise<void> {
   const now = new Date().toISOString()
+  let orderId: string | null = null
+  let gameName: string | null = null
 
-  // 1. Attempt to insert into referral_earnings ledger
+  // 1. If a game is selected, load points into game by creating a completed order
+  // This automatically deducts points from that game's inventory!
+  if (gameId && gameUsername) {
+    try {
+      const { data: gameData } = await supabase
+        .from('games')
+        .select('name')
+        .eq('id', gameId)
+        .maybeSingle()
+      
+      gameName = gameData?.name || null
+
+      const createdOrder = await adminCreateOrder({
+        user_id: referrerId,
+        game_id: gameId,
+        username: gameUsername,
+        base_amount: 0,
+        final_credit: amount,
+        total_bonus: 0,
+        status: 'completed',
+        admin_note: notes?.trim()
+          ? `🎁 Referral Bonus: ${notes.trim()}`
+          : `🎁 Referral Bonus for referring ${referredName || 'a friend'}`
+      })
+
+      if (createdOrder?.id) {
+        orderId = createdOrder.id
+      }
+    } catch (orderErr: any) {
+      console.error('Failed to create game load order for referral bonus:', orderErr)
+      throw new Error(`Failed to load points into game: ${orderErr.message}`)
+    }
+  }
+
+  // 2. Attempt to insert into referral_earnings ledger
   let ledgerInserted = false
+  const earningNote = notes?.trim()
+    ? notes.trim()
+    : gameName
+      ? `Referral bonus loaded to ${gameName} (${gameUsername || ''})`
+      : 'Custom referral bonus awarded by admin'
+
   try {
     const { error: earnError } = await supabase.from('referral_earnings').insert({
       user_id: referrerId,
       referral_id: referralId,
+      source_order_id: orderId,
       commission_amount: amount,
       status: 'paid',
       earning_type: 'custom_bonus',
-      notes: notes || 'Custom referral bonus awarded by admin',
+      notes: earningNote,
       deposit_amount: 0,
       commission_percentage: 0,
       level: 0,
@@ -135,11 +183,11 @@ export async function awardCustomBonus({
     console.warn('referral_earnings insert failed:', err)
   }
 
-  // 2. Update referrals table with custom bonus details
+  // 3. Update referrals table with custom bonus details
   const updateData: any = {
     custom_bonus_amount: amount,
     custom_bonus_status: 'awarded',
-    custom_bonus_note: notes || null,
+    custom_bonus_note: earningNote,
     custom_bonus_awarded_at: now,
   }
 
@@ -153,18 +201,23 @@ export async function awardCustomBonus({
     .update(updateData)
     .eq('id', referralId)
 
-  if (refError && !ledgerInserted) {
+  if (refError && !ledgerInserted && !orderId) {
     throw new Error(refError.message || 'Failed to award custom referral bonus.')
   }
 
-  // 3. Send notification to the referrer
+  // 4. Send notification to the referrer
   try {
+    const notifTitle = gameName ? '🎁 Referral Bonus Loaded to Game!' : '🎁 Referral Bonus Received!'
+    const notifMessage = gameName
+      ? `You received a $${amount.toFixed(2)} referral bonus loaded directly into your ${gameName} account (${gameUsername})!`
+      : `You were awarded a $${amount.toFixed(2)} referral bonus for referring ${referredName || 'a friend'}!`
+
     await supabase.from('notifications').insert({
       user_id: referrerId,
-      title: '🎁 Referral Bonus Received!',
-      message: `You were awarded a $${amount.toFixed(2)} referral bonus for referring ${referredName || 'a friend'}!`,
+      title: notifTitle,
+      message: notifMessage,
       category: 'referral',
-      action_url: '/earnings',
+      action_url: gameName ? '/my-games' : '/earnings',
     })
   } catch (notifErr) {
     console.warn('Failed to send notification:', notifErr)
