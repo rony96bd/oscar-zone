@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   Zap, Star, ArrowRight, Shield, Clock, Trophy, Users, ChevronRight,
-  Download, Play, Gift, TrendingUp, MessageCircle
+  Download, Play, Gift, TrendingUp, MessageCircle, LogIn
 } from 'lucide-react'
 import { fetchGames } from '@/services/games'
 import { fetchActivePromotions } from '@/services/promotions'
@@ -87,11 +87,11 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to="/load"
-              className="btn-neon text-base px-8 py-4 animate-glow-pulse"
+              to={isAuthenticated ? '/load' : '/login'}
+              className="btn-neon text-base px-8 py-4 animate-glow-pulse flex items-center justify-center gap-2"
             >
-              <Zap className="h-5 w-5" />
-              LOAD GAME NOW
+              {isAuthenticated ? <Zap className="h-5 w-5" /> : <LogIn className="h-5 w-5" />}
+              {isAuthenticated ? 'LOAD GAME NOW' : 'SIGN IN NOW'}
             </Link>
             <Link
               to={isAuthenticated ? '/earnings' : '/referral'}
@@ -220,9 +220,12 @@ export default function HomePage() {
               : 'Sign in to select your game, enter your username, pay, and get loaded instantly.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/load" className="btn-neon px-8 py-4">
-              <Zap className="h-5 w-5" />
-              {isAuthenticated ? 'Load Game Now' : 'Login to Load Game'}
+            <Link
+              to={isAuthenticated ? '/load' : '/login'}
+              className="btn-neon px-8 py-4 flex items-center justify-center gap-2"
+            >
+              {isAuthenticated ? <Zap className="h-5 w-5" /> : <LogIn className="h-5 w-5" />}
+              {isAuthenticated ? 'Load Game Now' : 'Sign In Now'}
             </Link>
             {!isAuthenticated && allowRegistration && (
               <Link to="/register" className="btn-ghost-neon px-8 py-4">
