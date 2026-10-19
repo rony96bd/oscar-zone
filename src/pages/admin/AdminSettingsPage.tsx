@@ -887,11 +887,11 @@ export default function AdminSettingsPage() {
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 Navigation Menu Management
                 <span className="text-xs font-normal text-muted-foreground px-2 py-0.5 rounded bg-muted">
-                  মেন্যু নিয়ন্ত্রণ
+                  Menu Visibility
                 </span>
               </h2>
               <p className="text-sm text-muted-foreground">
-                হোমপেজ ও কাস্টমার লগইন করার পরের মেন্যুগুলো প্রয়োজনমতো অন বা অফ করুন
+                Control which menu links appear on the public homepage and after customer login
               </p>
             </div>
           </div>
@@ -916,7 +916,7 @@ export default function AdminSettingsPage() {
                 : 'bg-muted/30 text-muted-foreground hover:text-white hover:bg-muted/50'
             }`}
           >
-            <span>Homepage / Public Menus (হোমপেজ)</span>
+            <span>Homepage / Public Menus</span>
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-mono ${
                 navMenuTab === 'public' ? 'bg-black/30 text-white' : 'bg-muted text-muted-foreground'
@@ -935,7 +935,7 @@ export default function AdminSettingsPage() {
                 : 'bg-muted/30 text-muted-foreground hover:text-white hover:bg-muted/50'
             }`}
           >
-            <span>Customer Logged-In Menus (কাস্টমার লগইন)</span>
+            <span>Customer Logged-In Menus</span>
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-mono ${
                 navMenuTab === 'customer' ? 'bg-black/30 text-white' : 'bg-muted text-muted-foreground'
@@ -951,7 +951,7 @@ export default function AdminSettingsPage() {
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-black/20 border border-border">
               <p className="text-xs text-muted-foreground">
-                এই মেন্যু লিংকগুলো লগইন করার আগে মূল ওয়েবসাইটে সাধারণ ভিজিটরদের প্রদর্শিত হবে।
+                These menu links are displayed to visitors on the public website before logging in.
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -1029,7 +1029,7 @@ export default function AdminSettingsPage() {
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-black/20 border border-border">
               <p className="text-xs text-muted-foreground">
-                এই মেন্যু লিংকগুলো কাস্টমার লগইন করার পর ড্যাশবোর্ড বার, More ড্রপডাউন, ড্রয়ার এবং মোবাইল বটম বারে প্রদর্শিত হবে।
+                These menu links are displayed to logged-in customers (top bar, "More" dropdown, drawer, and bottom app bar).
               </p>
               <div className="flex items-center gap-2">
                 <button
