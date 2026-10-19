@@ -4,7 +4,8 @@ import { fetchAllPaymentMethods, updatePaymentMethod, createPaymentMethod, fetch
 import { 
   CreditCard, ToggleLeft, ToggleRight, Edit2, X, Save, 
   Plus, Loader2, QrCode, Link as LinkIcon, Tag, User, 
-  AlignLeft, Upload, Trash2, GripVertical, Receipt, ArrowUpRight
+  AlignLeft, Upload, Trash2, GripVertical, Receipt, ArrowUpRight,
+  Hash, RotateCcw
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
@@ -287,6 +288,52 @@ function PaymentMethodForm({
         </div>
       </div>
 
+      {/* Deposit Limit Field */}
+      <div className="p-4 rounded-xl bg-card/60 border border-border space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+              <Hash className="h-4 w-4 text-primary" />
+              Maximum Deposit Limit
+            </label>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Auto-disables this tag once it receives this number of deposits.
+            </p>
+          </div>
+          {form.id && (form.current_deposits ?? 0) > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-neon-gold bg-neon-gold/10 border border-neon-gold/30 px-2 py-0.5 rounded-md">
+                Current: {form.current_deposits || 0} {form.max_deposits ? `/ ${form.max_deposits}` : ''}
+              </span>
+              <button
+                type="button"
+                onClick={() => set('current_deposits', 0)}
+                className="btn-ghost-neon text-xs px-2.5 py-1 flex items-center gap-1"
+                title="Reset current deposit counter to 0"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Reset Counter
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="relative">
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className="game-input"
+            placeholder="e.g. 5, 10 (Leave blank or 0 for unlimited)"
+            value={form.max_deposits ?? ''}
+            onChange={e => {
+              const val = e.target.value ? parseInt(e.target.value, 10) : null
+              set('max_deposits', val && val > 0 ? val : null)
+            }}
+          />
+        </div>
+      </div>
+
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -400,6 +447,20 @@ function PaymentMethodCard({
                 Agent Method
               </span>
             )}
+            {m.max_deposits && m.max_deposits > 0 && (
+              <span className={cn(
+                'text-xs px-2 py-0.5 rounded-full font-semibold flex items-center gap-1',
+                (m.current_deposits || 0) >= m.max_deposits
+                  ? 'bg-destructive/20 text-destructive border border-destructive/30'
+                  : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+              )}>
+                {(m.current_deposits || 0) >= m.max_deposits ? (
+                  <>🔴 Limit Reached ({m.current_deposits || 0}/{m.max_deposits})</>
+                ) : (
+                  <>⚡ {m.current_deposits || 0}/{m.max_deposits} Limit</>
+                )}
+              </span>
+            )}
           </div>
           {m.tag && <p className="text-sm text-primary font-mono mt-0.5">{m.tag}</p>}
           {m.account_name && <p className="text-xs text-muted-foreground">{m.account_name}</p>}
@@ -442,6 +503,20 @@ function PaymentMethodCard({
             <Receipt className="h-4 w-4" />
             <span className="hidden sm:inline">Deposits</span>
           </button>
+          {m.max_deposits && m.max_deposits > 0 && (m.current_deposits || 0) > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                updateMutation.mutate({ id: m.id, updates: { current_deposits: 0 } })
+                toast.success(`Deposit counter reset to 0 for ${m.name}`)
+              }}
+              className="h-9 px-2.5 flex items-center gap-1 rounded-lg border border-white/10 hover:border-primary/40 bg-white/5 text-muted-foreground hover:text-white transition-all text-xs font-semibold"
+              title="Reset deposit counter back to 0"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Reset Limit</span>
+            </button>
+          )}
           <button
             onClick={() => { setEditingId(editingId === m.id ? null : m.id); setAddingNew(false) }}
             className={cn(
@@ -529,8 +604,18 @@ export default function AdminPaymentMethodsPage() {
     onError: () => toast.error('Failed to create'),
   })
 
-  const toggleActive = (m: PaymentMethod) =>
-    updateMutation.mutate({ id: m.id, updates: { is_active: !m.is_active } })
+  const toggleActive = (m: PaymentMethod) => {
+    const isActivating = !m.is_active
+    if (isActivating && m.max_deposits && m.max_deposits > 0 && (m.current_deposits || 0) >= m.max_deposits) {
+      updateMutation.mutate({ 
+        id: m.id, 
+        updates: { is_active: true, current_deposits: 0 } 
+      })
+      toast.success(`${m.name} activated and deposit limit counter reset to 0!`)
+    } else {
+      updateMutation.mutate({ id: m.id, updates: { is_active: isActivating } })
+    }
+  }
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event

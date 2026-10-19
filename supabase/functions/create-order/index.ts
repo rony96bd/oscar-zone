@@ -249,6 +249,24 @@ Deno.serve(async (req) => {
       snapshot_data: bonusData,
     })
 
+    // ── Update Payment Method Deposit Counter & Limit ──────────────
+    try {
+      if (paymentMethod && paymentMethod.max_deposits && paymentMethod.max_deposits > 0) {
+        const nextDeposits = (paymentMethod.current_deposits || 0) + 1
+        const reachedLimit = nextDeposits >= paymentMethod.max_deposits
+        await adminClient
+          .from('payment_methods')
+          .update({
+            current_deposits: nextDeposits,
+            ...(reachedLimit ? { is_active: false } : {}),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', payment_method_id)
+      }
+    } catch (pmLimitErr) {
+      console.warn('Could not update payment method deposit counter:', pmLimitErr)
+    }
+
     // ── Notification to customer ─────────────────────────────────
     if (userId) {
       await adminClient.from('notifications').insert({

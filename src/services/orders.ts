@@ -297,5 +297,29 @@ export async function adminCreateOrder(payload: {
     note: payload.is_free_play ? '🎁 Free Play awarded by admin' : 'Order created by admin'
   })
 
+  // Update payment method deposit counter if applicable
+  if (payload.payment_method_id && !payload.is_free_play && payload.base_amount > 0) {
+    try {
+      const { data: pm } = await supabase
+        .from('payment_methods')
+        .select('max_deposits, current_deposits')
+        .eq('id', payload.payment_method_id)
+        .single()
+      if (pm && pm.max_deposits && pm.max_deposits > 0) {
+        const nextCount = (pm.current_deposits || 0) + 1
+        await supabase
+          .from('payment_methods')
+          .update({
+            current_deposits: nextCount,
+            ...(nextCount >= pm.max_deposits ? { is_active: false } : {}),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', payload.payment_method_id)
+      }
+    } catch {
+      // Ignore if columns do not exist yet on remote
+    }
+  }
+
   return data
 }

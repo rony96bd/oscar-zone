@@ -22,11 +22,19 @@ export async function fetchAllPaymentMethods(): Promise<PaymentMethod[]> {
 }
 
 export async function createPaymentMethod(method: Partial<PaymentMethod>): Promise<PaymentMethod> {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('payment_methods')
     .insert(method)
     .select()
     .single()
+  if (error && (error.code === '42703' || error.message?.includes('max_deposits') || error.message?.includes('current_deposits'))) {
+    const fallback = { ...method }
+    delete fallback.max_deposits
+    delete fallback.current_deposits
+    const res = await supabase.from('payment_methods').insert(fallback).select().single()
+    data = res.data
+    error = res.error
+  }
   if (error) throw error
   return data
 }
@@ -35,12 +43,20 @@ export async function updatePaymentMethod(
   id: string,
   updates: Partial<PaymentMethod>
 ): Promise<PaymentMethod> {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('payment_methods')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
     .single()
+  if (error && (error.code === '42703' || error.message?.includes('max_deposits') || error.message?.includes('current_deposits'))) {
+    const fallback = { ...updates }
+    delete fallback.max_deposits
+    delete fallback.current_deposits
+    const res = await supabase.from('payment_methods').update({ ...fallback, updated_at: new Date().toISOString() }).eq('id', id).select().single()
+    data = res.data
+    error = res.error
+  }
   if (error) throw error
   return data
 }

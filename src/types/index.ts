@@ -130,6 +130,8 @@ export interface PaymentMethod {
   is_active: boolean
   is_agent: boolean
   sort_order: number
+  max_deposits?: number | null
+  current_deposits?: number
   created_at: string
   updated_at: string
 }
