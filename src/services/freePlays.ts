@@ -235,3 +235,22 @@ export async function updateFreePlayRequestStatus(id: string, status: 'approved'
   if (error) throw error;
   return data;
 }
+
+export async function adminCreateFreePlay(payload: {
+  userId: string
+  gameId: string
+  status?: 'approved' | 'pending'
+}): Promise<FreePlayRequest> {
+  const { data, error } = await supabase
+    .from('free_play_requests')
+    .insert({
+      user_id: payload.userId,
+      game_id: payload.gameId,
+      status: payload.status || 'approved'
+    })
+    .select('*, profile:profiles(*), game:games(*)')
+    .single()
+
+  if (error) throw error
+  return data
+}

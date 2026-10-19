@@ -1,15 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchAllFreePlayRequests, updateFreePlayRequestStatus } from '@/services/freePlays'
 import { formatCurrency } from '@/lib/utils'
-import { Calendar, CheckCircle, XCircle, Search, Gift } from 'lucide-react'
+import { Calendar, CheckCircle, XCircle, Search, Gift, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { FreePlayRequest } from '@/types'
 import { usePermission } from '@/hooks/usePermission'
+import { CreateFreePlayModal } from '@/components/admin/CreateFreePlayModal'
 
 export default function AdminFreePlaysPage() {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
+  const [showGiveModal, setShowGiveModal] = useState(false)
   const canManage = usePermission('manage_free_plays')
 
   const { data: requests = [], isLoading } = useQuery({
@@ -44,15 +46,26 @@ export default function AdminFreePlaysPage() {
           <p className="text-sm text-muted-foreground mt-1">Manage customer free play requests.</p>
         </div>
         
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search username or game..."
-            className="game-input w-full pl-9"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search username or game..."
+              className="game-input w-full pl-9"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          {canManage && (
+            <button
+              onClick={() => setShowGiveModal(true)}
+              className="btn-neon text-xs px-3.5 py-2 flex items-center gap-1.5 whitespace-nowrap shrink-0"
+            >
+              <Plus className="h-4 w-4" />
+              Give Free Play
+            </button>
+          )}
         </div>
       </div>
 
@@ -146,6 +159,8 @@ export default function AdminFreePlaysPage() {
           </table>
         </div>
       </div>
+
+      <CreateFreePlayModal isOpen={showGiveModal} onClose={() => setShowGiveModal(false)} />
     </div>
   )
 }
