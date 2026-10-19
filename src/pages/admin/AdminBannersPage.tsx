@@ -357,7 +357,7 @@ export default function AdminBannersPage() {
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 capitalize">
                       {banner.type}
                     </span>
-                    <span className="text-xs text-muted-foreground">Order: {banner.sort_order}</span>
+                    <span className="text-xs text-muted-foreground">Sort: {banner.sort_order}</span>
                     {banner.link_url && (
                       <a href={banner.link_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
                         <ExternalLink className="h-3 w-3" />

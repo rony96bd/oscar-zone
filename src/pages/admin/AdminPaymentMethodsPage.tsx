@@ -416,7 +416,7 @@ function PaymentMethodCard({
                 '0 Deposits'
               )}
             </span>
-            <span className="text-xs text-muted-foreground/50">Order: {m.sort_order}</span>
+            <span className="text-xs text-muted-foreground/50">Sort: {m.sort_order}</span>
           </div>
         </div>
 
