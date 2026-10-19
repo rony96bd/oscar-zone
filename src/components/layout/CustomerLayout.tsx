@@ -15,37 +15,37 @@ import { GlobalAnnouncements } from '@/components/ui/GlobalAnnouncements'
 import { LiveActivityTicker } from '@/components/ui/LiveActivityTicker'
 
 const publicNavLinks = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/games', label: 'Games', icon: Gamepad2 },
-  { href: '/promotions', label: 'Promotions', icon: Star },
-  { href: '/payment-tags', label: 'Payment Tags', icon: Zap },
-  { href: '/contact', label: 'Support', icon: Phone },
-  { href: '/transaction-board', label: 'Transaction Board', icon: Activity },
-  { href: '/winners-circle', label: "Winner's Circle", icon: Trophy },
-  { href: '/how-it-works', label: 'How It Works', icon: HelpCircle },
-  { href: '/referral', label: 'Refer & Earn', icon: Users },
+  { id: 'home', href: '/', label: 'Home', icon: Home },
+  { id: 'games', href: '/games', label: 'Games', icon: Gamepad2 },
+  { id: 'promotions', href: '/promotions', label: 'Promotions', icon: Star },
+  { id: 'payment-tags', href: '/payment-tags', label: 'Payment Tags', icon: Zap },
+  { id: 'contact', href: '/contact', label: 'Support', icon: Phone },
+  { id: 'transaction-board', href: '/transaction-board', label: 'Transaction Board', icon: Activity },
+  { id: 'winners-circle', href: '/winners-circle', label: "Winner's Circle", icon: Trophy },
+  { id: 'how-it-works', href: '/how-it-works', label: 'How It Works', icon: HelpCircle },
+  { id: 'referral', href: '/referral', label: 'Refer & Earn', icon: Users },
 ]
 
 const authNavLinks = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/my-games', label: 'My Games', icon: Joystick },
-  { href: '/games', label: 'Game Links', icon: Gamepad2 },
-  { href: '/load', label: 'Load Game', icon: Zap },
-  { href: '/cashout', label: 'Cashout', icon: ArrowDownToLine },
-  { href: '/orders', label: 'Orders', icon: ShoppingBag },
-  { href: '/earnings', label: 'Referral', icon: Users },
-  { href: '/free-play', label: 'Free Play', icon: Gift },
-  { href: '/notifications', label: 'Notifications', icon: Bell },
-  { href: '/chat', label: 'Support', icon: MessageCircle },
-  { href: '/profile', label: 'Profile', icon: User },
+  { id: 'dashboard', href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'my-games', href: '/my-games', label: 'My Games', icon: Joystick },
+  { id: 'games', href: '/games', label: 'Game Links', icon: Gamepad2 },
+  { id: 'load', href: '/load', label: 'Load Game', icon: Zap },
+  { id: 'cashout', href: '/cashout', label: 'Cashout', icon: ArrowDownToLine },
+  { id: 'orders', href: '/orders', label: 'Orders', icon: ShoppingBag },
+  { id: 'earnings', href: '/earnings', label: 'Referral', icon: Users },
+  { id: 'free-play', href: '/free-play', label: 'Free Play', icon: Gift },
+  { id: 'notifications', href: '/notifications', label: 'Notifications', icon: Bell },
+  { id: 'chat', href: '/chat', label: 'Support', icon: MessageCircle },
+  { id: 'profile', href: '/profile', label: 'Profile', icon: User },
 ]
 
 const mobileNavLinks = [
-  { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
-  { href: '/my-games', label: 'Games', icon: Joystick },
-  { href: '/load', label: 'Load', icon: Zap, primary: true },
-  { href: '/cashout', label: 'Cashout', icon: ArrowDownToLine },
-  { href: '/profile', label: 'Profile', icon: User },
+  { id: 'dashboard', href: '/dashboard', label: 'Home', icon: LayoutDashboard },
+  { id: 'my-games', href: '/my-games', label: 'Games', icon: Joystick },
+  { id: 'load', href: '/load', label: 'Load', icon: Zap, primary: true },
+  { id: 'cashout', href: '/cashout', label: 'Cashout', icon: ArrowDownToLine },
+  { id: 'profile', href: '/profile', label: 'Profile', icon: User },
 ]
 
 // Identify paths that belong to the customer dashboard context
@@ -60,7 +60,7 @@ export function CustomerLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const { profile, isAuthenticated, isAdmin, signOut } = useAuthStore()
-  const { allowRegistration, tickerPosition } = useSettingsStore()
+  const { allowRegistration, tickerPosition, publicNavMenus, customerNavMenus } = useSettingsStore()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -83,7 +83,19 @@ export function CustomerLayout() {
 
   // Show public links on public pages, show auth links only when in dashboard context and not admin
   const showAuthLinks = isAuthenticated && isDashboardView && !isAdmin()
-  const navLinks = showAuthLinks ? authNavLinks : publicNavLinks
+
+  // Filter links based on admin toggle settings
+  const activePublicNavLinks = publicNavLinks.filter(
+    (link) => publicNavMenus[link.id] !== false
+  )
+  const activeAuthNavLinks = authNavLinks.filter(
+    (link) => customerNavMenus[link.id] !== false
+  )
+  const activeMobileNavLinks = mobileNavLinks.filter(
+    (link) => customerNavMenus[link.id] !== false
+  )
+
+  const navLinks = showAuthLinks ? activeAuthNavLinks : activePublicNavLinks
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -315,7 +327,7 @@ export function CustomerLayout() {
       {showAuthLinks && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-game-darker/95 backdrop-blur-xl border-t border-game-border pb-safe">
           <div className="flex items-center justify-around h-16 px-2">
-            {mobileNavLinks.map((link) => {
+            {activeMobileNavLinks.map((link) => {
               const isActive = location.pathname === link.href
               return (
                 <Link

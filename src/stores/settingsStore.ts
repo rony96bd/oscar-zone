@@ -20,6 +20,8 @@ interface SettingsState {
   freePlayMode: 'deposit_based' | 'daily_limit'
   freePlayDailyLimit: number
   freePlayDepositRequirement: number
+  publicNavMenus: Record<string, boolean>
+  customerNavMenus: Record<string, boolean>
   isLoading: boolean
   fetchSettings: () => Promise<void>
   setSiteLogoUrl: (url: string) => void
@@ -30,6 +32,33 @@ interface SettingsState {
   updateTickerPosition: (position: 'header' | 'banner' | 'hidden') => void
   updateTickerVisibilities: (cashin: boolean, cashout: boolean) => void
   updateFreePlaySettings: (mode: 'deposit_based' | 'daily_limit', dailyLimit: number, depositRequirement: number) => void
+  updateNavMenuSettings: (publicMenus: Record<string, boolean>, customerMenus: Record<string, boolean>) => void
+}
+
+export const DEFAULT_PUBLIC_NAV_MENUS: Record<string, boolean> = {
+  home: true,
+  games: true,
+  promotions: true,
+  'payment-tags': true,
+  contact: true,
+  'transaction-board': true,
+  'winners-circle': true,
+  'how-it-works': true,
+  referral: true,
+}
+
+export const DEFAULT_CUSTOMER_NAV_MENUS: Record<string, boolean> = {
+  dashboard: true,
+  'my-games': true,
+  games: true,
+  load: true,
+  cashout: true,
+  orders: true,
+  earnings: true,
+  'free-play': true,
+  notifications: true,
+  chat: true,
+  profile: true,
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -51,6 +80,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   freePlayMode: 'deposit_based',
   freePlayDailyLimit: 1,
   freePlayDepositRequirement: 10,
+  publicNavMenus: DEFAULT_PUBLIC_NAV_MENUS,
+  customerNavMenus: DEFAULT_CUSTOMER_NAV_MENUS,
   isLoading: true,
 
   fetchSettings: async () => {
@@ -103,6 +134,33 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         const fpDailyLimit = data.find(d => d.key === 'free_play_daily_limit')?.value
         const fpDepositReq = data.find(d => d.key === 'free_play_deposit_requirement')?.value
 
+        const pMenusSetting = data.find(d => d.key === 'public_nav_menus')?.value
+        const cMenusSetting = data.find(d => d.key === 'customer_nav_menus')?.value
+
+        let parsedPublicMenus = { ...DEFAULT_PUBLIC_NAV_MENUS }
+        if (pMenusSetting) {
+          try {
+            const raw = typeof pMenusSetting === 'string' ? JSON.parse(cleanValue(pMenusSetting)) : pMenusSetting
+            if (typeof raw === 'object' && raw !== null) {
+              parsedPublicMenus = { ...parsedPublicMenus, ...raw }
+            }
+          } catch (e) {
+            console.error('Failed to parse public_nav_menus:', e)
+          }
+        }
+
+        let parsedCustomerMenus = { ...DEFAULT_CUSTOMER_NAV_MENUS }
+        if (cMenusSetting) {
+          try {
+            const raw = typeof cMenusSetting === 'string' ? JSON.parse(cleanValue(cMenusSetting)) : cMenusSetting
+            if (typeof raw === 'object' && raw !== null) {
+              parsedCustomerMenus = { ...parsedCustomerMenus, ...raw }
+            }
+          } catch (e) {
+            console.error('Failed to parse customer_nav_menus:', e)
+          }
+        }
+
         const defaultAppName = import.meta.env.VITE_APP_NAME || 'GameZone'
         const defaultAppDesc = import.meta.env.VITE_APP_DESCRIPTION || 'Premium game top-up service.'
 
@@ -151,6 +209,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           freePlayMode: parsedFpMode,
           freePlayDailyLimit: parsedDailyLimit,
           freePlayDepositRequirement: parsedDepositReq,
+          publicNavMenus: parsedPublicMenus,
+          customerNavMenus: parsedCustomerMenus,
           isLoading: false 
         })
 
@@ -219,6 +279,13 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       freePlayMode: mode,
       freePlayDailyLimit: dailyLimit,
       freePlayDepositRequirement: depositRequirement,
+    })
+  },
+
+  updateNavMenuSettings: (publicMenus: Record<string, boolean>, customerMenus: Record<string, boolean>) => {
+    set({
+      publicNavMenus: publicMenus,
+      customerNavMenus: customerMenus,
     })
   }
 }))

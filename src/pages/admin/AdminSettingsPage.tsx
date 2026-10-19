@@ -1,11 +1,37 @@
-import { useState, useEffect } from 'react'
-import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users, Phone, Share2, Layout, Wrench, Gift } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users, Phone, Share2, Layout, Wrench, Gift, Compass, Menu } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useThemeStore, ThemeName } from '@/stores/themeStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { cn } from '@/lib/utils'
 import { ChangePassword } from '@/components/auth/ChangePassword'
+
+const PUBLIC_MENU_ITEMS = [
+  { id: 'home', label: 'Home', path: '/', description: 'Public landing & home page' },
+  { id: 'games', label: 'Games', path: '/games', description: 'Catalog of games with download and load links' },
+  { id: 'promotions', label: 'Promotions', path: '/promotions', description: 'Active promotions, deposit rules and bonus banners' },
+  { id: 'payment-tags', label: 'Payment Tags', path: '/payment-tags', description: 'Payment account numbers, tags and QR codes' },
+  { id: 'contact', label: 'Support', path: '/contact', description: 'Contact details, email, phone and live support channels' },
+  { id: 'transaction-board', label: 'Transaction Board', path: '/transaction-board', description: 'Live animated feed of recent loads and cashouts' },
+  { id: 'winners-circle', label: "Winner's Circle", path: '/winners-circle', description: 'Community payouts, win proofs and testimonials' },
+  { id: 'how-it-works', label: 'How It Works', path: '/how-it-works', description: 'Step-by-step beginner guide to loading games' },
+  { id: 'referral', label: 'Refer & Earn', path: '/referral', description: 'Public affiliate and referral reward details' },
+]
+
+const CUSTOMER_MENU_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', path: '/dashboard', description: 'Main player hub with quick balance and activity' },
+  { id: 'my-games', label: 'My Games', path: '/my-games', description: 'Customer in-game usernames and direct launch buttons' },
+  { id: 'games', label: 'Game Links', path: '/games', description: 'Browse and download available sweepstakes games' },
+  { id: 'load', label: 'Load Game', path: '/load', description: 'Main deposit / purchase credits flow' },
+  { id: 'cashout', label: 'Cashout', path: '/cashout', description: 'Redeem winnings to CashApp, PayPal, Chime, etc.' },
+  { id: 'orders', label: 'Orders', path: '/orders', description: 'Track payment statuses, receipts and transaction history' },
+  { id: 'earnings', label: 'Referral', path: '/earnings', description: 'Referral earnings, statistics and commission payouts' },
+  { id: 'free-play', label: 'Free Play', path: '/free-play', description: 'Daily free play bonus claim portal' },
+  { id: 'notifications', label: 'Notifications', path: '/notifications', description: 'Real-time alert center for approvals and updates' },
+  { id: 'chat', label: 'Support', path: '/chat', description: 'Dedicated live customer support messenger' },
+  { id: 'profile', label: 'Profile', path: '/profile', description: 'Account settings, password reset and contact details' },
+]
 
 const THEMES = [
   {
@@ -377,6 +403,86 @@ export default function AdminSettingsPage() {
     }
   }
 
+  // Navigation Menu Management State & Handlers
+  const { publicNavMenus, customerNavMenus, updateNavMenuSettings } = useSettingsStore()
+  const [selectedPublicMenus, setSelectedPublicMenus] = useState<Record<string, boolean>>(publicNavMenus)
+  const [selectedCustomerMenus, setSelectedCustomerMenus] = useState<Record<string, boolean>>(customerNavMenus)
+  const [isSavingMenus, setIsSavingMenus] = useState(false)
+  const [navMenuTab, setNavMenuTab] = useState<'public' | 'customer'>('public')
+
+  useEffect(() => {
+    setSelectedPublicMenus(publicNavMenus)
+  }, [publicNavMenus])
+
+  useEffect(() => {
+    setSelectedCustomerMenus(customerNavMenus)
+  }, [customerNavMenus])
+
+  const handleTogglePublicMenu = (id: string) => {
+    setSelectedPublicMenus((prev) => ({
+      ...prev,
+      [id]: prev[id] === false ? true : false,
+    }))
+  }
+
+  const handleToggleCustomerMenu = (id: string) => {
+    setSelectedCustomerMenus((prev) => ({
+      ...prev,
+      [id]: prev[id] === false ? true : false,
+    }))
+  }
+
+  const handleSetAllPublic = (enabled: boolean) => {
+    const updated: Record<string, boolean> = {}
+    PUBLIC_MENU_ITEMS.forEach((item) => {
+      updated[item.id] = enabled
+    })
+    setSelectedPublicMenus(updated)
+  }
+
+  const handleSetAllCustomer = (enabled: boolean) => {
+    const updated: Record<string, boolean> = {}
+    CUSTOMER_MENU_ITEMS.forEach((item) => {
+      updated[item.id] = enabled
+    })
+    setSelectedCustomerMenus(updated)
+  }
+
+  const handleSaveNavMenus = async () => {
+    setIsSavingMenus(true)
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert([
+          {
+            key: 'public_nav_menus',
+            value: JSON.stringify(selectedPublicMenus),
+            description: 'Visibility of homepage/public navigation menu items',
+          },
+          {
+            key: 'customer_nav_menus',
+            value: JSON.stringify(selectedCustomerMenus),
+            description: 'Visibility of customer logged-in navigation menu items',
+          },
+        ], { onConflict: 'key' })
+
+      if (error) throw error
+
+      updateNavMenuSettings(selectedPublicMenus, selectedCustomerMenus)
+      toast.success('Navigation menu settings updated successfully!')
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || 'Failed to update menu settings')
+    } finally {
+      setIsSavingMenus(false)
+    }
+  }
+
+  const hasMenuChanges = useMemo(() => {
+    const pubChanged = JSON.stringify(selectedPublicMenus) !== JSON.stringify(publicNavMenus)
+    const custChanged = JSON.stringify(selectedCustomerMenus) !== JSON.stringify(customerNavMenus)
+    return pubChanged || custChanged
+  }, [selectedPublicMenus, selectedCustomerMenus, publicNavMenus, customerNavMenus])
 
   return (
     <div className="space-y-6">
@@ -768,6 +874,233 @@ export default function AdminSettingsPage() {
             <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-green shadow-[0_0_10px_rgba(0,255,136,0.2)] peer-checked:shadow-[0_0_15px_rgba(0,255,136,0.5)]"></div>
           </label>
         </div>
+      </div>
+
+      {/* Navigation Menu Management */}
+      <div className="glass-card p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+              <Compass className="h-5 w-5 text-cyan-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                Navigation Menu Management
+                <span className="text-xs font-normal text-muted-foreground px-2 py-0.5 rounded bg-muted">
+                  মেন্যু নিয়ন্ত্রণ
+                </span>
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                হোমপেজ ও কাস্টমার লগইন করার পরের মেন্যুগুলো প্রয়োজনমতো অন বা অফ করুন
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleSaveNavMenus}
+            disabled={isSavingMenus || !hasMenuChanges}
+            className="btn-neon px-6 py-2 text-sm flex items-center gap-2 self-start sm:self-auto"
+          >
+            {isSavingMenus ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Menu Settings
+          </button>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex flex-wrap items-center gap-2 mb-6 border-b border-border pb-3">
+          <button
+            type="button"
+            onClick={() => setNavMenuTab('public')}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${
+              navMenuTab === 'public'
+                ? 'bg-primary text-primary-foreground shadow-neon-blue'
+                : 'bg-muted/30 text-muted-foreground hover:text-white hover:bg-muted/50'
+            }`}
+          >
+            <span>Homepage / Public Menus (হোমপেজ)</span>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full font-mono ${
+                navMenuTab === 'public' ? 'bg-black/30 text-white' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {PUBLIC_MENU_ITEMS.filter((m) => selectedPublicMenus[m.id] !== false).length}/{PUBLIC_MENU_ITEMS.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setNavMenuTab('customer')}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${
+              navMenuTab === 'customer'
+                ? 'bg-primary text-primary-foreground shadow-neon-blue'
+                : 'bg-muted/30 text-muted-foreground hover:text-white hover:bg-muted/50'
+            }`}
+          >
+            <span>Customer Logged-In Menus (কাস্টমার লগইন)</span>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full font-mono ${
+                navMenuTab === 'customer' ? 'bg-black/30 text-white' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {CUSTOMER_MENU_ITEMS.filter((m) => selectedCustomerMenus[m.id] !== false).length}/{CUSTOMER_MENU_ITEMS.length}
+            </span>
+          </button>
+        </div>
+
+        {/* Tab 1: Public Menus */}
+        {navMenuTab === 'public' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-black/20 border border-border">
+              <p className="text-xs text-muted-foreground">
+                এই মেন্যু লিংকগুলো লগইন করার আগে মূল ওয়েবসাইটে সাধারণ ভিজিটরদের প্রদর্শিত হবে।
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSetAllPublic(true)}
+                  className="px-2.5 py-1 text-xs rounded bg-muted/40 hover:bg-muted text-slate-300 font-medium"
+                >
+                  Enable All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetAllPublic(false)}
+                  className="px-2.5 py-1 text-xs rounded bg-muted/40 hover:bg-muted text-slate-300 font-medium"
+                >
+                  Disable All
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {PUBLIC_MENU_ITEMS.map((item) => {
+                const isEnabled = selectedPublicMenus[item.id] !== false
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleTogglePublicMenu(item.id)}
+                    className={cn(
+                      'p-3.5 rounded-xl border cursor-pointer transition-all flex items-start justify-between gap-3 select-none',
+                      isEnabled
+                        ? 'bg-primary/5 border-primary/30 hover:border-primary/50'
+                        : 'bg-muted/10 border-border/60 opacity-60 hover:opacity-80'
+                    )}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-white">{item.label}</span>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted/40 text-cyan-400">
+                          {item.path}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {item.description}
+                      </p>
+                      <div className="mt-2">
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                            isEnabled
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                          }`}
+                        >
+                          {isEnabled ? '● Active in Menu' : '○ Hidden from Menu'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer pointer-events-none mt-1">
+                      <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        readOnly
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary shadow-[0_0_10px_rgba(0,212,255,0.1)] peer-checked:shadow-[0_0_12px_rgba(0,212,255,0.5)]"></div>
+                    </label>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Customer Logged-In Menus */}
+        {navMenuTab === 'customer' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-black/20 border border-border">
+              <p className="text-xs text-muted-foreground">
+                এই মেন্যু লিংকগুলো কাস্টমার লগইন করার পর ড্যাশবোর্ড বার, More ড্রপডাউন, ড্রয়ার এবং মোবাইল বটম বারে প্রদর্শিত হবে।
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSetAllCustomer(true)}
+                  className="px-2.5 py-1 text-xs rounded bg-muted/40 hover:bg-muted text-slate-300 font-medium"
+                >
+                  Enable All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetAllCustomer(false)}
+                  className="px-2.5 py-1 text-xs rounded bg-muted/40 hover:bg-muted text-slate-300 font-medium"
+                >
+                  Disable All
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {CUSTOMER_MENU_ITEMS.map((item) => {
+                const isEnabled = selectedCustomerMenus[item.id] !== false
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleToggleCustomerMenu(item.id)}
+                    className={cn(
+                      'p-3.5 rounded-xl border cursor-pointer transition-all flex items-start justify-between gap-3 select-none',
+                      isEnabled
+                        ? 'bg-primary/5 border-primary/30 hover:border-primary/50'
+                        : 'bg-muted/10 border-border/60 opacity-60 hover:opacity-80'
+                    )}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-white">{item.label}</span>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted/40 text-cyan-400">
+                          {item.path}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {item.description}
+                      </p>
+                      <div className="mt-2">
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                            isEnabled
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                          }`}
+                        >
+                          {isEnabled ? '● Active in Menu' : '○ Hidden from Menu'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer pointer-events-none mt-1">
+                      <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        readOnly
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary shadow-[0_0_10px_rgba(0,212,255,0.1)] peer-checked:shadow-[0_0_12px_rgba(0,212,255,0.5)]"></div>
+                    </label>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Ticker Settings */}
