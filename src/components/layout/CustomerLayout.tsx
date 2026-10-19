@@ -33,7 +33,7 @@ const authNavLinks = [
   { href: '/load', label: 'Load Game', icon: Zap },
   { href: '/cashout', label: 'Cashout', icon: ArrowDownToLine },
   { href: '/orders', label: 'Orders', icon: ShoppingBag },
-  { href: '/earnings', label: 'Earnings', icon: DollarSign },
+  { href: '/earnings', label: 'Referral', icon: Users },
   { href: '/free-play', label: 'Free Play', icon: Gift },
   { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/chat', label: 'Support', icon: MessageCircle },
