@@ -88,7 +88,6 @@ export async function fetchPaymentMethodDeposits(paymentMethodId: string) {
       total_bonus_amount,
       final_game_credit,
       customer_payment_tag,
-      payment_screenshot_path,
       payment_screenshot_key,
       status,
       created_at,

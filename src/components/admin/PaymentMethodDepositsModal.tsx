@@ -64,7 +64,7 @@ export function PaymentMethodDepositsModal({
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending' | 'rejected'>('all')
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
 
-  const { data: deposits = [], isLoading, refetch, isRefetching } = useQuery({
+  const { data: deposits = [], isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['payment-method-deposits', method?.id],
     queryFn: () => fetchPaymentMethodDeposits(method!.id),
     enabled: !!method?.id,
@@ -316,6 +316,21 @@ export function PaymentMethodDepositsModal({
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="h-20 skeleton rounded-xl" />
                 ))}
+              </div>
+            ) : isError ? (
+              <div className="glass-card p-12 text-center my-6 border border-destructive/30">
+                <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-3" />
+                <p className="text-base font-semibold text-white">Failed to load deposit logs</p>
+                <p className="text-xs text-destructive mt-1 max-w-sm mx-auto">
+                  {(error as any)?.message || 'An error occurred while fetching deposits.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="btn-ghost-neon mt-4 px-4 py-2 text-xs inline-flex items-center gap-1.5"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Try Again
+                </button>
               </div>
             ) : filteredDeposits.length === 0 ? (
               <div className="glass-card p-12 text-center my-6">

@@ -96,10 +96,10 @@ export default function AdminOrderDetailPage() {
       </div>
 
       {/* Payment Screenshot */}
-      {o.payment_screenshot_path && (
+      {(o.payment_screenshot_key || o.payment_screenshot_path) && (
         <div className="glass-card p-4">
           <h2 className="font-semibold text-white mb-3 text-sm">Payment Screenshot</h2>
-          <ScreenshotViewer path={o.payment_screenshot_path} />
+          <ScreenshotViewer path={(o.payment_screenshot_key || o.payment_screenshot_path)!} />
         </div>
       )}
 
