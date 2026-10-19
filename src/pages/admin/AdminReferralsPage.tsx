@@ -4,11 +4,12 @@ import { supabase } from '@/lib/supabase'
 import { fetchReferralLevels, awardCustomBonus } from '@/services/referrals'
 import { fetchGames } from '@/services/games'
 import { fetchGamePointBalances } from '@/services/accounting'
+import { adminCreateOrder } from '@/services/orders'
 import { formatCurrency, formatRelativeTime } from '@/lib/utils'
 import { 
   Users, TrendingUp, Gift, CheckCircle, Settings, Edit2, Save, X, 
   UserPlus, Search, AlertTriangle, Sparkles, ToggleLeft, ToggleRight,
-  DollarSign, Check, Loader2, ShieldCheck, Clock, Gamepad2
+  DollarSign, Check, Loader2, ShieldCheck, Clock, Gamepad2, Zap
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -21,7 +22,7 @@ async function fetchAllReferrals() {
     .from('referrals')
     .select('*, referrer:profiles!referrer_id(id, full_name, username), referred:profiles!referred_id(id, full_name, username)')
     .order('created_at', { ascending: false })
-    .limit(100)
+    .limit(200)
   if (error) throw error
   return data || []
 }
@@ -29,9 +30,9 @@ async function fetchAllReferrals() {
 async function fetchAllEarnings() {
   const { data, error } = await supabase
     .from('referral_earnings')
-    .select('*, user:profiles!user_id(full_name, username), source_order:orders(order_number, base_amount, game:games(name))')
+    .select('*, user:profiles!user_id(id, full_name, username), source_order:orders(order_number, base_amount, game:games(name))')
     .order('created_at', { ascending: false })
-    .limit(200)
+    .limit(500)
   if (error) throw error
   return data || []
 }
@@ -104,6 +105,21 @@ export default function AdminReferralsPage() {
     gameUsername: '',
   })
 
+  // Pay / Load Commission Modal State
+  const [payCommissionModal, setPayCommissionModal] = useState<{
+    open: boolean
+    earning: any | null
+    gameId: string
+    gameUsername: string
+    loadToGame: boolean
+  }>({
+    open: false,
+    earning: null,
+    gameId: '',
+    gameUsername: '',
+    loadToGame: true,
+  })
+
   // Manual referral assignment state
   const [referrerSearch, setReferrerSearch] = useState('')
   const [referredSearch, setReferredSearch] = useState('')
@@ -137,7 +153,21 @@ export default function AdminReferralsPage() {
     enabled: !!awardModal.referral?.referrer_id && awardModal.open,
   })
 
-  // Auto-populate target game & username when modal opens
+  const { data: payCommissionCustomerGames = [] } = useQuery({
+    queryKey: ['pay-commission-customer-games', payCommissionModal.earning?.user_id],
+    queryFn: async () => {
+      if (!payCommissionModal.earning?.user_id) return []
+      const { data } = await supabase
+        .from('customer_games')
+        .select('*, game:games(*)')
+        .eq('customer_id', payCommissionModal.earning.user_id)
+        .eq('status', 'active')
+      return data || []
+    },
+    enabled: !!payCommissionModal.earning?.user_id && payCommissionModal.open,
+  })
+
+  // Auto-populate target game & username when award modal opens
   useEffect(() => {
     if (awardModal.open && awardModal.referral?.referrer_id) {
       if (referrerGames && referrerGames.length > 0) {
@@ -162,6 +192,31 @@ export default function AdminReferralsPage() {
     }
   }, [awardModal.open, awardModal.referral?.referrer_id, referrerGames, allGames])
 
+  // Auto-populate target game & username for payCommissionModal
+  useEffect(() => {
+    if (payCommissionModal.open && payCommissionModal.earning?.user_id) {
+      if (payCommissionCustomerGames && payCommissionCustomerGames.length > 0) {
+        setPayCommissionModal(prev => {
+          if (prev.gameId && prev.gameUsername) return prev
+          return {
+            ...prev,
+            gameId: payCommissionCustomerGames[0].game_id,
+            gameUsername: payCommissionCustomerGames[0].username,
+          }
+        })
+      } else if (allGames.length > 0) {
+        setPayCommissionModal(prev => {
+          if (prev.gameId) return prev
+          return {
+            ...prev,
+            gameId: allGames[0].id,
+            gameUsername: prev.gameUsername || prev.earning?.user?.username || '',
+          }
+        })
+      }
+    }
+  }, [payCommissionModal.open, payCommissionModal.earning?.user_id, payCommissionCustomerGames, allGames])
+
   // Resolved active modes
   const isCommActive = localCommEnabled !== null 
     ? localCommEnabled 
@@ -177,22 +232,25 @@ export default function AdminReferralsPage() {
 
   // Calculations
   const validEarnings = (earnings as any[]).filter(e => e.status !== 'cancelled')
-  const totalCommissionPaid = validEarnings
-    .filter(e => !e.earning_type || e.earning_type === 'commission')
-    .reduce((s, e) => s + (parseFloat(e.commission_amount) || 0), 0)
 
-  const totalCustomBonusPaid = validEarnings
-    .filter(e => e.earning_type === 'custom_bonus')
-    .reduce((s, e) => s + (parseFloat(e.commission_amount) || 0), 0)
+  // 1. Commission System Breakdown (from customer orders)
+  const commissionEarnings = validEarnings.filter(e => !e.earning_type || e.earning_type === 'commission')
+  const totalCommissionEarned = commissionEarnings.reduce((s, e) => s + (parseFloat(e.commission_amount) || 0), 0)
+  const commissionPaid = commissionEarnings.filter(e => e.status === 'paid').reduce((s, e) => s + (parseFloat(e.commission_amount) || 0), 0)
+  const commissionPending = commissionEarnings.filter(e => e.status === 'pending').reduce((s, e) => s + (parseFloat(e.commission_amount) || 0), 0)
 
-  // Direct bonuses on referrals table if not logged in earnings
+  // 2. Custom Bonus System Breakdown (direct admin awards)
+  const customBonusEarnings = validEarnings.filter(e => e.earning_type === 'custom_bonus')
+  const customBonusFromEarnings = customBonusEarnings.reduce((s, e) => s + (parseFloat(e.commission_amount) || 0), 0)
   const directCustomBonusTotal = (referrals as any[])
     .filter(r => r.custom_bonus_amount && r.custom_bonus_status === 'awarded')
     .reduce((s, r) => s + (parseFloat(r.custom_bonus_amount) || 0), 0)
+  const finalCustomBonusPaid = Math.max(customBonusFromEarnings, directCustomBonusTotal)
 
-  const finalCustomBonusPaid = Math.max(totalCustomBonusPaid, directCustomBonusTotal)
-  const totalAllPaid = totalCommissionPaid + finalCustomBonusPaid
-  const pendingPayout = (earnings as any[]).filter(e => e.status === 'pending').reduce((s, e) => s + (parseFloat(e.commission_amount) || 0), 0)
+  // 3. Combined Metrics
+  const totalRewardsEarned = totalCommissionEarned + finalCustomBonusPaid
+  const totalRewardsPaid = commissionPaid + finalCustomBonusPaid
+  const totalPendingPayout = (earnings as any[]).filter(e => e.status === 'pending').reduce((s, e) => s + (parseFloat(e.commission_amount) || 0), 0)
   const qualifiedCount = (referrals as any[]).filter(r => r.status === 'qualified').length
 
   // Save Modes mutation
@@ -282,6 +340,99 @@ export default function AdminReferralsPage() {
       qc.invalidateQueries({ queryKey: ['orders'] })
     },
     onError: (e: any) => toast.error(e.message || 'Failed to award bonus'),
+  })
+
+  // Pay / Load Commission Payout Mutation
+  const payCommissionMutation = useMutation({
+    mutationFn: async () => {
+      if (!payCommissionModal.earning) throw new Error('No earning record selected')
+      const earning = payCommissionModal.earning
+      const amount = parseFloat(earning.commission_amount) || 0
+
+      let orderId: string | null = null
+      let gameName: string | null = null
+
+      if (payCommissionModal.loadToGame) {
+        if (!payCommissionModal.gameId) throw new Error('Please select a game to load points into')
+        if (!payCommissionModal.gameUsername?.trim()) throw new Error("Please enter player's game username")
+
+        const { data: gameData } = await supabase
+          .from('games')
+          .select('name')
+          .eq('id', payCommissionModal.gameId)
+          .maybeSingle()
+        gameName = gameData?.name || null
+
+        const createdOrder = await adminCreateOrder({
+          user_id: earning.user_id,
+          game_id: payCommissionModal.gameId,
+          username: payCommissionModal.gameUsername.trim(),
+          base_amount: 0,
+          final_credit: amount,
+          total_bonus: 0,
+          status: 'completed',
+          admin_note: `💰 Referral Commission payout loaded to ${gameName || 'game'}`
+        })
+        if (createdOrder?.id) {
+          orderId = createdOrder.id
+        }
+      }
+
+      // Update referral_earnings record
+      const updatePayload: any = {
+        status: 'paid',
+      }
+      if (orderId) {
+        updatePayload.source_order_id = orderId
+      }
+      const { error: updateError } = await supabase
+        .from('referral_earnings')
+        .update(updatePayload)
+        .eq('id', earning.id)
+      if (updateError) throw updateError
+
+      // Send notification to customer
+      try {
+        await supabase.from('notifications').insert({
+          user_id: earning.user_id,
+          title: payCommissionModal.loadToGame ? '💰 Commission Loaded to Game!' : '💰 Commission Payout Completed!',
+          message: payCommissionModal.loadToGame
+            ? `Your $${amount.toFixed(2)} referral commission has been loaded directly into your ${gameName || 'game'} account (${payCommissionModal.gameUsername})!`
+            : `Your $${amount.toFixed(2)} referral commission payout has been processed and marked as paid!`,
+          category: 'referral',
+          action_url: payCommissionModal.loadToGame ? '/my-games' : '/earnings',
+        })
+      } catch (nErr) {
+        console.warn('Failed to send notification:', nErr)
+      }
+    },
+    onSuccess: () => {
+      toast.success('Commission payout successfully completed!')
+      setPayCommissionModal({ open: false, earning: null, gameId: '', gameUsername: '', loadToGame: true })
+      qc.invalidateQueries({ queryKey: ['admin-all-earnings'] })
+      qc.invalidateQueries({ queryKey: ['admin-all-referrals'] })
+      qc.invalidateQueries({ queryKey: ['game-point-balances'] })
+      qc.invalidateQueries({ queryKey: ['admin-orders'] })
+      qc.invalidateQueries({ queryKey: ['orders'] })
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to process commission payout'),
+  })
+
+  // Quick Mark Commission Paid Mutation
+  const quickMarkPaidMutation = useMutation({
+    mutationFn: async (earningId: string) => {
+      const { error } = await supabase
+        .from('referral_earnings')
+        .update({ status: 'paid' })
+        .eq('id', earningId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      toast.success('Commission marked as paid!')
+      qc.invalidateQueries({ queryKey: ['admin-all-earnings'] })
+      qc.invalidateQueries({ queryKey: ['admin-all-referrals'] })
+    },
+    onError: (e: any) => toast.error(e.message || 'Failed to mark as paid'),
   })
 
   // Update Referral Status mutation
@@ -515,33 +666,132 @@ export default function AdminReferralsPage() {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Referrals', value: (referrals as any[]).length, icon: Users, color: 'text-primary' },
-          { label: 'Qualified Referrals', value: qualifiedCount, icon: CheckCircle, color: 'text-neon-green' },
-          { 
-            label: isCommActive && !isCustomActive 
-              ? 'Commission Paid' 
-              : !isCommActive && isCustomActive 
-                ? 'Bonuses Awarded' 
-                : 'Total Rewards Paid', 
-            value: formatCurrency(totalAllPaid), 
-            icon: Gift, 
-            color: 'text-purple-400' 
-          },
-          { 
-            label: isCustomActive ? 'Custom Bonuses' : 'Pending Payout', 
-            value: isCustomActive ? formatCurrency(finalCustomBonusPaid) : formatCurrency(pendingPayout), 
-            icon: isCustomActive ? Sparkles : TrendingUp, 
-            color: 'text-neon-gold' 
-          },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="stat-card">
-            <Icon className={cn('h-5 w-5 mb-2', color)} />
-            <div className="stat-value">{value}</div>
-            <div className="stat-label">{label}</div>
-          </div>
-        ))}
+      <div className={cn(
+        'grid gap-4',
+        isCommActive && isCustomActive 
+          ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5' 
+          : 'grid-cols-2 lg:grid-cols-4'
+      )}>
+        {/* Card 1: Total Referrals */}
+        <div className="stat-card">
+          <Users className="h-5 w-5 mb-2 text-primary" />
+          <div className="stat-value">{(referrals as any[]).length}</div>
+          <div className="stat-label">Total Referrals</div>
+        </div>
+
+        {/* Card 2: Qualified Referrals */}
+        <div className="stat-card">
+          <CheckCircle className="h-5 w-5 mb-2 text-neon-green" />
+          <div className="stat-value">{qualifiedCount}</div>
+          <div className="stat-label">Qualified Referrals</div>
+        </div>
+
+        {/* When Dual Mode (Commission + Custom Bonus) */}
+        {isCommActive && isCustomActive && (
+          <>
+            {/* Card 3: Commission Earned */}
+            <div className="stat-card">
+              <TrendingUp className="h-5 w-5 mb-2 text-blue-400" />
+              <div className="stat-value text-blue-400">{formatCurrency(totalCommissionEarned)}</div>
+              <div className="stat-label">Commission Earned</div>
+              <div className="text-[10px] text-muted-foreground mt-1">
+                {formatCurrency(commissionPaid)} paid · {formatCurrency(commissionPending)} pending
+              </div>
+            </div>
+
+            {/* Card 4: Custom Bonuses */}
+            <div className="stat-card">
+              <Gift className="h-5 w-5 mb-2 text-purple-400" />
+              <div className="stat-value text-purple-400">{formatCurrency(finalCustomBonusPaid)}</div>
+              <div className="stat-label">Custom Bonuses</div>
+              <div className="text-[10px] text-muted-foreground mt-1">
+                Awarded directly to games
+              </div>
+            </div>
+
+            {/* Card 5: Pending Payout */}
+            <div className={cn(
+              'stat-card border',
+              totalPendingPayout > 0 ? 'border-neon-gold/40 bg-neon-gold/5' : 'border-border'
+            )}>
+              <Clock className={cn('h-5 w-5 mb-2', totalPendingPayout > 0 ? 'text-neon-gold animate-pulse' : 'text-muted-foreground')} />
+              <div className={cn('stat-value', totalPendingPayout > 0 ? 'text-neon-gold' : 'text-white')}>
+                {formatCurrency(totalPendingPayout)}
+              </div>
+              <div className="stat-label">Pending Payout</div>
+              <div className="text-[10px] text-muted-foreground mt-1">
+                {totalPendingPayout > 0 ? 'Commissions awaiting payout' : 'All clear — no pending'}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* When Commission Mode Only */}
+        {isCommActive && !isCustomActive && (
+          <>
+            <div className="stat-card">
+              <TrendingUp className="h-5 w-5 mb-2 text-blue-400" />
+              <div className="stat-value text-blue-400">{formatCurrency(totalCommissionEarned)}</div>
+              <div className="stat-label">Total Commission Earned</div>
+              <div className="text-[10px] text-muted-foreground mt-1">
+                {formatCurrency(commissionPaid)} paid out
+              </div>
+            </div>
+
+            <div className={cn(
+              'stat-card border',
+              totalPendingPayout > 0 ? 'border-neon-gold/40 bg-neon-gold/5' : 'border-border'
+            )}>
+              <Clock className={cn('h-5 w-5 mb-2', totalPendingPayout > 0 ? 'text-neon-gold animate-pulse' : 'text-muted-foreground')} />
+              <div className={cn('stat-value', totalPendingPayout > 0 ? 'text-neon-gold' : 'text-white')}>
+                {formatCurrency(totalPendingPayout)}
+              </div>
+              <div className="stat-label">Pending Payout</div>
+              <div className="text-[10px] text-muted-foreground mt-1">
+                {totalPendingPayout > 0 ? 'Awaiting payment to referrers' : 'All clear — no pending'}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* When Custom Bonus Mode Only */}
+        {!isCommActive && isCustomActive && (
+          <>
+            <div className="stat-card">
+              <Gift className="h-5 w-5 mb-2 text-neon-gold" />
+              <div className="stat-value text-neon-gold">{formatCurrency(finalCustomBonusPaid)}</div>
+              <div className="stat-label">Bonuses Awarded</div>
+              <div className="text-[10px] text-muted-foreground mt-1">
+                Loaded directly into games
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <Clock className="h-5 w-5 mb-2 text-neon-green" />
+              <div className="stat-value text-neon-green">$0.00</div>
+              <div className="stat-label">Pending Payout</div>
+              <div className="text-[10px] text-muted-foreground mt-1">
+                Direct awards have no pending balance
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* When Both Disabled */}
+        {!isCommActive && !isCustomActive && (
+          <>
+            <div className="stat-card opacity-50">
+              <TrendingUp className="h-5 w-5 mb-2 text-muted-foreground" />
+              <div className="stat-value text-muted-foreground">$0.00</div>
+              <div className="stat-label">System Disabled</div>
+            </div>
+            <div className="stat-card opacity-50">
+              <Clock className="h-5 w-5 mb-2 text-muted-foreground" />
+              <div className="stat-value text-muted-foreground">$0.00</div>
+              <div className="stat-label">Pending Payout</div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* ===== Manual Referral Assignment ===== */}
@@ -927,7 +1177,8 @@ export default function AdminReferralsPage() {
                 <th className="pb-3 pr-4">Reward</th>
                 <th className="pb-3 pr-4">Details</th>
                 <th className="pb-3 pr-4">Status</th>
-                <th className="pb-3">Date</th>
+                <th className="pb-3 pr-4">Date</th>
+                <th className="pb-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -967,11 +1218,43 @@ export default function AdminReferralsPage() {
                       <span className={cn('text-xs px-2 py-0.5 rounded-full border',
                         e.status === 'paid' ? 'bg-neon-green/20 text-neon-green border-neon-green/30' :
                         e.status === 'cancelled' ? 'bg-destructive/20 text-destructive border-destructive/30' :
-                        'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                        'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 font-medium'
                       )}>{e.status}</span>
                     </td>
-                    <td className="py-2.5 text-muted-foreground text-xs whitespace-nowrap">
+                    <td className="py-2.5 pr-4 text-muted-foreground text-xs whitespace-nowrap">
                       {formatRelativeTime(e.created_at)}
+                    </td>
+                    <td className="py-2.5 text-right">
+                      {e.status === 'pending' ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => {
+                              setPayCommissionModal({
+                                open: true,
+                                earning: e,
+                                gameId: '',
+                                gameUsername: '',
+                                loadToGame: true,
+                              })
+                            }}
+                            className="btn-ghost-neon text-xs px-2 py-1 text-neon-green border-neon-green/30 hover:bg-neon-green/10 flex items-center gap-1"
+                            title="Pay commission and load directly to customer's game"
+                          >
+                            <Zap className="h-3 w-3" />
+                            Pay / Load
+                          </button>
+                          <button
+                            onClick={() => quickMarkPaidMutation.mutate(e.id)}
+                            disabled={quickMarkPaidMutation.isPending}
+                            className="p-1 rounded text-muted-foreground hover:text-neon-green hover:bg-white/5 transition-colors"
+                            title="Quick Mark as Paid"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </td>
                   </tr>
                 )
@@ -1228,6 +1511,200 @@ export default function AdminReferralsPage() {
                     ) : (
                       <>
                         <Gift className="h-4 w-4" /> Award ${awardModal.amount}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ===== Pay Commission / Load to Game Modal ===== */}
+      {payCommissionModal.open && payCommissionModal.earning && (() => {
+        const earning = payCommissionModal.earning
+        const amount = parseFloat(earning.commission_amount) || 0
+        const selectedGameBalance = (pointBalances as any[]).find(p => p.game_id === payCommissionModal.gameId)
+        const selectedGameStock = selectedGameBalance ? selectedGameBalance.remaining_points : null
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+            <div className="glass-card p-6 max-w-md w-full border border-neon-green/40 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-neon-green" /> Pay Referral Commission
+                </h3>
+                <button
+                  onClick={() => setPayCommissionModal({ open: false, earning: null, gameId: '', gameUsername: '', loadToGame: true })}
+                  className="text-muted-foreground hover:text-white p-1 rounded-lg"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Details */}
+                <div className="p-3 rounded-xl bg-white/5 border border-border space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Recipient (Referrer):</span>
+                    <span className="font-bold text-white">
+                      {earning.user?.full_name || earning.user?.username || `${earning.user_id?.slice(0, 8)}…`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Commission Amount:</span>
+                    <span className="text-neon-green font-bold text-sm">
+                      {formatCurrency(amount)}
+                    </span>
+                  </div>
+                  {earning.source_order && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Source Load:</span>
+                      <span className="text-white">
+                        {formatCurrency(earning.deposit_amount)} ({earning.source_order?.game?.name || 'Game'})
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Direct Game Loading Option */}
+                <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Gamepad2 className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-semibold text-white">Load Directly to Customer's Game</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={payCommissionModal.loadToGame}
+                        onChange={(e) => setPayCommissionModal((m) => ({ ...m, loadToGame: e.target.checked }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-8 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                  </div>
+
+                  {payCommissionModal.loadToGame ? (
+                    <div className="space-y-3 pt-1 border-t border-border/50">
+                      {/* Game Selector */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                            Target Game
+                          </label>
+                          {selectedGameStock !== null && (
+                            <span className={cn(
+                              'text-[11px] font-mono font-bold',
+                              selectedGameStock >= amount ? 'text-neon-green' : 'text-destructive'
+                            )}>
+                              Stock: {selectedGameStock.toLocaleString()} pts
+                            </span>
+                          )}
+                        </div>
+                        <select
+                          value={payCommissionModal.gameId}
+                          onChange={(e) => {
+                            const newGameId = e.target.value
+                            const matched = (payCommissionCustomerGames as any[]).find(g => g.game_id === newGameId)
+                            setPayCommissionModal((m) => ({
+                              ...m,
+                              gameId: newGameId,
+                              gameUsername: matched ? matched.username : m.gameUsername,
+                            }))
+                          }}
+                          className="game-input w-full text-xs"
+                        >
+                          <option value="" disabled>Choose a game...</option>
+                          {(allGames as any[]).map((g) => {
+                            const bal = (pointBalances as any[]).find(p => p.game_id === g.id)
+                            const stock = bal ? bal.remaining_points : null
+                            const hasAcc = (payCommissionCustomerGames as any[]).some(rg => rg.game_id === g.id)
+                            return (
+                              <option key={g.id} value={g.id}>
+                                {g.name} {hasAcc ? '★ (Account Linked)' : ''} {stock !== null ? `— [Stock: ${stock.toLocaleString()} pts]` : ''}
+                              </option>
+                            )
+                          })}
+                        </select>
+                      </div>
+
+                      {/* Game Username / ID */}
+                      <div>
+                        <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                          Player Game Username / ID
+                        </label>
+                        <input
+                          type="text"
+                          value={payCommissionModal.gameUsername}
+                          onChange={(e) => setPayCommissionModal((m) => ({ ...m, gameUsername: e.target.value }))}
+                          placeholder="Enter player's game username"
+                          className="game-input w-full text-xs"
+                        />
+                        {(payCommissionCustomerGames as any[]).length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                            <span className="text-[10px] text-muted-foreground">Linked Accounts:</span>
+                            {(payCommissionCustomerGames as any[]).map((rg: any) => (
+                              <button
+                                key={rg.id}
+                                type="button"
+                                onClick={() => setPayCommissionModal((m) => ({
+                                  ...m,
+                                  gameId: rg.game_id,
+                                  gameUsername: rg.username,
+                                }))}
+                                className={cn(
+                                  'text-[10px] px-2 py-0.5 rounded-full border transition-colors',
+                                  payCommissionModal.gameId === rg.game_id && payCommissionModal.gameUsername === rg.username
+                                    ? 'bg-primary/20 border-primary text-primary font-bold'
+                                    : 'bg-white/5 border-border text-muted-foreground hover:text-white'
+                                )}
+                              >
+                                {rg.game?.name || 'Game'}: {rg.username}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Stock Notice */}
+                      <div className="p-2.5 rounded-lg bg-black/40 border border-primary/20 text-[11px] text-muted-foreground flex items-start gap-2">
+                        <TrendingUp className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <span>
+                          Loading will credit <strong>{amount} pts</strong> to <strong>{payCommissionModal.gameUsername || 'player account'}</strong> and automatically deduct <strong>{amount} pts</strong> from <strong>{selectedGameBalance?.game_name || 'the game'}</strong>'s point inventory.
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground pt-1 border-t border-border/50">
+                      Marking as paid without game load (e.g. payout processed via Cash App, Venmo, or cash).
+                    </p>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setPayCommissionModal({ open: false, earning: null, gameId: '', gameUsername: '', loadToGame: true })}
+                    className="btn-ghost-neon flex-1 text-xs py-2.5"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => payCommissionMutation.mutate()}
+                    disabled={payCommissionMutation.isPending || (payCommissionModal.loadToGame && (!payCommissionModal.gameId || !payCommissionModal.gameUsername.trim()))}
+                    className="btn-neon flex-1 text-xs py-2.5 flex items-center justify-center gap-1.5 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {payCommissionMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4" /> {payCommissionModal.loadToGame ? `Load ${formatCurrency(amount)} & Mark Paid` : `Mark ${formatCurrency(amount)} as Paid`}
                       </>
                     )}
                   </button>
