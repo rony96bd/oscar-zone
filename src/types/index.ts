@@ -246,19 +246,26 @@ export interface Referral {
   qualified_at: string | null
   created_at: string
   referred?: Profile
+  referrer?: Profile
+  custom_bonus_amount?: number | null
+  custom_bonus_status?: string | null
+  custom_bonus_note?: string | null
+  custom_bonus_awarded_at?: string | null
 }
 
 export interface ReferralEarning {
   id: string
   user_id: string
   referral_id: string
-  source_order_id: string
-  deposit_amount: number
-  commission_percentage: number
+  source_order_id?: string | null
+  deposit_amount?: number
+  commission_percentage?: number
   commission_amount: number
-  level: number
+  level?: number
   status: 'pending' | 'paid' | 'cancelled'
   created_at: string
+  earning_type?: 'commission' | 'custom_bonus'
+  notes?: string | null
   referral?: Referral
   source_order?: Order
 }
@@ -335,6 +342,8 @@ export interface ReferralStats {
   pending_referrals: number
   total_earnings: number
   pending_earnings: number
+  total_commission_earnings?: number
+  total_custom_bonus_earnings?: number
   current_level: number
   current_commission_pct: number
 }

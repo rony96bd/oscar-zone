@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/authStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { fetchReferralStats, fetchReferralLevels, fetchReferrals, fetchEarnings } from '@/services/referrals'
 import {
   Copy, CheckCircle, TrendingUp, Users, Gift, Share2,
-  QrCode, ExternalLink, Send, ChevronRight, Trophy, Clock
+  ExternalLink, Send, ChevronRight, Trophy, Clock, Sparkles, AlertCircle
 } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { formatCurrency, generateReferralUrl, copyToClipboard, formatRelativeTime } from '@/lib/utils'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -13,8 +14,19 @@ import { QRCodeSVG } from 'qrcode.react'
 
 export default function EarningsPage() {
   const { profile } = useAuthStore()
+  const { referralCommissionEnabled, referralCustomBonusEnabled } = useSettingsStore()
   const [copied, setCopied] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'referrals' | 'earnings'>('overview')
+
+  // Default tab depends on whether commission system is enabled
+  const [activeTab, setActiveTab] = useState<'overview' | 'referrals' | 'earnings'>(
+    referralCommissionEnabled ? 'overview' : 'referrals'
+  )
+
+  useEffect(() => {
+    if (!referralCommissionEnabled && activeTab === 'overview') {
+      setActiveTab('referrals')
+    }
+  }, [referralCommissionEnabled, activeTab])
 
   const { data: stats } = useQuery({
     queryKey: ['referral-stats', profile?.id],
@@ -25,6 +37,7 @@ export default function EarningsPage() {
   const { data: levels = [] } = useQuery({
     queryKey: ['referral-levels'],
     queryFn: fetchReferralLevels,
+    enabled: referralCommissionEnabled,
   })
 
   const { data: referralHistory = [] } = useQuery({
@@ -63,10 +76,10 @@ export default function EarningsPage() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
   const thisMonthEarnings = (earningsHistory as any[])
     .filter((e: any) => e.created_at >= startOfMonth && e.status !== 'cancelled')
-    .reduce((sum: number, e: any) => sum + parseFloat(e.commission_amount), 0)
+    .reduce((sum: number, e: any) => sum + (parseFloat(e.commission_amount) || 0), 0)
 
   const shareVia = (platform: string) => {
-    const msg = `Join Oscar Zone with my referral link and get bonuses on your game loads! ${referralUrl}`
+    const msg = `Join our platform with my referral link and get extra bonuses on your game loads! ${referralUrl}`
     const urls: Record<string, string> = {
       telegram: `https://t.me/share/url?url=${encodeURIComponent(referralUrl)}&text=${encodeURIComponent(msg)}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralUrl)}`,
@@ -82,51 +95,106 @@ export default function EarningsPage() {
   }
   const levelColor = levelColors[currentLevel?.level || 0] || 'from-primary/20 to-primary/5 border-primary/30 text-primary'
 
+  const isProgramActive = referralCommissionEnabled || referralCustomBonusEnabled
+
+  if (!isProgramActive) {
+    return (
+      <div className="container mx-auto px-4 py-16 max-w-xl text-center">
+        <div className="glass-card p-8">
+          <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h1 className="text-xl font-bold text-white mb-2">Referral Program Currently Inactive</h1>
+          <p className="text-sm text-muted-foreground">
+            The referral rewards program is temporarily closed for updates. Please check back later or contact support if you have questions.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 pb-24 lg:pb-8 max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-gaming font-bold text-gradient-white">Earnings & Referrals</h1>
-        <p className="text-muted-foreground text-sm mt-1">Earn lifetime commissions by referring friends</p>
+        <h1 className="text-2xl font-gaming font-bold text-gradient-white">
+          {referralCommissionEnabled ? 'Earnings & Referrals' : 'Referral Rewards'}
+        </h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          {referralCommissionEnabled 
+            ? 'Earn lifetime commissions by referring friends' 
+            : 'Earn cash bonuses when your referred friends join and play'}
+        </p>
       </div>
 
-      {/* Level Card */}
-      <div className={cn('relative overflow-hidden rounded-2xl p-6 mb-6 border bg-gradient-to-br', levelColor)}>
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest opacity-70 mb-1">Current Level</p>
-            <h2 className="text-2xl font-gaming font-bold text-white">
-              {currentLevel ? `Level ${currentLevel.level} — ${currentLevel.label.toUpperCase()}` : 'Not Yet Ranked'}
-            </h2>
-            <p className="text-sm opacity-80 mt-1">
-              {qualifiedCount} / {progressMax} Qualified Referrals
-            </p>
+      {/* Top Banner / Hero Card */}
+      {referralCommissionEnabled ? (
+        /* Commission Tier Mode Card */
+        <div className={cn('relative overflow-hidden rounded-2xl p-6 mb-6 border bg-gradient-to-br', levelColor)}>
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest opacity-70 mb-1">Current Level</p>
+              <h2 className="text-2xl font-gaming font-bold text-white">
+                {currentLevel ? `Level ${currentLevel.level} — ${currentLevel.label.toUpperCase()}` : 'Not Yet Ranked'}
+              </h2>
+              <p className="text-sm opacity-80 mt-1">
+                {qualifiedCount} / {progressMax} Qualified Referrals
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs opacity-70">Commission</p>
+              <p className="text-3xl font-gaming font-bold">{currentLevel?.commission_percentage || 0}%</p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-xs opacity-70">Commission</p>
-            <p className="text-3xl font-gaming font-bold">{currentLevel?.commission_percentage || 0}%</p>
+          {/* Progress Bar */}
+          <div className="h-2 bg-black/30 rounded-full mb-2 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${progress}%`, background: 'currentColor', opacity: 0.8 }}
+            />
+          </div>
+          {nextLevel ? (
+            <p className="text-xs opacity-70">{nextLevel.min_referrals - qualifiedCount} more referrals to Level {nextLevel.level} ({nextLevel.commission_percentage}%)</p>
+          ) : (
+            <p className="text-xs opacity-70">🏆 Maximum level achieved!</p>
+          )}
+        </div>
+      ) : (
+        /* Custom Bonus Mode Hero Card */
+        <div className="relative overflow-hidden rounded-2xl p-6 mb-6 border border-neon-gold/40 bg-gradient-to-br from-neon-gold/20 via-neon-gold/10 to-transparent">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-neon-gold/20 border border-neon-gold/30 text-neon-gold text-[11px] font-bold uppercase tracking-wider mb-2">
+                <Sparkles className="h-3 w-3" /> Direct Bonus Rewards
+              </div>
+              <h2 className="text-2xl font-gaming font-bold text-white flex items-center gap-2">
+                <Gift className="h-6 w-6 text-neon-gold" /> Referral Cash Bonuses
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                Invite friends with your referral link. When they register and make their first load, our team credits cash bonuses directly to you!
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Earned</p>
+              <p className="text-3xl font-gaming font-bold text-neon-gold">
+                {formatCurrency(stats?.total_custom_bonus_earnings ?? stats?.total_earnings ?? 0)}
+              </p>
+            </div>
           </div>
         </div>
-        {/* Progress Bar */}
-        <div className="h-2 bg-black/30 rounded-full mb-2 overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-700"
-            style={{ width: `${progress}%`, background: 'currentColor', opacity: 0.8 }}
-          />
-        </div>
-        {nextLevel ? (
-          <p className="text-xs opacity-70">{nextLevel.min_referrals - qualifiedCount} more referrals to Level {nextLevel.level} ({nextLevel.commission_percentage}%)</p>
-        ) : (
-          <p className="text-xs opacity-70">🏆 Maximum level achieved!</p>
-        )}
-      </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
           { label: 'Total Referrals', value: stats?.total_referrals || 0, icon: Users, color: 'text-primary' },
           { label: 'Qualified', value: qualifiedCount, icon: CheckCircle, color: 'text-neon-green' },
-          { label: 'Commission Rate', value: `${currentLevel?.commission_percentage || 0}%`, icon: TrendingUp, color: 'text-neon-gold' },
-          { label: 'Total Earned', value: formatCurrency(stats?.total_earnings || 0), icon: Gift, color: 'text-purple-400' },
+          ...(referralCommissionEnabled ? [
+            { label: 'Commission Rate', value: `${currentLevel?.commission_percentage || 0}%`, icon: TrendingUp, color: 'text-neon-gold' },
+            { label: 'Total Earned', value: formatCurrency(stats?.total_earnings || 0), icon: Gift, color: 'text-purple-400' },
+          ] : [
+            { label: 'Total Bonus Earned', value: formatCurrency(stats?.total_custom_bonus_earnings ?? stats?.total_earnings ?? 0), icon: Gift, color: 'text-neon-gold' },
+            { label: 'Pending Rewards', value: formatCurrency(stats?.pending_earnings || 0), icon: Clock, color: 'text-purple-400' },
+          ]),
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="stat-card">
             <Icon className={cn('h-5 w-5 mb-2', color)} />
@@ -153,7 +221,7 @@ export default function EarningsPage() {
         <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
           <Share2 className="h-4 w-4 text-primary" /> Your Referral Link
         </h2>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="flex gap-2 mb-3">
               <div className="flex-1 bg-game-darker border border-border rounded-xl px-3 py-2.5 font-mono text-xs text-muted-foreground truncate">
@@ -167,7 +235,7 @@ export default function EarningsPage() {
               Code: <span className="font-mono text-primary font-bold">{profile?.referral_code}</span>
             </p>
             {/* Share Buttons */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => shareVia('telegram')}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0088cc]/20 border border-[#0088cc]/30 text-[#0088cc] text-xs hover:bg-[#0088cc]/30 transition-colors"
@@ -189,18 +257,16 @@ export default function EarningsPage() {
             </div>
           </div>
           {/* QR Code */}
-          <div className="flex-shrink-0 flex flex-col items-center gap-2 bg-white p-3 rounded-xl border border-white/20">
+          <div className="flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-white p-3 rounded-xl border border-white/20 self-center sm:self-auto">
             <QRCodeSVG 
               value={referralUrl} 
-              size={120} 
+              size={110} 
               level="H"
               includeMargin={false}
               fgColor="#000000"
               bgColor="#ffffff"
             />
-            <div className="text-center mt-1">
-              <p className="text-[11px] font-bold text-black uppercase tracking-wider">@{profile?.username || 'User'}</p>
-            </div>
+            <p className="text-[10px] font-bold text-black uppercase tracking-wider">@{profile?.username || 'User'}</p>
           </div>
         </div>
       </div>
@@ -209,10 +275,10 @@ export default function EarningsPage() {
       <div className="glass-card">
         <div className="flex border-b border-border">
           {[
-            { key: 'overview', label: 'Level Info' },
+            ...(referralCommissionEnabled ? [{ key: 'overview', label: 'Level Info' }] : []),
             { key: 'referrals', label: `Referrals (${(referralHistory as any[]).length})` },
-            { key: 'earnings', label: `Earnings (${(earningsHistory as any[]).length})` },
-          ].map(tab => (
+            { key: 'earnings', label: referralCommissionEnabled ? `Earnings (${(earningsHistory as any[]).length})` : `Reward History (${(earningsHistory as any[]).length})` },
+          ].map((tab: any) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
@@ -227,8 +293,8 @@ export default function EarningsPage() {
         </div>
 
         <div className="p-4">
-          {/* Level Info Tab */}
-          {activeTab === 'overview' && (
+          {/* Level Info Tab (Only when Commission system is ON) */}
+          {referralCommissionEnabled && activeTab === 'overview' && (
             <div className="space-y-3">
               {(levels as any[]).map((level: any) => (
                 <div
@@ -267,65 +333,103 @@ export default function EarningsPage() {
                   <p className="text-sm">No referrals yet. Share your link to get started!</p>
                 </div>
               ) : (
-                (referralHistory as any[]).map((ref: any) => (
-                  <div key={ref.id} className="flex items-center justify-between p-3 rounded-xl bg-white/3 border border-border">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-xl bg-primary/20 flex items-center justify-center">
-                        <span className="text-sm font-bold text-primary">
-                          {(ref.referred?.full_name || ref.referred?.username || '?').charAt(0).toUpperCase()}
+                (referralHistory as any[]).map((ref: any) => {
+                  const bonus = ref.custom_bonus_amount ? parseFloat(ref.custom_bonus_amount) : 0
+                  return (
+                    <div key={ref.id} className="flex items-center justify-between p-3 rounded-xl bg-white/3 border border-border">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-xl bg-primary/20 flex items-center justify-center">
+                          <span className="text-sm font-bold text-primary">
+                            {(ref.referred?.full_name || ref.referred?.username || '?').charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-white">{ref.referred?.full_name || ref.referred?.username || 'Unknown'}</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> {formatRelativeTime(ref.created_at)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {bonus > 0 && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-neon-gold/20 text-neon-gold border border-neon-gold/30 font-bold">
+                            +{formatCurrency(bonus)}
+                          </span>
+                        )}
+                        <span className={cn(
+                          'text-xs px-2.5 py-1 rounded-full font-semibold border',
+                          ref.status === 'qualified' ? 'bg-neon-green/20 text-neon-green border-neon-green/30' :
+                          ref.status === 'disqualified' ? 'bg-destructive/20 text-destructive border-destructive/30' :
+                          'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                        )}>
+                          {ref.status}
                         </span>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-white">{ref.referred?.full_name || ref.referred?.username || 'Unknown'}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> {formatRelativeTime(ref.created_at)}
-                        </p>
-                      </div>
                     </div>
-                    <span className={cn(
-                      'text-xs px-2.5 py-1 rounded-full font-semibold border',
-                      ref.status === 'qualified' ? 'bg-neon-green/20 text-neon-green border-neon-green/30' :
-                      ref.status === 'disqualified' ? 'bg-destructive/20 text-destructive border-destructive/30' :
-                      'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                    )}>
-                      {ref.status}
-                    </span>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
           )}
 
-          {/* Earnings Tab */}
+          {/* Earnings / Rewards History Tab */}
           {activeTab === 'earnings' && (
             <div className="space-y-2">
               {(earningsHistory as any[]).length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Gift className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No earnings yet. Qualify referrals to start earning commissions!</p>
+                  <p className="text-sm">
+                    {referralCommissionEnabled 
+                      ? 'No earnings yet. Qualify referrals to start earning commissions!'
+                      : 'No rewards yet. Refer friends to start earning bonus rewards!'}
+                  </p>
                 </div>
               ) : (
-                (earningsHistory as any[]).map((earning: any) => (
-                  <div key={earning.id} className="p-3 rounded-xl bg-white/3 border border-border">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm font-medium text-white">
-                        {earning.referral?.referred?.full_name || earning.referral?.referred?.username || 'Unknown'} — {earning.source_order?.game?.name}
-                      </p>
-                      <span className="text-sm font-bold text-neon-green">+{formatCurrency(earning.commission_amount)}</span>
+                (earningsHistory as any[]).map((earning: any) => {
+                  const isCustom = earning.earning_type === 'custom_bonus'
+                  return (
+                    <div key={earning.id} className="p-3 rounded-xl bg-white/3 border border-border">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          {isCustom ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-neon-gold/20 text-neon-gold border border-neon-gold/30 font-bold">
+                              Bonus
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 font-bold">
+                              Commission
+                            </span>
+                          )}
+                          <p className="text-sm font-medium text-white">
+                            {isCustom 
+                              ? (earning.notes || 'Referral Bonus Awarded')
+                              : `${earning.referral?.referred?.full_name || earning.referral?.referred?.username || 'Referral'} — ${earning.source_order?.game?.name || 'Game Load'}`
+                            }
+                          </p>
+                        </div>
+                        <span className="text-sm font-bold text-neon-green">+{formatCurrency(earning.commission_amount)}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
+                        <span>
+                          {isCustom 
+                            ? 'Awarded directly by admin'
+                            : `Load: ${formatCurrency(earning.deposit_amount)} × ${earning.commission_percentage}% (Level ${earning.level})`
+                          }
+                        </span>
+                        <span className={cn(
+                          'px-2 py-0.5 rounded-full border',
+                          earning.status === 'paid' ? 'bg-neon-green/10 text-neon-green border-neon-green/20' :
+                          'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                        )}>
+                          {earning.status}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1">{formatRelativeTime(earning.created_at)}</p>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Load: {formatCurrency(earning.deposit_amount)} × {earning.commission_percentage}% (Level {earning.level})</span>
-                      <span className={cn(
-                        'px-2 py-0.5 rounded-full border',
-                        earning.status === 'paid' ? 'bg-neon-green/10 text-neon-green border-neon-green/20' :
-                        'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-                      )}>
-                        {earning.status}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">{formatRelativeTime(earning.created_at)}</p>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
           )}

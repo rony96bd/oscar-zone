@@ -20,6 +20,9 @@ interface SettingsState {
   freePlayMode: 'deposit_based' | 'daily_limit'
   freePlayDailyLimit: number
   freePlayDepositRequirement: number
+  referralCommissionEnabled: boolean
+  referralCustomBonusEnabled: boolean
+  referralDefaultCustomBonus: number
   publicNavMenus: Record<string, boolean>
   customerNavMenus: Record<string, boolean>
   isLoading: boolean
@@ -33,6 +36,7 @@ interface SettingsState {
   updateTickerVisibilities: (cashin: boolean, cashout: boolean) => void
   updateFreePlaySettings: (mode: 'deposit_based' | 'daily_limit', dailyLimit: number, depositRequirement: number) => void
   updateNavMenuSettings: (publicMenus: Record<string, boolean>, customerMenus: Record<string, boolean>) => void
+  updateReferralModeSettings: (commissionEnabled: boolean, customBonusEnabled: boolean, defaultCustomBonus: number) => Promise<void>
 }
 
 export const DEFAULT_PUBLIC_NAV_MENUS: Record<string, boolean> = {
@@ -80,6 +84,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   freePlayMode: 'deposit_based',
   freePlayDailyLimit: 1,
   freePlayDepositRequirement: 10,
+  referralCommissionEnabled: true,
+  referralCustomBonusEnabled: true,
+  referralDefaultCustomBonus: 10,
   publicNavMenus: DEFAULT_PUBLIC_NAV_MENUS,
   customerNavMenus: DEFAULT_CUSTOMER_NAV_MENUS,
   isLoading: true,
@@ -133,6 +140,24 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         const fpMode = data.find(d => d.key === 'free_play_mode')?.value
         const fpDailyLimit = data.find(d => d.key === 'free_play_daily_limit')?.value
         const fpDepositReq = data.find(d => d.key === 'free_play_deposit_requirement')?.value
+
+        const refComm = data.find(d => d.key === 'referral_commission_enabled')?.value
+        const refCustom = data.find(d => d.key === 'referral_custom_bonus_enabled')?.value
+        const refDefaultBonus = data.find(d => d.key === 'referral_default_custom_bonus')?.value
+
+        let parsedCommission = true
+        if (refComm !== undefined) {
+          const cleanRefComm = cleanValue(refComm)
+          parsedCommission = cleanRefComm === 'true' || cleanRefComm === true
+        }
+
+        let parsedCustomBonus = true
+        if (refCustom !== undefined) {
+          const cleanRefCustom = cleanValue(refCustom)
+          parsedCustomBonus = cleanRefCustom === 'true' || cleanRefCustom === true
+        }
+
+        const parsedDefaultBonus = refDefaultBonus ? Math.max(1, parseFloat(cleanValue(refDefaultBonus)) || 10) : 10
 
         const pMenusSetting = data.find(d => d.key === 'public_nav_menus')?.value
         const cMenusSetting = data.find(d => d.key === 'customer_nav_menus')?.value
@@ -209,6 +234,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           freePlayMode: parsedFpMode,
           freePlayDailyLimit: parsedDailyLimit,
           freePlayDepositRequirement: parsedDepositReq,
+          referralCommissionEnabled: parsedCommission,
+          referralCustomBonusEnabled: parsedCustomBonus,
+          referralDefaultCustomBonus: parsedDefaultBonus,
           publicNavMenus: parsedPublicMenus,
           customerNavMenus: parsedCustomerMenus,
           isLoading: false 
@@ -286,6 +314,20 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     set({
       publicNavMenus: publicMenus,
       customerNavMenus: customerMenus,
+    })
+  },
+
+  updateReferralModeSettings: async (commissionEnabled: boolean, customBonusEnabled: boolean, defaultCustomBonus: number) => {
+    await supabase.from('system_settings').upsert([
+      { key: 'referral_commission_enabled', value: String(commissionEnabled), updated_at: new Date().toISOString() },
+      { key: 'referral_custom_bonus_enabled', value: String(customBonusEnabled), updated_at: new Date().toISOString() },
+      { key: 'referral_default_custom_bonus', value: String(defaultCustomBonus), updated_at: new Date().toISOString() },
+    ], { onConflict: 'key' })
+
+    set({
+      referralCommissionEnabled: commissionEnabled,
+      referralCustomBonusEnabled: customBonusEnabled,
+      referralDefaultCustomBonus: defaultCustomBonus,
     })
   }
 }))

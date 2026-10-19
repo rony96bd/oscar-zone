@@ -2,9 +2,10 @@ import { useQuery } from "@tanstack/react-query"
 import { Link, useNavigate } from "react-router-dom"
 import {
   Zap, ShoppingBag, Users, TrendingUp, ArrowDownToLine, MessageCircle, Gamepad2,
-  ChevronRight, CheckCircle, Trophy, Copy, Share2, ArrowRight
+  ChevronRight, CheckCircle, Trophy, Copy, Share2, ArrowRight, Gift, Sparkles
 } from "lucide-react"
 import { useAuthStore } from "@/stores/authStore"
+import { useSettingsStore } from "@/stores/settingsStore"
 import { fetchCustomerGames } from "@/services/games"
 import { fetchCustomerOrders } from "@/services/orders"
 import { fetchActivePromotions } from "@/services/promotions"
@@ -92,6 +93,9 @@ export default function DashboardPage() {
   }
   const lc = levelColors[currentLevel?.level || 0] || { border: "border-primary/30", bg: "bg-primary/10", text: "text-primary", bar: "bg-primary" }
 
+  const { referralCommissionEnabled, referralCustomBonusEnabled } = useSettingsStore()
+  const isReferralProgramActive = referralCommissionEnabled || referralCustomBonusEnabled
+
   return (
     <div className="container mx-auto px-4 py-8 pb-24 lg:pb-8 max-w-3xl">
 
@@ -154,69 +158,111 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* === REFERRAL LEVEL CARD === */}
-      <div className={cn("relative overflow-hidden rounded-2xl p-5 mb-6 border", lc.border, lc.bg)}>
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <p className={cn("text-xs font-bold uppercase tracking-widest mb-1 opacity-70", lc.text)}>Referral Level</p>
-            <h2 className="text-xl font-gaming font-bold text-white">
-              {currentLevel ? `Level ${currentLevel.level} — ${currentLevel.label}` : "Not Ranked Yet"}
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {qualifiedCount} qualified referral{qualifiedCount !== 1 ? "s" : ""}
-            </p>
-          </div>
-          <div className="text-right">
-            <Trophy className={cn("h-5 w-5 mb-1 ml-auto", lc.text)} />
-            <p className={cn("text-2xl font-gaming font-bold", lc.text)}>{currentLevel?.commission_percentage || 0}%</p>
-            <p className="text-xs text-muted-foreground">commission</p>
-          </div>
-        </div>
+      {/* === REFERRAL SECTION === */}
+      {isReferralProgramActive && (
+        <>
+          {referralCommissionEnabled ? (
+            /* === CASE 1: COMMISSION SYSTEM IS ACTIVE === */
+            <div className={cn("relative overflow-hidden rounded-2xl p-5 mb-6 border", lc.border, lc.bg)}>
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className={cn("text-xs font-bold uppercase tracking-widest mb-1 opacity-70", lc.text)}>Referral Level</p>
+                  <h2 className="text-xl font-gaming font-bold text-white">
+                    {currentLevel ? `Level ${currentLevel.level} — ${currentLevel.label}` : "Not Ranked Yet"}
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {qualifiedCount} qualified referral{qualifiedCount !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <Trophy className={cn("h-5 w-5 mb-1 ml-auto", lc.text)} />
+                  <p className={cn("text-2xl font-gaming font-bold", lc.text)}>{currentLevel?.commission_percentage || 0}%</p>
+                  <p className="text-xs text-muted-foreground">commission</p>
+                </div>
+              </div>
 
-        {/* Progress bar */}
-        <div className="h-1.5 bg-black/30 rounded-full overflow-hidden mb-1.5">
-          <div
-            className={cn("h-full rounded-full transition-all duration-700", lc.bar)}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            {nextLevel
-              ? `${nextLevel.min_referrals - qualifiedCount} more to Level ${nextLevel.level} (${nextLevel.commission_percentage}%)`
-              : qualifiedCount > 0 ? "🏆 Max level reached!" : "Refer friends to start ranking up!"}
-          </p>
-          <Link to="/earnings" className={cn("text-xs flex items-center gap-1 font-medium", lc.text)}>
-            View Details <ChevronRight className="h-3 w-3" />
-          </Link>
-        </div>
-      </div>
+              {/* Progress bar */}
+              <div className="h-1.5 bg-black/30 rounded-full overflow-hidden mb-1.5">
+                <div
+                  className={cn("h-full rounded-full transition-all duration-700", lc.bar)}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  {nextLevel
+                    ? `${nextLevel.min_referrals - qualifiedCount} more to Level ${nextLevel.level} (${nextLevel.commission_percentage}%)`
+                    : qualifiedCount > 0 ? "🏆 Max level reached!" : "Refer friends to start ranking up!"}
+                </p>
+                <Link to="/earnings" className={cn("text-xs flex items-center gap-1 font-medium", lc.text)}>
+                  View Details <ChevronRight className="h-3 w-3" />
+                </Link>
+              </div>
+            </div>
+          ) : (
+            /* === CASE 2: COMMISSION SYSTEM IS OFF, CUSTOM BONUS IS ACTIVE === */
+            <div className="relative overflow-hidden rounded-2xl p-5 mb-6 border border-neon-gold/40 bg-neon-gold/10">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest mb-1 opacity-70 text-neon-gold">Referral Rewards</p>
+                  <h2 className="text-xl font-gaming font-bold text-white flex items-center gap-2">
+                    <Gift className="h-5 w-5 text-neon-gold" /> Referral Bonuses
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {qualifiedCount} qualified referral{qualifiedCount !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <Sparkles className="h-5 w-5 mb-1 ml-auto text-neon-gold" />
+                  <p className="text-2xl font-gaming font-bold text-neon-gold">
+                    {formatCurrency(referralStats?.total_custom_bonus_earnings ?? referralStats?.total_earnings ?? 0)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">total bonus earned</p>
+                </div>
+              </div>
 
-      {/* === REFERRAL QUICK SHARE === */}
-      <div className="glass-card p-5 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Share2 className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold text-white text-sm">Refer & Earn</h2>
-          <span className="text-xs text-muted-foreground ml-1">— Earn {currentLevel?.commission_percentage || 2}% on every load</span>
-        </div>
-        <div className="flex gap-2">
-          <div className="flex-1 bg-game-darker border border-border rounded-xl px-3 py-2.5 font-mono text-xs text-muted-foreground truncate">
-            {referralUrl}
+              <div className="flex items-center justify-between pt-3 border-t border-neon-gold/20">
+                <p className="text-xs text-muted-foreground">
+                  Invite friends to play and receive direct cash bonuses on your account!
+                </p>
+                <Link to="/earnings" className="text-xs flex items-center gap-1 font-medium text-neon-gold whitespace-nowrap ml-3 hover:underline">
+                  View Rewards <ChevronRight className="h-3 w-3" />
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* === REFERRAL QUICK SHARE === */}
+          <div className="glass-card p-5 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Share2 className="h-4 w-4 text-primary" />
+              <h2 className="font-semibold text-white text-sm">Refer & Earn</h2>
+              <span className="text-xs text-muted-foreground ml-1">
+                {referralCommissionEnabled 
+                  ? `— Earn ${currentLevel?.commission_percentage || 2}% on every load` 
+                  : '— Earn cash bonuses for every friend you invite'}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1 bg-game-darker border border-border rounded-xl px-3 py-2.5 font-mono text-xs text-muted-foreground truncate">
+                {referralUrl}
+              </div>
+              <button onClick={handleCopy} className="btn-neon px-3 py-2.5 flex-shrink-0 text-xs gap-1.5">
+                {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-xs text-muted-foreground">
+                Code: <span className="font-mono text-primary font-bold">{profile?.referral_code}</span>
+              </p>
+              <Link to="/earnings" className="text-xs text-primary flex items-center gap-0.5 hover:text-primary/80">
+                Full details <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
           </div>
-          <button onClick={handleCopy} className="btn-neon px-3 py-2.5 flex-shrink-0 text-xs gap-1.5">
-            {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? "Copied!" : "Copy"}
-          </button>
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-xs text-muted-foreground">
-            Code: <span className="font-mono text-primary font-bold">{profile?.referral_code}</span>
-          </p>
-          <Link to="/earnings" className="text-xs text-primary flex items-center gap-0.5 hover:text-primary/80">
-            Full dashboard <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* === MY GAMES === */}
       <section className="mb-6">

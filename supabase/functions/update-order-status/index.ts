@@ -1,4 +1,4 @@
-﻿import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -127,12 +127,15 @@ serve(async (req) => {
     const processReferral = async () => {
       try {
         const [settingsRes, customerProfileRes] = await Promise.all([
-          supabase.from('system_settings').select('key, value').in('key', ['referral_min_load_amount']),
+          supabase.from('system_settings').select('key, value').in('key', ['referral_min_load_amount', 'referral_commission_enabled']),
           supabase.from('profiles').select('id, referred_by').eq('id', order.user_id).single()
         ])
 
         const minLoadRaw = settingsRes.data?.find(s => s.key === 'referral_min_load_amount')?.value
         const minLoadAmount = parseFloat(typeof minLoadRaw === 'string' ? minLoadRaw.replace(/"/g, '') : String(minLoadRaw ?? '5'))
+        const commissionEnabledRaw = settingsRes.data?.find(s => s.key === 'referral_commission_enabled')?.value
+        const isCommissionEnabled = commissionEnabledRaw === undefined || commissionEnabledRaw === 'true' || commissionEnabledRaw === true || commissionEnabledRaw === '"true"'
+
         const orderAmount = parseFloat(order.base_amount) || 0
         const meetsMinLoad = orderAmount >= minLoadAmount
         const referrerId = customerProfileRes.data?.referred_by
@@ -156,7 +159,9 @@ serve(async (req) => {
                 supabase.from('notifications').insert({
                   user_id: referrerId,
                   title: '🎉 New Qualified Referral!',
-                  message: `${referredProfile?.full_name || referredProfile?.username || 'A user'} you referred just completed their first qualifying load! You earned a referral commission.`,
+                  message: isCommissionEnabled
+                    ? `${referredProfile?.full_name || referredProfile?.username || 'A user'} you referred just completed their first qualifying load! You earned a referral commission.`
+                    : `${referredProfile?.full_name || referredProfile?.username || 'A user'} you referred just completed their first qualifying load!`,
                   category: 'referral',
                   action_url: '/earnings',
                 })
@@ -164,7 +169,7 @@ serve(async (req) => {
               await Promise.all(qualifyPromises)
             }
 
-            if (isNowQualified) {
+            if (isNowQualified && isCommissionEnabled) {
               const [qualifiedReferralsRes, levelsRes] = await Promise.all([
                 supabase.from('referrals').select('id', { count: 'exact' }).eq('referrer_id', referrerId).eq('status', 'qualified'),
                 supabase.from('referral_levels').select('*').order('level')
