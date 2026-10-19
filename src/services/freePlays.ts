@@ -9,47 +9,75 @@ export interface FreePlayEligibility {
   depositRequirement: number
   dailyLimit: number
   requestsToday: number
+  isCustomLimit?: boolean
+  isRestricted?: boolean
 }
 
 export async function checkFreePlayEligibility(userId: string): Promise<FreePlayEligibility> {
-  // 1. Fetch system settings for free play
+  // 1. Fetch user's profile to check for customer-level custom_free_play_limit
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('custom_free_play_limit')
+    .eq('id', userId)
+    .maybeSingle();
+
+  const customLimit = userProfile?.custom_free_play_limit;
+  const hasCustomLimit = customLimit !== null && customLimit !== undefined;
+
+  // 2. Fetch system settings for free play
   const { data: settingsData } = await supabase
     .from('system_settings')
     .select('key, value')
-    .in('key', ['free_play_mode', 'free_play_daily_limit', 'free_play_deposit_requirement'])
+    .in('key', ['free_play_mode', 'free_play_daily_limit', 'free_play_deposit_requirement']);
 
   const cleanVal = (val: any) => {
     if (typeof val === 'string' && val.startsWith('"') && val.endsWith('"')) {
-      return val.slice(1, -1)
+      return val.slice(1, -1);
     }
-    return val
-  }
+    return val;
+  };
 
-  const rawMode = settingsData?.find(s => s.key === 'free_play_mode')?.value
-  const mode: 'deposit_based' | 'daily_limit' = cleanVal(rawMode) === 'daily_limit' ? 'daily_limit' : 'deposit_based'
-  const rawDailyLimit = settingsData?.find(s => s.key === 'free_play_daily_limit')?.value
-  const dailyLimit = Math.max(1, parseInt(cleanVal(rawDailyLimit) || '1', 10) || 1)
-  const rawDepositReq = settingsData?.find(s => s.key === 'free_play_deposit_requirement')?.value
-  const depositRequirement = Math.max(1, parseFloat(cleanVal(rawDepositReq) || '10') || 10)
+  const rawMode = settingsData?.find(s => s.key === 'free_play_mode')?.value;
+  const globalMode: 'deposit_based' | 'daily_limit' = cleanVal(rawMode) === 'daily_limit' ? 'daily_limit' : 'deposit_based';
+  const rawDailyLimit = settingsData?.find(s => s.key === 'free_play_daily_limit')?.value;
+  const globalDailyLimit = Math.max(1, parseInt(cleanVal(rawDailyLimit) || '1', 10) || 1);
+  const rawDepositReq = settingsData?.find(s => s.key === 'free_play_deposit_requirement')?.value;
+  const depositRequirement = Math.max(1, parseFloat(cleanVal(rawDepositReq) || '10') || 10);
 
-  if (mode === 'daily_limit') {
-    // Count how many non-rejected requests user created today
-    const startOfToday = new Date()
-    startOfToday.setHours(0, 0, 0, 0)
-    const startOfTodayISO = startOfToday.toISOString()
+  // If customer has a custom daily limit assigned, it overrides the global mode & daily limit
+  if (hasCustomLimit) {
+    const effectiveDailyLimit = Math.max(0, parseInt(customLimit as any, 10));
+
+    if (effectiveDailyLimit === 0) {
+      return {
+        mode: 'daily_limit',
+        eligible: false,
+        remainingCount: 0,
+        currentSum: 0,
+        depositRequirement,
+        dailyLimit: 0,
+        requestsToday: 0,
+        isCustomLimit: true,
+        isRestricted: true
+      };
+    }
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfTodayISO = startOfToday.toISOString();
 
     const { data: todayRequests, error: countError } = await supabase
       .from('free_play_requests')
       .select('id, status')
       .eq('user_id', userId)
       .neq('status', 'rejected')
-      .gte('created_at', startOfTodayISO)
+      .gte('created_at', startOfTodayISO);
 
-    if (countError) throw countError
+    if (countError) throw countError;
 
-    const requestsToday = todayRequests?.length || 0
-    const remainingCount = Math.max(0, dailyLimit - requestsToday)
-    const eligible = requestsToday < dailyLimit
+    const requestsToday = todayRequests?.length || 0;
+    const remainingCount = Math.max(0, effectiveDailyLimit - requestsToday);
+    const eligible = requestsToday < effectiveDailyLimit;
 
     return {
       mode: 'daily_limit',
@@ -57,12 +85,47 @@ export async function checkFreePlayEligibility(userId: string): Promise<FreePlay
       remainingCount,
       currentSum: 0,
       depositRequirement,
-      dailyLimit,
-      requestsToday
-    }
+      dailyLimit: effectiveDailyLimit,
+      requestsToday,
+      isCustomLimit: true,
+      isRestricted: false
+    };
   }
 
-  // mode === 'deposit_based'
+  // Follow global settings when no customer-specific limit is set
+  if (globalMode === 'daily_limit') {
+    // Count how many non-rejected requests user created today
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfTodayISO = startOfToday.toISOString();
+
+    const { data: todayRequests, error: countError } = await supabase
+      .from('free_play_requests')
+      .select('id, status')
+      .eq('user_id', userId)
+      .neq('status', 'rejected')
+      .gte('created_at', startOfTodayISO);
+
+    if (countError) throw countError;
+
+    const requestsToday = todayRequests?.length || 0;
+    const remainingCount = Math.max(0, globalDailyLimit - requestsToday);
+    const eligible = requestsToday < globalDailyLimit;
+
+    return {
+      mode: 'daily_limit',
+      eligible,
+      remainingCount,
+      currentSum: 0,
+      depositRequirement,
+      dailyLimit: globalDailyLimit,
+      requestsToday,
+      isCustomLimit: false,
+      isRestricted: false
+    };
+  }
+
+  // globalMode === 'deposit_based'
   // 1. Find the latest free play request that wasn't rejected
   const { data: lastRequest, error: requestError } = await supabase
     .from('free_play_requests')
@@ -98,8 +161,10 @@ export async function checkFreePlayEligibility(userId: string): Promise<FreePlay
     remainingCount: eligible ? 1 : 0,
     currentSum,
     depositRequirement,
-    dailyLimit,
-    requestsToday: 0
+    dailyLimit: globalDailyLimit,
+    requestsToday: 0,
+    isCustomLimit: false,
+    isRestricted: false
   };
 }
 
@@ -107,7 +172,9 @@ export async function requestFreePlay(userId: string, gameId: string): Promise<F
   // Pre-check eligibility
   const eligibility = await checkFreePlayEligibility(userId);
   if (!eligibility.eligible) {
-    if (eligibility.mode === 'daily_limit') {
+    if (eligibility.isRestricted || eligibility.dailyLimit === 0) {
+      throw new Error('Free Play is currently restricted for your account. Please contact support.');
+    } else if (eligibility.mode === 'daily_limit') {
       throw new Error(`You have reached your daily Free Play limit for today (${eligibility.dailyLimit}/${eligibility.dailyLimit}). Please return tomorrow!`);
     } else {
       throw new Error(`You need to deposit at least $${eligibility.depositRequirement.toFixed(2)} to qualify for Free Play. Current: $${eligibility.currentSum.toFixed(2)}`);

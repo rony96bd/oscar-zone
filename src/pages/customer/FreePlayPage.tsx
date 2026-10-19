@@ -66,7 +66,9 @@ export default function FreePlayPage() {
             Free Play Rewards
           </h1>
           <p className="text-muted-foreground max-w-xl">
-            {isDailyLimitMode ? (
+            {(eligibility?.isRestricted || dailyLimit === 0) ? (
+              'Free Play rewards are personalized for each player. Contact customer support if you need assistance.'
+            ) : isDailyLimitMode ? (
               `You can claim up to ${dailyLimit} Free Play request${dailyLimit > 1 ? 's' : ''} every day! Select your game account below and our admins will add credits directly to your game account.`
             ) : (
               `For every $${depositReq.toFixed(2)} you deposit, you earn one Free Play request. Request your Free Play below and our admins will add credits directly to your game account!`
@@ -104,6 +106,19 @@ export default function FreePlayPage() {
                   You have <span className="text-neon-green font-bold text-lg">{eligibility.remainingCount}</span> free play request(s) available.
                 </p>
               )}
+            </>
+          ) : (eligibility?.isRestricted || dailyLimit === 0) ? (
+            <>
+              <div className="h-16 w-16 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mb-4">
+                <AlertCircle className="h-8 w-8" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Free Play Unavailable</h2>
+              <p className="text-muted-foreground mb-4 max-w-sm">
+                Free Play requests are currently not active for your account. Please contact our support team for more details.
+              </p>
+              <Link to="/contact" className="btn-neon px-6 py-2 mt-1 text-xs">
+                Contact Support
+              </Link>
             </>
           ) : isDailyLimitMode ? (
             <>

@@ -77,6 +77,7 @@ export interface Profile {
   referred_by: string | null
   is_vip: boolean
   custom_bonus_percentage: number | null
+  custom_free_play_limit?: number | null
   notes: string | null
   last_login: string | null
   permissions: StaffPermissions

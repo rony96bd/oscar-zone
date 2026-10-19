@@ -128,6 +128,25 @@ export async function updateCustomerBonus(customerId: string, bonusPct: number):
   ))
 }
 
+export async function updateCustomerFreePlayLimit(customerId: string, limit: number | null): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      custom_free_play_limit: limit,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', customerId)
+  if (error) throw error
+
+  import('./audit').then(m => m.logAuditAction(
+    null,
+    'update_user_free_play_limit',
+    'profile',
+    customerId,
+    { custom_free_play_limit: limit }
+  ))
+}
+
 export async function assignCustomerGame(customerId: string, gameId: string, username: string, gamePassword?: string): Promise<void> {
   const { error } = await supabase
     .from('customer_games')

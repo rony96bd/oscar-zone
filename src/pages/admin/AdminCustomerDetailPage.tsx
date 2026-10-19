@@ -1,11 +1,11 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchCustomerDetail, updateCustomerStatus, assignCustomerGame, updateCustomerProfile, deleteCustomer } from '@/services/admin'
+import { fetchCustomerDetail, updateCustomerStatus, assignCustomerGame, updateCustomerProfile, deleteCustomer, updateCustomerFreePlayLimit } from '@/services/admin'
 import { fetchGames } from '@/services/games'
 import { PageLoader } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
-import { Shield, ShoppingBag, Star, Lock, Edit2, X, Check, Trophy, ArrowDownCircle, ArrowUpCircle, Activity, TrendingDown, TrendingUp } from 'lucide-react'
+import { Shield, ShoppingBag, Star, Lock, Edit2, X, Check, Trophy, ArrowDownCircle, ArrowUpCircle, Activity, TrendingDown, TrendingUp, Gift } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
@@ -18,6 +18,9 @@ export default function AdminCustomerDetailPage() {
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [editData, setEditData] = useState({ full_name: '', username: '' })
 
+  const [useCustomFreePlay, setUseCustomFreePlay] = useState<boolean>(false)
+  const [customFpLimit, setCustomFpLimit] = useState<number>(1)
+
   const { data: customer, isLoading } = useQuery({
     queryKey: ['admin-customer', id],
     queryFn: () => fetchCustomerDetail(id!),
@@ -27,6 +30,13 @@ export default function AdminCustomerDetailPage() {
   useEffect(() => {
     if (customer) {
       setEditData({ full_name: customer.full_name || '', username: customer.username || '' })
+      if (customer.custom_free_play_limit !== null && customer.custom_free_play_limit !== undefined) {
+        setUseCustomFreePlay(true)
+        setCustomFpLimit(customer.custom_free_play_limit)
+      } else {
+        setUseCustomFreePlay(false)
+        setCustomFpLimit(1)
+      }
     }
   }, [customer])
 
@@ -74,6 +84,15 @@ export default function AdminCustomerDetailPage() {
       qc.invalidateQueries({ queryKey: ['admin-customer', id] })
     },
     onError: (err: any) => toast.error(err.message || 'Failed to update visibility')
+  })
+
+  const freePlayLimitMutation = useMutation({
+    mutationFn: (limit: number | null) => updateCustomerFreePlayLimit(id!, limit),
+    onSuccess: () => {
+      toast.success('Free Play settings updated successfully')
+      qc.invalidateQueries({ queryKey: ['admin-customer', id] })
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to update Free Play limit')
   })
 
   const deleteMutation = useMutation({
@@ -235,6 +254,100 @@ export default function AdminCustomerDetailPage() {
         </div>
       </div>
 
+      {/* Free Play Configuration */}
+      <div className="glass-card p-6 border-border">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-white flex items-center gap-2">
+            <Gift className="h-4 w-4 text-neon-gold" /> Free Play Settings
+          </h2>
+          <span className="text-xs px-2.5 py-0.5 rounded-full border font-medium bg-white/5 border-white/10 text-muted-foreground">
+            {c.custom_free_play_limit != null
+              ? (c.custom_free_play_limit === 0 ? 'Restricted (0 / day)' : `${c.custom_free_play_limit} / day (Custom)`)
+              : 'Using Global Settings'}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">
+          Configure how many Free Play requests this specific customer can make per day, or inherit the global system settings.
+        </p>
+
+        <div className="space-y-4">
+          {/* Option Selector */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setUseCustomFreePlay(false)}
+              className={cn(
+                "p-3 rounded-xl border text-left transition-all",
+                !useCustomFreePlay
+                  ? "bg-primary/10 border-primary shadow-[0_0_12px_rgba(0,212,255,0.2)]"
+                  : "bg-white/5 border-border hover:border-white/20"
+              )}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-white">Global Setting (Default)</span>
+                {!useCustomFreePlay && <Check className="h-3.5 w-3.5 text-primary" />}
+              </div>
+              <p className="text-[11px] text-muted-foreground">Follows system-wide rules from Admin Settings</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setUseCustomFreePlay(true)}
+              className={cn(
+                "p-3 rounded-xl border text-left transition-all",
+                useCustomFreePlay
+                  ? "bg-neon-gold/10 border-neon-gold shadow-[0_0_12px_rgba(255,215,0,0.2)]"
+                  : "bg-white/5 border-border hover:border-white/20"
+              )}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-white">Custom Daily Limit</span>
+                {useCustomFreePlay && <Check className="h-3.5 w-3.5 text-neon-gold" />}
+              </div>
+              <p className="text-[11px] text-muted-foreground">Set unique daily quota for this player</p>
+            </button>
+          </div>
+
+          {/* Custom Input */}
+          {useCustomFreePlay && (
+            <div className="p-4 rounded-xl border border-white/10 bg-black/30 space-y-2">
+              <label className="block text-xs font-medium text-white">
+                Daily Free Play Limit for this Customer
+              </label>
+              <div className="flex items-center gap-3 max-w-xs">
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={customFpLimit}
+                  onChange={(e) => setCustomFpLimit(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="game-input text-sm font-bold text-neon-gold"
+                  placeholder="1"
+                />
+                <span className="text-xs text-muted-foreground whitespace-nowrap">request(s) / day</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Tip: Set to <strong className="text-destructive">0</strong> to disable Free Play for this player. Set to 1, 2, 3+ to grant that many requests every day.
+              </p>
+            </div>
+          )}
+
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={() => {
+                const limitToSave = useCustomFreePlay ? customFpLimit : null
+                freePlayLimitMutation.mutate(limitToSave)
+              }}
+              disabled={freePlayLimitMutation.isPending}
+              className="btn-neon px-5 py-2 text-xs flex items-center gap-1.5"
+            >
+              <Check className="h-3.5 w-3.5" />
+              {freePlayLimitMutation.isPending ? 'Saving...' : 'Save Free Play Settings'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* ===== Transaction History ===== */}
       {(() => {
         const orders = (c.orders || []) as any[]
@@ -377,6 +490,7 @@ export default function AdminCustomerDetailPage() {
             { label: 'Referral Code', value: c.referral_code },
             { label: 'Role', value: c.role },
             { label: 'Custom Bonus', value: c.custom_bonus_percentage != null ? `${c.custom_bonus_percentage}%` : 'Default' },
+            { label: 'Free Play Limit', value: c.custom_free_play_limit != null ? (c.custom_free_play_limit === 0 ? 'Restricted (0 / day)' : `${c.custom_free_play_limit} / day`) : 'Global Setting' },
             { label: 'Member Since', value: formatRelativeTime(c.created_at) },
           ].map(({ label, value }) => (
             <div key={label}>
