@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users, Phone, Share2, Layout, Wrench } from 'lucide-react'
+import { Check, Loader2, Paintbrush, Save, Image as ImageIcon, Upload, X, Users, Phone, Share2, Layout, Wrench, Gift } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useThemeStore, ThemeName } from '@/stores/themeStore'
@@ -80,6 +80,13 @@ export default function AdminSettingsPage() {
   const [selectedMaintenance, setSelectedMaintenance] = useState(maintenanceMode)
   const [isSavingMaintenance, setIsSavingMaintenance] = useState(false)
 
+  // Free Play Settings
+  const { freePlayMode, freePlayDailyLimit, freePlayDepositRequirement, updateFreePlaySettings } = useSettingsStore()
+  const [selectedFpMode, setSelectedFpMode] = useState<'deposit_based' | 'daily_limit'>(freePlayMode)
+  const [selectedFpDailyLimit, setSelectedFpDailyLimit] = useState(freePlayDailyLimit)
+  const [selectedFpDepositReq, setSelectedFpDepositReq] = useState(freePlayDepositRequirement)
+  const [isSavingFreePlay, setIsSavingFreePlay] = useState(false)
+
   // Keep local state in sync with global state initially
   useEffect(() => {
     setSelectedTheme(currentTheme)
@@ -112,6 +119,12 @@ export default function AdminSettingsPage() {
       metaDescription
     })
   }, [metaTitle, metaDescription])
+
+  useEffect(() => {
+    setSelectedFpMode(freePlayMode)
+    setSelectedFpDailyLimit(freePlayDailyLimit)
+    setSelectedFpDepositReq(freePlayDepositRequirement)
+  }, [freePlayMode, freePlayDailyLimit, freePlayDepositRequirement])
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -332,6 +345,35 @@ export default function AdminSettingsPage() {
       toast.error('Failed to update maintenance mode')
     } finally {
       setIsSavingMaintenance(false)
+    }
+  }
+
+  const handleSaveFreePlay = async () => {
+    setIsSavingFreePlay(true)
+    try {
+      const updates = [
+        { key: 'free_play_mode', value: selectedFpMode, description: 'Free play eligibility system mode' },
+        { key: 'free_play_daily_limit', value: String(selectedFpDailyLimit), description: 'Daily limit for free play requests per customer' },
+        { key: 'free_play_deposit_requirement', value: String(selectedFpDepositReq), description: 'Deposit amount required to unlock free play' }
+      ]
+
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert(updates, { onConflict: 'key' })
+
+      if (error) throw error
+
+      updateFreePlaySettings(selectedFpMode, selectedFpDailyLimit, selectedFpDepositReq)
+      toast.success(
+        selectedFpMode === 'daily_limit'
+          ? `Free Play system set to Daily Limit (${selectedFpDailyLimit} request(s)/day).`
+          : `Free Play system set to Deposit-Based ($${selectedFpDepositReq} required).`
+      )
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Failed to update Free Play settings: ' + err.message)
+    } finally {
+      setIsSavingFreePlay(false)
     }
   }
 
@@ -564,6 +606,128 @@ export default function AdminSettingsPage() {
             />
             <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600 shadow-[0_0_10px_rgba(239,68,68,0.1)] peer-checked:shadow-[0_0_15px_rgba(239,68,68,0.5)]"></div>
           </label>
+        </div>
+      </div>
+
+      {/* Free Play System Configuration */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-neon-gold/20 flex items-center justify-center">
+              <Gift className="h-5 w-5 text-neon-gold" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Free Play System</h2>
+              <p className="text-sm text-muted-foreground">Select and configure the customer Free Play eligibility rule</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSaveFreePlay}
+            disabled={isSavingFreePlay || (selectedFpMode === freePlayMode && selectedFpDailyLimit === freePlayDailyLimit && selectedFpDepositReq === freePlayDepositRequirement)}
+            className="btn-neon px-6 py-2 text-sm"
+          >
+            {isSavingFreePlay ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Free Play
+          </button>
+        </div>
+
+        {/* Mode Selector */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div
+            onClick={() => setSelectedFpMode('deposit_based')}
+            className={cn(
+              "relative p-4 rounded-xl border-2 cursor-pointer transition-all",
+              selectedFpMode === 'deposit_based'
+                ? "border-primary bg-primary/10 shadow-neon-blue"
+                : "border-border bg-card hover:border-primary/50"
+            )}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">🪙</span>
+              <h3 className="font-bold text-white">Deposit-Based Mode</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-2">
+              Customers must deposit a specific total amount (e.g. $10) to unlock each Free Play request.
+            </p>
+            {selectedFpMode === 'deposit_based' && (
+              <div className="absolute top-4 right-4 h-6 w-6 rounded-full bg-primary flex items-center justify-center">
+                <Check className="h-4 w-4 text-primary-foreground" />
+              </div>
+            )}
+          </div>
+
+          <div
+            onClick={() => setSelectedFpMode('daily_limit')}
+            className={cn(
+              "relative p-4 rounded-xl border-2 cursor-pointer transition-all",
+              selectedFpMode === 'daily_limit'
+                ? "border-neon-gold bg-neon-gold/10 shadow-[0_0_15px_rgba(255,215,0,0.2)]"
+                : "border-border bg-card hover:border-neon-gold/50"
+            )}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">📅</span>
+              <h3 className="font-bold text-white">Daily Limit Mode</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-2">
+              Customers are allowed to request Free Play up to a fixed number of times per day, without requiring deposits.
+            </p>
+            {selectedFpMode === 'daily_limit' && (
+              <div className="absolute top-4 right-4 h-6 w-6 rounded-full bg-neon-gold flex items-center justify-center">
+                <Check className="h-4 w-4 text-black" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Parameter fields depending on mode */}
+        <div className="p-4 rounded-xl border border-border bg-black/20">
+          {selectedFpMode === 'daily_limit' ? (
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-white">
+                Daily Limit Per Customer (Requests / Day)
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Set how many times a customer can submit a Free Play request each calendar day (resets daily at midnight).
+              </p>
+              <div className="flex items-center gap-3 mt-2 max-w-xs">
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={selectedFpDailyLimit}
+                  onChange={(e) => setSelectedFpDailyLimit(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="game-input text-sm font-bold text-neon-gold"
+                  placeholder="1"
+                />
+                <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">request(s) / day</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-white">
+                Required Deposit Amount ($)
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Set the completed deposit amount required since the last Free Play request before a customer can request again.
+              </p>
+              <div className="flex items-center gap-3 mt-2 max-w-xs">
+                <div className="relative w-full">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">$</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={selectedFpDepositReq}
+                    onChange={(e) => setSelectedFpDepositReq(Math.max(1, parseFloat(e.target.value) || 1))}
+                    className="game-input text-sm font-bold text-neon-green pl-7"
+                    placeholder="10"
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">required deposit</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

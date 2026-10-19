@@ -17,6 +17,9 @@ interface SettingsState {
   tickerPosition: 'header' | 'banner' | 'hidden'
   showCashinTicker: boolean
   showCashoutTicker: boolean
+  freePlayMode: 'deposit_based' | 'daily_limit'
+  freePlayDailyLimit: number
+  freePlayDepositRequirement: number
   isLoading: boolean
   fetchSettings: () => Promise<void>
   setSiteLogoUrl: (url: string) => void
@@ -26,6 +29,7 @@ interface SettingsState {
   updateMetaSettings: (updates: Partial<SettingsState>) => void
   updateTickerPosition: (position: 'header' | 'banner' | 'hidden') => void
   updateTickerVisibilities: (cashin: boolean, cashout: boolean) => void
+  updateFreePlaySettings: (mode: 'deposit_based' | 'daily_limit', dailyLimit: number, depositRequirement: number) => void
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -44,6 +48,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   tickerPosition: 'banner',
   showCashinTicker: true,
   showCashoutTicker: true,
+  freePlayMode: 'deposit_based',
+  freePlayDailyLimit: 1,
+  freePlayDepositRequirement: 10,
   isLoading: true,
 
   fetchSettings: async () => {
@@ -92,6 +99,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         const sCashinTicker = data.find(d => d.key === 'show_cashin_ticker')?.value
         const sCashoutTicker = data.find(d => d.key === 'show_cashout_ticker')?.value
 
+        const fpMode = data.find(d => d.key === 'free_play_mode')?.value
+        const fpDailyLimit = data.find(d => d.key === 'free_play_daily_limit')?.value
+        const fpDepositReq = data.find(d => d.key === 'free_play_deposit_requirement')?.value
+
         const defaultAppName = import.meta.env.VITE_APP_NAME || 'GameZone'
         const defaultAppDesc = import.meta.env.VITE_APP_DESCRIPTION || 'Premium game top-up service.'
 
@@ -111,6 +122,17 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         let parsedCashout = true;
         if (sCashoutTicker !== undefined) parsedCashout = sCashoutTicker === 'true' || sCashoutTicker === true;
 
+        let parsedFpMode: 'deposit_based' | 'daily_limit' = 'deposit_based'
+        if (fpMode) {
+          const cleanFpMode = cleanValue(fpMode)
+          if (cleanFpMode === 'daily_limit' || cleanFpMode === 'deposit_based') {
+            parsedFpMode = cleanFpMode
+          }
+        }
+
+        const parsedDailyLimit = fpDailyLimit ? Math.max(1, parseInt(cleanValue(fpDailyLimit), 10) || 1) : 1
+        const parsedDepositReq = fpDepositReq ? Math.max(1, parseFloat(cleanValue(fpDepositReq)) || 10) : 10
+
         set({ 
           siteName: sName ? cleanValue(sName) : defaultAppName,
           siteTagline: sTagline ? cleanValue(sTagline) : (import.meta.env.VITE_APP_TAGLINE || 'Top Up. Play More. Win Big.'),
@@ -126,6 +148,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           tickerPosition: parsedPosition,
           showCashinTicker: parsedCashin,
           showCashoutTicker: parsedCashout,
+          freePlayMode: parsedFpMode,
+          freePlayDailyLimit: parsedDailyLimit,
+          freePlayDepositRequirement: parsedDepositReq,
           isLoading: false 
         })
 
@@ -187,6 +212,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   
   updateTickerVisibilities: (cashin: boolean, cashout: boolean) => {
     set({ showCashinTicker: cashin, showCashoutTicker: cashout })
+  },
+
+  updateFreePlaySettings: (mode: 'deposit_based' | 'daily_limit', dailyLimit: number, depositRequirement: number) => {
+    set({
+      freePlayMode: mode,
+      freePlayDailyLimit: dailyLimit,
+      freePlayDepositRequirement: depositRequirement,
+    })
   }
 }))
 

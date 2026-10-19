@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { fetchCustomerGames } from '@/services/games'
 import { checkFreePlayEligibility, requestFreePlay } from '@/services/freePlays'
-import { Gift, AlertCircle, Zap } from 'lucide-react'
+import { Gift, AlertCircle, Zap, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { Link } from 'react-router-dom'
 
@@ -50,6 +50,10 @@ export default function FreePlayPage() {
     )
   }
 
+  const isDailyLimitMode = eligibility?.mode === 'daily_limit'
+  const depositReq = eligibility?.depositRequirement || 10
+  const dailyLimit = eligibility?.dailyLimit || 1
+
   return (
     <div className="space-y-6">
       <div className="glass-card p-6 border-neon-gold/20 relative overflow-hidden">
@@ -62,7 +66,11 @@ export default function FreePlayPage() {
             Free Play Rewards
           </h1>
           <p className="text-muted-foreground max-w-xl">
-            For every  you deposit, you earn one Free Play request. Request your Free Play below and our admins will add credits directly to your game account!
+            {isDailyLimitMode ? (
+              `You can claim up to ${dailyLimit} Free Play request${dailyLimit > 1 ? 's' : ''} every day! Select your game account below and our admins will add credits directly to your game account.`
+            ) : (
+              `For every $${depositReq.toFixed(2)} you deposit, you earn one Free Play request. Request your Free Play below and our admins will add credits directly to your game account!`
+            )}
           </p>
         </div>
       </div>
@@ -76,32 +84,65 @@ export default function FreePlayPage() {
                 <Gift className="h-8 w-8" />
               </div>
               <h2 className="text-xl font-bold text-white mb-2">You are eligible!</h2>
-              <p className="text-muted-foreground mb-4">
-                You have <span className="text-neon-green font-bold text-lg">{eligibility.remainingCount}</span> free play request(s) available.
+              {isDailyLimitMode ? (
+                <>
+                  <p className="text-muted-foreground mb-3">
+                    You have <span className="text-neon-green font-bold text-lg">{eligibility.remainingCount}</span> of {dailyLimit} free play request(s) left today.
+                  </p>
+                  <div className="w-full max-w-xs mx-auto bg-black/40 rounded-full h-2 mb-2 overflow-hidden border border-border">
+                    <div 
+                      className="bg-neon-green h-full rounded-full transition-all duration-500" 
+                      style={{ width: `${Math.min(100, (eligibility.remainingCount / dailyLimit) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Used today: {eligibility.requestsToday} / {dailyLimit}
+                  </p>
+                </>
+              ) : (
+                <p className="text-muted-foreground mb-4">
+                  You have <span className="text-neon-green font-bold text-lg">{eligibility.remainingCount}</span> free play request(s) available.
+                </p>
+              )}
+            </>
+          ) : isDailyLimitMode ? (
+            <>
+              <div className="h-16 w-16 rounded-full bg-orange-500/10 text-orange-400 flex items-center justify-center mb-4">
+                <Clock className="h-8 w-8" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Daily Limit Reached</h2>
+              <p className="text-muted-foreground mb-3 max-w-sm">
+                You have used all {dailyLimit} of your Free Play requests for today ({eligibility?.requestsToday || 0}/{dailyLimit}).
               </p>
+              <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-xs text-muted-foreground max-w-xs mb-3">
+                ⏳ Your quota resets every day at midnight. Come back tomorrow for more Free Play!
+              </div>
+              <Link to="/games" className="btn-ghost-neon px-6 py-2 mt-1 text-xs">
+                Browse Games
+              </Link>
             </>
           ) : (
-              <>
-                <div className="h-16 w-16 rounded-full bg-orange-500/10 text-orange-400 flex items-center justify-center mb-4">
-                  <AlertCircle className="h-8 w-8" />
-                </div>
-                <h2 className="text-xl font-bold text-white mb-2">Not eligible yet</h2>
-                <p className="text-muted-foreground mb-3">
-                  You need to deposit a total of $10 to unlock your next Free Play.
-                </p>
-                <div className="w-full max-w-xs mx-auto bg-black/40 rounded-full h-3 mb-2 overflow-hidden border border-border">
-                  <div 
-                    className="bg-neon-gold h-full rounded-full transition-all duration-500" 
-                    style={{ width: `${Math.min(100, ((eligibility?.currentSum || 0) / 10) * 100)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-neon-gold font-bold mb-4">
-                  ${(eligibility?.currentSum || 0).toFixed(2)} / $10.00
-                </p>
-                <Link to="/load" className="btn-neon px-6 py-2 mt-2">
-                  Deposit Now
-                </Link>
-              </>
+            <>
+              <div className="h-16 w-16 rounded-full bg-orange-500/10 text-orange-400 flex items-center justify-center mb-4">
+                <AlertCircle className="h-8 w-8" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Not eligible yet</h2>
+              <p className="text-muted-foreground mb-3">
+                You need to deposit a total of ${depositReq.toFixed(2)} to unlock your next Free Play.
+              </p>
+              <div className="w-full max-w-xs mx-auto bg-black/40 rounded-full h-3 mb-2 overflow-hidden border border-border">
+                <div 
+                  className="bg-neon-gold h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${Math.min(100, ((eligibility?.currentSum || 0) / depositReq) * 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-neon-gold font-bold mb-4">
+                ${(eligibility?.currentSum || 0).toFixed(2)} / ${depositReq.toFixed(2)}
+              </p>
+              <Link to="/load" className="btn-neon px-6 py-2 mt-2">
+                Deposit Now
+              </Link>
+            </>
           )}
         </div>
 
