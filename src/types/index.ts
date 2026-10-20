@@ -114,6 +114,7 @@ export interface CustomerGame {
   updated_at: string
   game?: Game
   profile?: Profile
+  notes?: string | null
 }
 
 export interface PaymentMethod {
@@ -198,6 +199,7 @@ export interface Order {
   game?: Game
   payment_method?: PaymentMethod
   profile?: Profile
+  notes?: string | null
   bonus_snapshot?: OrderBonusSnapshot
   status_history?: OrderStatusHistory[]
 }
@@ -373,6 +375,7 @@ export interface GamePointPurchase {
   created_by: string | null
   game?: Game
   profile?: Profile
+  notes?: string | null
 }
 
 export interface GamePointBalance {
@@ -383,6 +386,7 @@ export interface GamePointBalance {
   total_loaded: number
   total_free_play: number
   remaining_points: number
+  total_cashed_out?: number
 }
 
 export interface FreePlayRequest {
@@ -393,6 +397,7 @@ export interface FreePlayRequest {
   created_at: string
   updated_at: string
   profile?: Profile
+  notes?: string | null
   game?: Game
 }
 
@@ -422,3 +427,28 @@ export interface LiveActivity {
   created_at: string
 }
 
+
+export interface PaymentMethodAdjustment {
+  id: string
+  payment_method_id: string
+  type: 'add' | 'withdraw'
+  amount: number
+  notes: string | null
+  created_at: string
+  created_by: string | null
+  payment_method?: PaymentMethod
+  profile?: Profile
+}
+
+export interface PaymentMethodDrawerBalance {
+  payment_method_id: string
+  name: string
+  display_name?: string
+  logo_url?: string | null
+  type?: string
+  added: number
+  deposits: number
+  cashouts: number
+  withdrawn: number
+  balance: number
+}
