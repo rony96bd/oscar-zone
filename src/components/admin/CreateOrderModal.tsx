@@ -8,12 +8,12 @@ import { calculateBonusPreview, adminCreateOrder } from '@/services/orders'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
-export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+export function CreateOrderModal({ isOpen, onClose, defaultUserId }: { isOpen: boolean; onClose: () => void; defaultUserId?: string }) {
   const [isFreePlay, setIsFreePlay] = useState(false)
   const [selectedGameId, setSelectedGameId] = useState('')
   const [username, setUsername] = useState('')
   const [amount, setAmount] = useState('')
-  const [userId, setUserId] = useState('')
+  const [userId, setUserId] = useState(defaultUserId || '')
   const [status, setStatus] = useState('completed')
   const [paymentMethodId, setPaymentMethodId] = useState('')
   const [customerPaymentTag, setCustomerPaymentTag] = useState('')
@@ -46,6 +46,19 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
     queryFn: () => fetchCustomerGames(userId),
     enabled: !!userId && isOpen
   })
+
+  // Sync default customer if passed via props
+  useEffect(() => {
+    if (isOpen && defaultUserId) {
+      setUserId(defaultUserId)
+      if (customers) {
+        const c = customers.find(x => x.id === defaultUserId)
+        if (c) {
+          setUserSearch(c.full_name || c.username || '')
+        }
+      }
+    }
+  }, [isOpen, defaultUserId, customers])
 
   // Auto-select if customer only has 1 game account
   useEffect(() => {

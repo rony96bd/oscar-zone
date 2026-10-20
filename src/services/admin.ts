@@ -73,26 +73,40 @@ export async function fetchCustomers(filters: { search?: string; role?: string }
 }
 
 export async function fetchCustomerDetail(customerId: string): Promise<any> {
-  const [profileRes, ordersRes, gamesRes] = await Promise.all([
+  const [profileRes, ordersRes, gamesRes, cashoutsRes, freePlaysRes] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', customerId).single(),
     supabase
       .from('orders')
-      .select('*, game:games(name)')
+      .select('*, game:games(id, name, logo_url), payment_method:payment_methods(id, name, display_name, type)')
       .eq('user_id', customerId)
       .order('created_at', { ascending: false })
-      .limit(20),
+      .limit(1000),
     supabase
       .from('customer_games')
-      .select('*, game:games(name)')
+      .select('*, game:games(id, name, logo_url)')
       .eq('customer_id', customerId)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('cashout_requests')
+      .select('*')
+      .eq('user_id', customerId)
+      .order('created_at', { ascending: false })
+      .limit(500),
+    supabase
+      .from('free_play_requests')
+      .select('*, game:games(id, name, logo_url)')
+      .eq('user_id', customerId)
+      .order('created_at', { ascending: false })
+      .limit(500),
   ])
 
   if (profileRes.error) throw profileRes.error
   return { 
     ...profileRes.data, 
     orders: ordersRes.data || [],
-    customer_games: gamesRes.data || []
+    customer_games: gamesRes.data || [],
+    cashouts: cashoutsRes.data || [],
+    free_plays: freePlaysRes.data || [],
   }
 }
 
@@ -225,4 +239,3 @@ export async function deleteCustomer(customerId: string): Promise<void> {
     customerId
   ))
 }
-
