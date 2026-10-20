@@ -80,7 +80,6 @@ export async function updateCashoutStatus(
   if (error) throw error
 }
 
-
 export async function updateCashoutRequest(
   id: string,
   updates: {
@@ -107,10 +106,16 @@ export async function deleteCashoutRequest(id: string): Promise<void> {
   })
   if (!rpcError) return
 
-  // Fallback to direct delete
-  const { error } = await supabase
+  // Fallback to direct delete and verify with select
+  const { data, error } = await supabase
     .from('cashout_requests')
     .delete()
     .eq('id', id)
+    .select('id')
+
   if (error) throw error
+
+  if (!data || data.length === 0) {
+    throw new Error('Database permission denied: Please run the SQL migration (043) in your Supabase SQL Editor.')
+  }
 }

@@ -324,6 +324,7 @@ export async function adminCreateOrder(payload: {
   return data
 }
 
+
 export async function updateOrderFields(
   orderId: string,
   updates: {
@@ -344,16 +345,29 @@ export async function updateOrderFields(
 }
 
 export async function deleteOrder(orderId: string): Promise<void> {
-  // Try RPC first for safe cascade cleanup of referral_earnings and fraud_flags
+  // 1. Try atomic RPC first (safely cascades referral_earnings and fraud_flags)
   const { error: rpcError } = await supabase.rpc('admin_delete_order', {
     target_order_id: orderId,
   })
   if (!rpcError) return
 
-  // Fallback to direct delete if RPC not yet deployed
-  const { error } = await supabase
+  // 2. Fallback: manually clean up referencing rows first
+  try {
+    await supabase.from('referral_earnings').delete().eq('source_order_id', orderId)
+    await supabase.from('fraud_flags').delete().eq('order_id', orderId)
+  } catch {}
+
+  // 3. Delete order and request returned id to verify row was actually deleted by RLS
+  const { data, error } = await supabase
     .from('orders')
     .delete()
     .eq('id', orderId)
+    .select('id')
+
   if (error) throw error
+
+  // If no rows were returned, RLS blocked the deletion
+  if (!data || data.length === 0) {
+    throw new Error('Database permission denied: Please run the SQL migration (043) in your Supabase SQL Editor.')
+  }
 }

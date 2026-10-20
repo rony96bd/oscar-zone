@@ -83,12 +83,21 @@ export default function AdminOrdersPage() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: () => deleteOrder(deleteTarget.id),
-    onSuccess: () => {
+    mutationFn: (targetId: string) => deleteOrder(targetId),
+    onSuccess: (_, deletedId) => {
       toast.success('Order deleted successfully')
       setDeleteTarget(null)
+      qc.setQueriesData({ queryKey: ['admin-orders'] }, (old: any) => {
+        if (!old?.data) return old
+        return {
+          ...old,
+          data: old.data.filter((item: any) => item.id !== deletedId),
+          count: Math.max(0, (old.count || 0) - 1),
+        }
+      })
       qc.invalidateQueries({ queryKey: ['admin-orders'] })
       qc.invalidateQueries({ queryKey: ['admin-stats'] })
+      qc.invalidateQueries({ queryKey: ['active-accounting'] })
     },
     onError: (err: any) => toast.error(err.message || 'Failed to delete order'),
   })
@@ -355,7 +364,7 @@ export default function AdminOrdersPage() {
               </button>
               <button
                 type="button"
-                onClick={() => deleteMutation.mutate()}
+                onClick={() => deleteMutation.mutate(deleteTarget.id)}
                 disabled={deleteMutation.isPending}
                 className="flex-1 py-2 text-sm font-semibold rounded-lg bg-destructive text-white hover:bg-destructive/80 transition-colors flex items-center justify-center gap-2"
               >

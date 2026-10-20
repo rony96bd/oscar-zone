@@ -93,10 +93,14 @@ export default function AdminCashoutPage() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: () => deleteCashoutRequest(deleteTarget.id),
-    onSuccess: () => {
+    mutationFn: (targetId: string) => deleteCashoutRequest(targetId),
+    onSuccess: (_, deletedId) => {
       toast.success('Cashout request deleted successfully')
       setDeleteTarget(null)
+      qc.setQueriesData({ queryKey: ['admin-cashout-requests'] }, (old: any) => {
+        if (!Array.isArray(old)) return old
+        return old.filter((item: any) => item.id !== deletedId)
+      })
       qc.invalidateQueries({ queryKey: ['admin-cashout-requests'] })
     },
     onError: (err: any) => toast.error(err.message || 'Failed to delete cashout request'),
@@ -406,7 +410,7 @@ export default function AdminCashoutPage() {
               </button>
               <button
                 type="button"
-                onClick={() => deleteMutation.mutate()}
+                onClick={() => deleteMutation.mutate(deleteTarget.id)}
                 disabled={deleteMutation.isPending}
                 className="flex-1 py-2 text-sm font-semibold rounded-lg bg-destructive text-white hover:bg-destructive/80 transition-colors flex items-center justify-center gap-2"
               >
