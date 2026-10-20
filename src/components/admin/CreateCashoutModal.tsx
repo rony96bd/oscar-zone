@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Loader2, Search, ArrowDownToLine } from 'lucide-react'
+import { X, Loader2, Search, ArrowDownToLine, Gamepad2, CheckCircle2 } from 'lucide-react'
 import { fetchCustomers } from '@/services/admin'
-import { fetchGames } from '@/services/games'
+import { fetchGames, fetchCustomerGames } from '@/services/games'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { sendNotificationToUser } from '@/services/notifications'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 interface CreateCashoutModalProps {
   isOpen: boolean
@@ -75,29 +76,24 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
     enabled: isOpen,
   })
 
-  const selectedGame = games.find(g => g.name === gameName)
-  
-  const { data: customerUsernames = [] } = useQuery({
-    queryKey: ['customer-game-usernames', userId, selectedGame?.id],
-    queryFn: async () => {
-      if (!userId || !selectedGame?.id) return []
-      const { data, error } = await supabase
-        .from('customer_games')
-        .select('username')
-        .eq('customer_id', userId)
-        .eq('game_id', selectedGame.id)
-      
-      if (error) throw error
-      return data.map(d => d.username)
-    },
-    enabled: !!userId && !!selectedGame?.id,
+  const { data: customerGames = [] } = useQuery({
+    queryKey: ['customer-games-cashout', userId],
+    queryFn: () => fetchCustomerGames(userId),
+    enabled: !!userId && isOpen,
   })
 
+  // Auto-select if customer only has 1 game account
   useEffect(() => {
-    if (customerUsernames.length === 1 && !gameUsername) {
-      setGameUsername(customerUsernames[0])
+    if (customerGames && customerGames.length === 1 && !gameName) {
+      setGameName(customerGames[0].game?.name || '')
+      setGameUsername(customerGames[0].username)
     }
-  }, [customerUsernames, gameUsername])
+  }, [customerGames, gameName])
+
+  // Get matching usernames for the selected game
+  const matchingUsernames = customerGames
+    .filter(cg => cg.game?.name === gameName)
+    .map(cg => cg.username)
 
   const filteredCustomers = customers.filter(c => {
     if (!search) return true
@@ -202,7 +198,11 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
             </div>
             <select
               value={userId}
-              onChange={e => setUserId(e.target.value)}
+              onChange={e => {
+                setUserId(e.target.value)
+                setGameName('')
+                setGameUsername('')
+              }}
               className="game-input w-full"
               size={Math.min(filteredCustomers.length + 1, 5)}
             >
@@ -214,35 +214,115 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
               ))}
             </select>
             {selectedCustomer && (
-              <p className="text-xs text-neon-green mt-1">
-                ✓ Selected: <strong>{selectedCustomer.full_name}</strong> (@{selectedCustomer.username})
+              <p className="text-xs text-neon-green mt-1 flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Selected: <strong>{selectedCustomer.full_name}</strong> (@{selectedCustomer.username})
               </p>
             )}
           </div>
 
-          {/* Game */}
+          {/* Customer's Linked Game Accounts Quick Chips */}
+          {userId && (
+            <div className="rounded-xl border border-neon-gold/25 bg-neon-gold/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-neon-gold flex items-center gap-1.5">
+                  <Gamepad2 className="h-4 w-4" />
+                  Customer's Game Accounts ({customerGames.length})
+                </span>
+                {customerGames.length > 0 && (
+                  <span className="text-[10px] text-muted-foreground">Click to quick-select</span>
+                )}
+              </div>
+
+              {customerGames.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {customerGames.map(cg => {
+                    const isSelected = gameName === cg.game?.name && gameUsername === cg.username
+                    return (
+                      <button
+                        key={cg.id}
+                        type="button"
+                        onClick={() => {
+                          setGameName(cg.game?.name || '')
+                          setGameUsername(cg.username)
+                        }}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all text-left",
+                          isSelected
+                            ? "bg-neon-gold text-black border-neon-gold font-bold shadow-md shadow-neon-gold/20 scale-[1.02]"
+                            : "bg-black/40 text-white border-border hover:border-neon-gold/50 hover:bg-neon-gold/10"
+                        )}
+                      >
+                        {cg.game?.logo_url ? (
+                          <img src={cg.game.logo_url} alt="" className="h-4 w-4 rounded-full object-cover" />
+                        ) : (
+                          <Gamepad2 className="h-3.5 w-3.5 text-neon-gold" />
+                        )}
+                        <div>
+                          <div className={isSelected ? "text-black font-semibold" : "text-white"}>{cg.game?.name || 'Game'}</div>
+                          <div className={cn("text-[10px] font-mono", isSelected ? "text-black/80 font-bold" : "text-muted-foreground")}>
+                            ID: {cg.username}
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  This customer has no game accounts linked yet. You can select any game below.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Game & Username */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Game *</label>
               <select
                 value={gameName}
-                onChange={e => setGameName(e.target.value)}
+                onChange={e => {
+                  const gName = e.target.value
+                  setGameName(gName)
+                  const match = customerGames.find(cg => cg.game?.name === gName)
+                  if (match) {
+                    setGameUsername(match.username)
+                  }
+                }}
                 className="game-input w-full"
+                required
               >
                 <option value="">Select game</option>
-                {games.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
+                {customerGames.length > 0 && (
+                  <optgroup label="⭐ Customer's Registered Accounts">
+                    {customerGames.map(cg => (
+                      <option key={cg.id} value={cg.game?.name}>
+                        ⭐ {cg.game?.name} (Player ID: {cg.username})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label={customerGames.length > 0 ? "Other Available Games" : "All Games"}>
+                  {games
+                    .filter(g => !customerGames.some(cg => cg.game?.name === g.name))
+                    .map(g => (
+                      <option key={g.id} value={g.name}>{g.name}</option>
+                    ))}
+                </optgroup>
               </select>
             </div>
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Game Username *</label>
-              {customerUsernames.length > 0 ? (
+              {matchingUsernames.length > 1 ? (
                 <select
                   value={gameUsername}
                   onChange={e => setGameUsername(e.target.value)}
                   className="game-input w-full"
+                  required
                 >
                   <option value="">Select username</option>
-                  {customerUsernames.map(u => (
+                  {matchingUsernames.map(u => (
                     <option key={u} value={u}>{u}</option>
                   ))}
                 </select>
@@ -253,6 +333,7 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
                   value={gameUsername}
                   onChange={e => setGameUsername(e.target.value)}
                   className="game-input w-full"
+                  required
                 />
               )}
             </div>
@@ -269,6 +350,7 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
               value={amount}
               onChange={e => setAmount(e.target.value)}
               className="game-input w-full text-lg font-bold"
+              required
             />
           </div>
 
@@ -282,6 +364,7 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
                 value={paymentMethodName}
                 onChange={e => setPaymentMethodName(e.target.value)}
                 className="game-input w-full"
+                required
               />
             </div>
             <div>
@@ -292,6 +375,7 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
                 value={paymentDetail}
                 onChange={e => setPaymentDetail(e.target.value)}
                 className="game-input w-full"
+                required
               />
             </div>
           </div>
@@ -331,7 +415,7 @@ export function CreateCashoutModal({ isOpen, onClose }: CreateCashoutModalProps)
           <button
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending}
-            className="btn-neon-gold px-6 py-2"
+            className="btn-neon-gold px-6 py-2 flex items-center gap-2"
           >
             {createMutation.isPending
               ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>

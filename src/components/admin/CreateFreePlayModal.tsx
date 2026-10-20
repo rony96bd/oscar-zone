@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Loader2, Search, Gift, Check, CheckCircle2, User } from 'lucide-react'
+import { X, Loader2, Search, Gift, Check, CheckCircle2, User, Gamepad2 } from 'lucide-react'
 import { fetchCustomers } from '@/services/admin'
 import { fetchGames } from '@/services/games'
 import { adminCreateFreePlay } from '@/services/freePlays'
@@ -233,6 +233,58 @@ export function CreateFreePlayModal({ isOpen, onClose }: CreateFreePlayModalProp
             )}
           </div>
 
+          {/* Customer Linked Game Accounts Quick Chips */}
+          {userId && (
+            <div className="rounded-xl border border-purple-500/25 bg-purple-500/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-purple-300 flex items-center gap-1.5">
+                  <Gamepad2 className="h-4 w-4" />
+                  Customer's Game Accounts ({customerGames.length})
+                </span>
+                {customerGames.length > 0 && (
+                  <span className="text-[10px] text-muted-foreground">Click to quick-select</span>
+                )}
+              </div>
+
+              {customerGames.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {customerGames.map(cg => {
+                    const isSelected = gameId === cg.game_id
+                    return (
+                      <button
+                        key={cg.id}
+                        type="button"
+                        onClick={() => setGameId(cg.game_id)}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all text-left",
+                          isSelected
+                            ? "bg-purple-600 text-white border-purple-400 font-bold shadow-md shadow-purple-600/30 scale-[1.02]"
+                            : "bg-black/40 text-white border-border hover:border-purple-500/50 hover:bg-purple-500/10"
+                        )}
+                      >
+                        {cg.game?.logo_url ? (
+                          <img src={cg.game.logo_url} alt="" className="h-4 w-4 rounded-full object-cover" />
+                        ) : (
+                          <Gamepad2 className="h-3.5 w-3.5 text-purple-300" />
+                        )}
+                        <div>
+                          <div className={isSelected ? "text-white font-semibold" : "text-white"}>{cg.game?.name || 'Game'}</div>
+                          <div className={cn("text-[10px] font-mono", isSelected ? "text-purple-200" : "text-muted-foreground")}>
+                            ID: {cg.username}
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  This customer has no game accounts linked yet. You can select any game below.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Game Selection */}
           <div className="space-y-2">
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -246,14 +298,22 @@ export function CreateFreePlayModal({ isOpen, onClose }: CreateFreePlayModalProp
               disabled={!userId}
             >
               <option value="">-- Select Game --</option>
-              {games.map(g => {
-                const acct = customerGames.find(cg => cg.game_id === g.id)
-                return (
-                  <option key={g.id} value={g.id}>
-                    {g.name} {acct ? `(Player ID: ${acct.username})` : ''}
-                  </option>
-                )
-              })}
+              {customerGames.length > 0 && (
+                <optgroup label="⭐ Customer's Registered Accounts">
+                  {customerGames.map(cg => (
+                    <option key={cg.id} value={cg.game_id}>
+                      ⭐ {cg.game?.name} (Player ID: {cg.username})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label={customerGames.length > 0 ? "Other Available Games" : "All Games"}>
+                {games
+                  .filter(g => !customerGames.some(cg => cg.game_id === g.id))
+                  .map(g => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+              </optgroup>
             </select>
 
             {userId && linkedAccount && (

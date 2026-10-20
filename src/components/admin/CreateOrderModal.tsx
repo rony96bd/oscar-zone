@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Loader2, Search, Gift, DollarSign } from 'lucide-react'
+import { X, Loader2, Search, Gift, DollarSign, Gamepad2, CheckCircle2 } from 'lucide-react'
 import { fetchGames, fetchCustomerGames } from '@/services/games'
 import { fetchPaymentMethods } from '@/services/payments'
 import { fetchCustomers } from '@/services/admin'
@@ -41,11 +41,19 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
   const { data: paymentMethods } = useQuery({ queryKey: ['payment-methods'], queryFn: fetchPaymentMethods, enabled: isOpen && !isFreePlay })
   const { data: customers } = useQuery({ queryKey: ['customers'], queryFn: () => fetchCustomers({ role: 'customer' }), enabled: isOpen })
   
-  const { data: customerGames } = useQuery({
+  const { data: customerGames = [] } = useQuery({
     queryKey: ['customer-games', userId],
     queryFn: () => fetchCustomerGames(userId),
     enabled: !!userId && isOpen
   })
+
+  // Auto-select if customer only has 1 game account
+  useEffect(() => {
+    if (customerGames && customerGames.length === 1 && !selectedGameId) {
+      setSelectedGameId(customerGames[0].game_id)
+      setUsername(customerGames[0].username)
+    }
+  }, [customerGames, selectedGameId])
 
   // Auto-fill username when game or user changes
   useEffect(() => {
@@ -111,6 +119,8 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
     c.username?.toLowerCase().includes(userSearch.toLowerCase()) ||
     c.phone?.toLowerCase().includes(userSearch.toLowerCase())
   )
+
+  const selectedCustomer = customers?.find(c => c.id === userId)
 
   if (!isOpen) return null
 
@@ -192,7 +202,7 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
                   onChange={e => {
                     setUserSearch(e.target.value)
                     setIsDropdownOpen(true)
-                    setUserId('') // Clear user id if they start typing
+                    setUserId('')
                   }}
                   onFocus={() => setIsDropdownOpen(true)}
                   className="game-input w-full pl-9"
@@ -203,6 +213,8 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
                      onClick={() => {
                         setUserSearch('')
                         setUserId('')
+                        setSelectedGameId('')
+                        setUsername('')
                      }}
                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
                    >
@@ -240,15 +252,103 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
                   )}
                 </div>
               )}
-              <p className="text-[10px] text-muted-foreground mt-1">If selected, the order will appear in the customer's dashboard.</p>
+              {selectedCustomer && (
+                <p className="text-xs text-neon-green mt-1 flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Selected: <strong>{selectedCustomer.full_name}</strong> (@{selectedCustomer.username})
+                </p>
+              )}
+              <p className="text-[10px] text-muted-foreground mt-0.5">If selected, the order will appear in the customer's dashboard.</p>
             </div>
+
+            {/* Customer's Linked Game Accounts Quick Chips */}
+            {userId && (
+              <div className="rounded-xl border border-primary/25 bg-primary/5 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                    <Gamepad2 className="h-4 w-4" />
+                    Customer's Game Accounts ({customerGames.length})
+                  </span>
+                  {customerGames.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground">Click to quick-select</span>
+                  )}
+                </div>
+
+                {customerGames.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {customerGames.map(cg => {
+                      const isSelected = selectedGameId === cg.game_id && username === cg.username
+                      return (
+                        <button
+                          key={cg.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedGameId(cg.game_id)
+                            setUsername(cg.username)
+                          }}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all text-left",
+                            isSelected
+                              ? "bg-primary text-black border-primary font-bold shadow-md shadow-primary/20 scale-[1.02]"
+                              : "bg-black/40 text-white border-border hover:border-primary/50 hover:bg-primary/10"
+                          )}
+                        >
+                          {cg.game?.logo_url ? (
+                            <img src={cg.game.logo_url} alt="" className="h-4 w-4 rounded-full object-cover" />
+                          ) : (
+                            <Gamepad2 className="h-3.5 w-3.5 text-primary" />
+                          )}
+                          <div>
+                            <div className={isSelected ? "text-black font-semibold" : "text-white"}>{cg.game?.name || 'Game'}</div>
+                            <div className={cn("text-[10px] font-mono", isSelected ? "text-black/80 font-bold" : "text-muted-foreground")}>
+                              ID: {cg.username}
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    This customer has no game accounts linked yet. You can select any game below.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Game Selector */}
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Game *</label>
-              <select value={selectedGameId} onChange={e => setSelectedGameId(e.target.value)} className="game-input w-full" required>
+              <select
+                value={selectedGameId}
+                onChange={e => {
+                  const gId = e.target.value
+                  setSelectedGameId(gId)
+                  const match = customerGames.find(cg => cg.game_id === gId)
+                  if (match) {
+                    setUsername(match.username)
+                  }
+                }}
+                className="game-input w-full"
+                required
+              >
                 <option value="">Select a game</option>
-                {games?.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                {customerGames.length > 0 && (
+                  <optgroup label="⭐ Customer's Registered Accounts">
+                    {customerGames.map(cg => (
+                      <option key={cg.id} value={cg.game_id}>
+                        ⭐ {cg.game?.name} (Player ID: {cg.username})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label={customerGames.length > 0 ? "Other Available Games" : "All Games"}>
+                  {games
+                    ?.filter(g => !customerGames.some(cg => cg.game_id === g.id))
+                    .map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                </optgroup>
               </select>
             </div>
 
@@ -289,116 +389,124 @@ export function CreateOrderModal({ isOpen, onClose }: { isOpen: boolean; onClose
                     <option value="pending_payment_review">Pending</option>
                   </select>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Admin Note (Optional)</label>
-                  <input 
-                    type="text" 
-                    value={adminNote} 
-                    onChange={e => setAdminNote(e.target.value)} 
-                    placeholder="e.g. Free play reward, Weekly bonus, Contest winner" 
-                    className="game-input w-full" 
-                  />
-                </div>
               </div>
             ) : (
-              <div className="p-3 border border-border rounded-lg bg-black/20 space-y-3">
+              <>
+                {/* Standard Deposit Options */}
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">Payment Method</label>
                   <select value={paymentMethodId} onChange={e => setPaymentMethodId(e.target.value)} className="game-input w-full">
-                    <option value="">-- None / Manual --</option>
-                    {paymentMethods?.map(pm => (
-                      <option key={pm.id} value={pm.id}>{pm.name}</option>
-                    ))}
+                    <option value="">None / Cash</option>
+                    {paymentMethods?.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
                   </select>
                 </div>
 
-                {paymentMethodId && (
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Customer Payment Tag / Number</label>
-                    <input type="text" value={customerPaymentTag} onChange={e => setCustomerPaymentTag(e.target.value)} placeholder="e.g. $cashtag, Chime handle, or PayPal email" className="game-input w-full" />
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Customer Payment Tag / Name (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. $JohnDoe, John Doe, etc."
+                    value={customerPaymentTag}
+                    onChange={e => setCustomerPaymentTag(e.target.value)}
+                    className="game-input w-full"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">The Cashtag, Chime Tag, or sender name the customer used to pay.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Order Status</label>
+                  <select value={status} onChange={e => setStatus(e.target.value)} className="game-input w-full">
+                    <option value="completed">Completed (Load Directly)</option>
+                    <option value="pending_payment_review">Pending Payment Review</option>
+                    <option value="processing">Processing</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* Admin Note */}
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">Admin Note (Optional)</label>
+              <textarea
+                placeholder={isFreePlay ? 'e.g. Daily loyalty reward, VIP bonus...' : 'Internal note about this order...'}
+                value={adminNote}
+                onChange={e => setAdminNote(e.target.value)}
+                className="game-input w-full h-16 resize-none"
+              />
+            </div>
+
+            {/* Bonus Preview (Only for standard orders) */}
+            {!isFreePlay && bonusData && parseFloat(amount) > 0 && (
+              <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-xs space-y-1">
+                <div className="font-semibold text-neon-green">Order Summary</div>
+                <div className="flex justify-between">
+                  <span>Base Amount:</span>
+                  <span>${parseFloat(amount).toFixed(2)}</span>
+                </div>
+                {bonusData.regular_bonus_amount > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Regular Bonus ({bonusData.regular_bonus_pct}%):</span>
+                    <span>+${bonusData.regular_bonus_amount.toFixed(2)}</span>
                   </div>
                 )}
-                
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Status</label>
-                  <select value={status} onChange={e => setStatus(e.target.value)} className="game-input w-full">
-                    <option value="completed">Completed</option>
-                    <option value="payment_verified">Payment Verified</option>
-                    <option value="pending_payment_review">Pending</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Admin Note (Optional)</label>
-                  <input 
-                    type="text" 
-                    value={adminNote} 
-                    onChange={e => setAdminNote(e.target.value)} 
-                    placeholder="Optional notes about this order..." 
-                    className="game-input w-full" 
-                  />
+                {bonusData.promo_bonus_amount > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>{bonusData.promotion_name || 'Promo Bonus'} ({bonusData.promo_bonus_pct}%):</span>
+                    <span>+${bonusData.promo_bonus_amount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold border-t border-border pt-1 mt-1 text-white">
+                  <span>Total Game Credit:</span>
+                  <span className="text-primary font-mono">{bonusData.final_credit} points</span>
                 </div>
               </div>
             )}
 
-            {/* Free Play Breakdown */}
+            {/* Free Play Total Preview */}
             {isFreePlay && parseFloat(amount) > 0 && (
-              <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 space-y-1.5 text-sm">
-                <div className="flex justify-between text-muted-foreground text-xs">
-                  <span>Order Type:</span>
-                  <span className="text-purple-300 font-semibold">🎁 Free Play</span>
+              <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg text-xs space-y-1">
+                <div className="font-semibold text-purple-300">Free Play Summary</div>
+                <div className="flex justify-between text-white">
+                  <span>Deposit Cost:</span>
+                  <span className="text-neon-green font-bold">$0.00 (Free)</span>
                 </div>
-                <div className="flex justify-between text-muted-foreground text-xs">
-                  <span>Payment Method:</span>
-                  <span className="text-purple-200/70 italic">None Required</span>
-                </div>
-                <div className="flex justify-between text-muted-foreground text-xs">
-                  <span>Deposit Amount:</span>
-                  <span className="text-white font-medium">$0.00 (Free)</span>
-                </div>
-                <div className="flex justify-between font-bold text-neon-green pt-1.5 border-t border-purple-500/20">
-                  <span>Game Credits to Load:</span>
-                  <span>{parseFloat(amount)} Credits</span>
+                <div className="flex justify-between font-bold border-t border-purple-500/20 pt-1 mt-1 text-white">
+                  <span>Game Points to Load:</span>
+                  <span className="text-purple-300 font-mono text-sm">{parseFloat(amount)} points</span>
                 </div>
               </div>
             )}
 
-            {/* Standard Deposit Bonus Breakdown */}
-            {!isFreePlay && bonusData && (
-              <div className="p-3 rounded-lg bg-white/5 border border-white/10 space-y-1 text-sm">
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Base Amount:</span>
-                  <span className="text-white">${parseFloat(amount).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-neon-gold">
-                  <span>Bonus:</span>
-                  <span>+${bonusData.total_bonus.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between font-bold text-neon-green pt-1 border-t border-white/10">
-                  <span>Final Credit:</span>
-                  <span>${bonusData.final_credit.toFixed(2)}</span>
-                </div>
-              </div>
-            )}
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-3 border-t border-border">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-ghost-neon px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={createMutation.isPending}
+                className={cn(
+                  'px-4 py-2 text-sm font-semibold rounded-lg flex items-center gap-2',
+                  isFreePlay
+                    ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30'
+                    : 'btn-neon'
+                )}
+              >
+                {createMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  isFreePlay ? '🎁 Issue Free Play' : 'Create Order'
+                )}
+              </button>
+            </div>
           </form>
-        </div>
-        <div className="p-4 border-t border-border flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="btn-ghost-neon px-4 py-2">Cancel</button>
-          <button 
-            type="submit" 
-            form="create-order-form" 
-            disabled={createMutation.isPending} 
-            className={cn('px-4 py-2 font-medium rounded-lg transition-all', isFreePlay ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30' : 'btn-neon')}
-          >
-            {createMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : isFreePlay ? (
-              '🎁 Issue Free Play'
-            ) : (
-              'Create Order'
-            )}
-          </button>
         </div>
       </div>
     </div>
