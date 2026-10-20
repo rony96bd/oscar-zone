@@ -323,3 +323,37 @@ export async function adminCreateOrder(payload: {
 
   return data
 }
+
+export async function updateOrderFields(
+  orderId: string,
+  updates: {
+    username?: string
+    base_amount?: number
+    final_game_credit?: number
+    admin_note?: string
+    game_id?: string
+    customer_payment_tag?: string
+    status?: OrderStatus
+  }
+): Promise<void> {
+  const { error } = await supabase
+    .from('orders')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', orderId)
+  if (error) throw error
+}
+
+export async function deleteOrder(orderId: string): Promise<void> {
+  // Try RPC first for safe cascade cleanup of referral_earnings and fraud_flags
+  const { error: rpcError } = await supabase.rpc('admin_delete_order', {
+    target_order_id: orderId,
+  })
+  if (!rpcError) return
+
+  // Fallback to direct delete if RPC not yet deployed
+  const { error } = await supabase
+    .from('orders')
+    .delete()
+    .eq('id', orderId)
+  if (error) throw error
+}

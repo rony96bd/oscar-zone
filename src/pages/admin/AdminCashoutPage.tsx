@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowDownToLine, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Image as ImageIcon, Plus } from 'lucide-react'
-import { fetchAllCashoutRequests, updateCashoutStatus } from '@/services/cashout'
+import { ArrowDownToLine, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Image as ImageIcon, Plus, Pencil, Trash2, X, Loader2 } from 'lucide-react'
+import { fetchAllCashoutRequests, updateCashoutStatus, updateCashoutRequest, deleteCashoutRequest } from '@/services/cashout'
 import { sendNotificationToUser } from '@/services/notifications'
 import { getScreenshotUrl } from '@/services/payments'
 import { formatCurrency, formatRelativeTime, cn } from '@/lib/utils'
@@ -21,6 +21,21 @@ export default function AdminCashoutPage() {
   const qc = useQueryClient()
   const { profile } = useAuthStore()
   const [showCreateModal, setShowCreateModal] = useState(false)
+
+  // Edit modal
+  const [editTarget, setEditTarget] = useState<any | null>(null)
+  const [editForm, setEditForm] = useState({
+    amount: '',
+    game_name: '',
+    game_username: '',
+    payment_method_name: '',
+    payment_detail: '',
+    status: 'pending' as 'pending' | 'approved' | 'rejected',
+    admin_note: '',
+  })
+
+  // Delete confirm
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null)
 
   const [previewQrUrl, setPreviewQrUrl] = useState<string | null>(null)
 
@@ -57,6 +72,34 @@ export default function AdminCashoutPage() {
       setExpandedId(null)
     },
     onError: (err: any) => toast.error(err.message || 'Action failed'),
+  })
+
+  const editMutation = useMutation({
+    mutationFn: () => updateCashoutRequest(editTarget.id, {
+      amount: editForm.amount !== '' ? Number(editForm.amount) : undefined,
+      game_name: editForm.game_name.trim() || undefined,
+      game_username: editForm.game_username.trim() || undefined,
+      payment_method_name: editForm.payment_method_name.trim() || undefined,
+      payment_detail: editForm.payment_detail.trim() || undefined,
+      status: editForm.status,
+      admin_note: editForm.admin_note || undefined,
+    }),
+    onSuccess: () => {
+      toast.success('Cashout request updated successfully')
+      setEditTarget(null)
+      qc.invalidateQueries({ queryKey: ['admin-cashout-requests'] })
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to update cashout request'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteCashoutRequest(deleteTarget.id),
+    onSuccess: () => {
+      toast.success('Cashout request deleted successfully')
+      setDeleteTarget(null)
+      qc.invalidateQueries({ queryKey: ['admin-cashout-requests'] })
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to delete cashout request'),
   })
 
   const getStatusClass = (status: string) => {
@@ -159,12 +202,41 @@ export default function AdminCashoutPage() {
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap items-center">
                     {req.qr_code_path && qrUrls[req.id] && (
                       <button onClick={() => setPreviewQrUrl(qrUrls[req.id])}
                         className="flex-shrink-0 flex items-center gap-1 text-xs text-blue-400 border border-blue-400/30 px-3 py-1.5 rounded-lg hover:bg-blue-400/10 transition-colors">
                         <ImageIcon className="h-3 w-3" /> View QR
                       </button>
+                    )}
+                    {canManage && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setEditForm({
+                              amount: String(req.amount ?? ''),
+                              game_name: req.game_name || '',
+                              game_username: req.game_username || '',
+                              payment_method_name: req.payment_method_name || '',
+                              payment_detail: req.payment_detail || '',
+                              status: req.status || 'pending',
+                              admin_note: req.admin_note || '',
+                            })
+                            setEditTarget(req)
+                          }}
+                          className="flex-shrink-0 flex items-center gap-1 text-xs text-primary border border-primary/30 px-2.5 py-1.5 rounded-lg hover:bg-primary/10 transition-colors"
+                          title="Edit Cashout"
+                        >
+                          <Pencil className="h-3 w-3" /> Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(req)}
+                          className="flex-shrink-0 flex items-center gap-1 text-xs text-destructive border border-destructive/30 px-2.5 py-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
+                          title="Delete Cashout"
+                        >
+                          <Trash2 className="h-3 w-3" /> Delete
+                        </button>
+                      </>
                     )}
                     {req.status === 'pending' && canManage && (
                       <button onClick={() => setExpandedId(expandedId === req.id ? null : req.id)}
@@ -204,6 +276,147 @@ export default function AdminCashoutPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Cashout Modal */}
+      {editTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setEditTarget(null)}>
+          <div className="glass-card w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Edit Cashout Request</h2>
+                <p className="text-xs text-muted-foreground font-mono">{editTarget.request_number}</p>
+              </div>
+              <button onClick={() => setEditTarget(null)} className="text-muted-foreground hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Amount ($)</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={editForm.amount}
+                  onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))}
+                  className="game-input w-full"
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Game Name</label>
+                  <input
+                    type="text"
+                    value={editForm.game_name}
+                    onChange={e => setEditForm(f => ({ ...f, game_name: e.target.value }))}
+                    className="game-input w-full"
+                    placeholder="e.g. Orion Stars"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Game Username</label>
+                  <input
+                    type="text"
+                    value={editForm.game_username}
+                    onChange={e => setEditForm(f => ({ ...f, game_username: e.target.value }))}
+                    className="game-input w-full"
+                    placeholder="In-game username"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Payment Method</label>
+                <input
+                  type="text"
+                  value={editForm.payment_method_name}
+                  onChange={e => setEditForm(f => ({ ...f, payment_method_name: e.target.value }))}
+                  className="game-input w-full"
+                  placeholder="e.g. CashApp, Zelle"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Send To (Payment Detail)</label>
+                <input
+                  type="text"
+                  value={editForm.payment_detail}
+                  onChange={e => setEditForm(f => ({ ...f, payment_detail: e.target.value }))}
+                  className="game-input w-full font-mono"
+                  placeholder="Account / Cashtag / Number"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Status</label>
+                <select
+                  value={editForm.status}
+                  onChange={e => setEditForm(f => ({ ...f, status: e.target.value as any }))}
+                  className="game-input w-full"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Admin Note</label>
+                <textarea
+                  value={editForm.admin_note}
+                  onChange={e => setEditForm(f => ({ ...f, admin_note: e.target.value }))}
+                  className="game-input w-full h-16 resize-none"
+                  placeholder="Optional admin note..."
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditTarget(null)}
+                className="flex-1 btn-ghost-neon py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => editMutation.mutate()}
+                disabled={editMutation.isPending}
+                className="flex-1 btn-neon py-2 text-sm flex items-center justify-center gap-2"
+              >
+                {editMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Cashout Confirm Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setDeleteTarget(null)}>
+          <div className="glass-card w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-white">Delete Cashout Request?</h2>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to permanently delete cashout request <span className="text-white font-mono font-semibold">{deleteTarget.request_number}</span>? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 btn-ghost-neon py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+                className="flex-1 py-2 text-sm font-semibold rounded-lg bg-destructive text-white hover:bg-destructive/80 transition-colors flex items-center justify-center gap-2"
+              >
+                {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR Code Preview Modal */}
       {previewQrUrl && (

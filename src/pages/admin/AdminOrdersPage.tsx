@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { fetchOrders, updateOrderStatus, migrateGuestOrderToUser } from '@/services/orders'
-import { Search, Filter, RefreshCw, ChevronRight, Clock, CheckCircle, XCircle, UserCheck, Plus } from 'lucide-react'
-import { cn, formatCurrency, formatPoints, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
+import { fetchOrders, updateOrderStatus, updateOrderFields, deleteOrder } from '@/services/orders'
+import { Search, RefreshCw, ChevronRight, CheckCircle, XCircle, Plus, Pencil, Trash2, X, Loader2 } from 'lucide-react'
+import { formatCurrency, formatPoints, formatRelativeTime, getOrderStatusClass, getOrderStatusLabel } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { OrderStatus } from '@/types'
 import { CreateOrderModal } from '@/components/admin/CreateOrderModal'
@@ -22,6 +22,20 @@ export default function AdminOrdersPage() {
   const [page, setPage] = useState(0)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const qc = useQueryClient()
+
+  // Edit modal state
+  const [editTarget, setEditTarget] = useState<any | null>(null)
+  const [editForm, setEditForm] = useState({
+    username: '',
+    base_amount: '',
+    final_game_credit: '',
+    customer_payment_tag: '',
+    status: '' as OrderStatus | '',
+    admin_note: '',
+  })
+
+  // Delete confirm state
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null)
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin-orders', status, search, page],
@@ -48,12 +62,38 @@ export default function AdminOrdersPage() {
     onError: () => toast.error('Failed to update status'),
   })
 
-  const canManage = usePermission('manage_orders')
+  const editMutation = useMutation({
+    mutationFn: () => updateOrderFields(editTarget.id, {
+      username: editForm.username.trim() || undefined,
+      base_amount: editForm.base_amount !== '' ? Number(editForm.base_amount) : undefined,
+      final_game_credit: editForm.final_game_credit !== '' ? Number(editForm.final_game_credit) : undefined,
+      customer_payment_tag: editForm.customer_payment_tag.trim() || undefined,
+      status: (editForm.status || undefined) as OrderStatus | undefined,
+      admin_note: editForm.admin_note || undefined,
+    }),
+    onSuccess: () => {
+      toast.success('Order updated successfully')
+      setEditTarget(null)
+      qc.invalidateQueries({ queryKey: ['admin-orders'] })
+      qc.invalidateQueries({ queryKey: ['admin-stats'] })
+      qc.invalidateQueries({ queryKey: ['active-accounting'] })
+      qc.invalidateQueries({ queryKey: ['game-point-balances'] })
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to update order'),
+  })
 
-  const QUICK_ACTIONS: { label: string; status: OrderStatus; icon: any; color: string }[] = [
-    { label: 'Approve', status: 'completed', icon: CheckCircle, color: 'text-neon-green' },
-    { label: 'Reject', status: 'rejected', icon: XCircle, color: 'text-destructive' },
-  ]
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteOrder(deleteTarget.id),
+    onSuccess: () => {
+      toast.success('Order deleted successfully')
+      setDeleteTarget(null)
+      qc.invalidateQueries({ queryKey: ['admin-orders'] })
+      qc.invalidateQueries({ queryKey: ['admin-stats'] })
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to delete order'),
+  })
+
+  const canManage = usePermission('manage_orders')
 
   return (
     <div className="space-y-6">
@@ -63,7 +103,7 @@ export default function AdminOrdersPage() {
           <p className="text-muted-foreground text-sm">{total} total orders</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => refetch()} className="btn-ghost-neon px-3 py-2 text-sm">
+          <button onClick={() => refetch()} className="btn-ghost-neon px-3 py-2 text-sm" title="Refresh">
             <RefreshCw className="h-4 w-4" />
           </button>
           <button onClick={() => setIsCreateModalOpen(true)} className="btn-neon px-4 py-2 text-sm flex items-center gap-2">
@@ -97,7 +137,7 @@ export default function AdminOrdersPage() {
               <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                 {/* Order info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="font-gaming font-bold text-white text-sm">{order.game?.name}</span>
                     <span className={getOrderStatusClass(order.status)}>{getOrderStatusLabel(order.status)}</span>
                     {order.is_guest && <span className="badge text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">Guest</span>}
@@ -124,7 +164,7 @@ export default function AdminOrdersPage() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="flex gap-1 flex-wrap flex-col sm:flex-row">
+                <div className="flex gap-1 flex-wrap items-center">
                   {canManage && order.status === 'pending_payment_review' && (
                     <>
                       <button
@@ -140,6 +180,34 @@ export default function AdminOrdersPage() {
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted/30 transition-colors text-destructive"
                       >
                         <XCircle className="h-3.5 w-3.5" /> Reject
+                      </button>
+                    </>
+                  )}
+                  {canManage && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditForm({
+                            username: order.username || '',
+                            base_amount: String(order.base_amount ?? ''),
+                            final_game_credit: String(order.final_game_credit ?? ''),
+                            customer_payment_tag: order.customer_payment_tag || '',
+                            status: order.status || '',
+                            admin_note: order.admin_note || '',
+                          })
+                          setEditTarget(order)
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                        title="Edit Order"
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> Edit
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(order)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors"
+                        title="Delete Order"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Delete
                       </button>
                     </>
                   )}
@@ -161,6 +229,141 @@ export default function AdminOrdersPage() {
           <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="btn-ghost-neon px-4 py-2 text-sm disabled:opacity-40">Previous</button>
           <span className="text-sm text-muted-foreground">Page {page + 1} of {Math.ceil(total / 20)}</span>
           <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * 20 >= total} className="btn-ghost-neon px-4 py-2 text-sm disabled:opacity-40">Next</button>
+        </div>
+      )}
+
+      {/* Edit Order Modal */}
+      {editTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setEditTarget(null)}>
+          <div className="glass-card w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Edit Order</h2>
+                <p className="text-xs text-muted-foreground font-mono">{editTarget.order_number}</p>
+              </div>
+              <button onClick={() => setEditTarget(null)} className="text-muted-foreground hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Game Username</label>
+                <input
+                  type="text"
+                  value={editForm.username}
+                  onChange={e => setEditForm(f => ({ ...f, username: e.target.value }))}
+                  className="game-input w-full"
+                  placeholder="Game username"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Base Amount ($)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editForm.base_amount}
+                    onChange={e => setEditForm(f => ({ ...f, base_amount: e.target.value }))}
+                    className="game-input w-full"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Final Points</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editForm.final_game_credit}
+                    onChange={e => setEditForm(f => ({ ...f, final_game_credit: e.target.value }))}
+                    className="game-input w-full"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Payment Tag / Customer Name</label>
+                <input
+                  type="text"
+                  value={editForm.customer_payment_tag}
+                  onChange={e => setEditForm(f => ({ ...f, customer_payment_tag: e.target.value }))}
+                  className="game-input w-full"
+                  placeholder="e.g. $Cashtag or Customer Name"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Status</label>
+                <select
+                  value={editForm.status}
+                  onChange={e => setEditForm(f => ({ ...f, status: e.target.value as OrderStatus }))}
+                  className="game-input w-full"
+                >
+                  <option value="pending_payment_review">Pending Payment Review</option>
+                  <option value="completed">Completed / Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="processing">Processing</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="refunded">Refunded</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Admin Note</label>
+                <textarea
+                  value={editForm.admin_note}
+                  onChange={e => setEditForm(f => ({ ...f, admin_note: e.target.value }))}
+                  className="game-input w-full h-20 resize-none"
+                  placeholder="Optional admin note..."
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditTarget(null)}
+                className="flex-1 btn-ghost-neon py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => editMutation.mutate()}
+                disabled={editMutation.isPending}
+                className="flex-1 btn-neon py-2 text-sm flex items-center justify-center gap-2"
+              >
+                {editMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setDeleteTarget(null)}>
+          <div className="glass-card w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-white">Delete Order?</h2>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to permanently delete order <span className="text-white font-mono font-semibold">{deleteTarget.order_number}</span>? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 btn-ghost-neon py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+                className="flex-1 py-2 text-sm font-semibold rounded-lg bg-destructive text-white hover:bg-destructive/80 transition-colors flex items-center justify-center gap-2"
+              >
+                {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
       

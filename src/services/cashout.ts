@@ -79,3 +79,38 @@ export async function updateCashoutStatus(
     .eq('id', id)
   if (error) throw error
 }
+
+
+export async function updateCashoutRequest(
+  id: string,
+  updates: {
+    amount?: number
+    game_name?: string
+    game_username?: string
+    payment_method_name?: string
+    payment_detail?: string
+    status?: 'pending' | 'approved' | 'rejected'
+    admin_note?: string
+  }
+): Promise<void> {
+  const { error } = await supabase
+    .from('cashout_requests')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteCashoutRequest(id: string): Promise<void> {
+  // Try RPC first
+  const { error: rpcError } = await supabase.rpc('admin_delete_cashout', {
+    target_cashout_id: id,
+  })
+  if (!rpcError) return
+
+  // Fallback to direct delete
+  const { error } = await supabase
+    .from('cashout_requests')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+}
