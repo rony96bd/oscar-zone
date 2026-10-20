@@ -38,8 +38,8 @@ const navSections = [
     items: [
       { href: '/admin/games', label: 'Games', icon: Gamepad2, permission: 'view_games' },
       { href: '/admin/customer-games', label: 'Player Accounts', icon: Joystick, permission: 'view_games' },
-      { href: '/admin/point-purchases', label: 'Load Game Points', icon: Coins, permission: 'manage_games' },
-      { href: '/admin/payment-methods', label: 'Payments', icon: CreditCard, permission: 'manage_orders' },
+      { href: '/admin/point-purchases', label: 'Game Point Stock', icon: Coins, permission: 'manage_games' },
+      { href: '/admin/payment-methods', label: 'Payments & Drawer', icon: CreditCard, permission: 'manage_orders' },
     ],
   },
   {
